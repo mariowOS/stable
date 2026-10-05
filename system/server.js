@@ -2361,7 +2361,7 @@ app.get('/api/system/check-update', async (req, res) => {
       ? JSON.parse(fs.readFileSync(versionPath, 'utf8')).version 
       : "1.0.0";
       
-    const remoteUrl = `https://raw.githubusercontent.com/mariowOS/stable/main/version.json?t=${Date.now()}`; 
+    const remoteUrl = `https://raw.githubusercontent.com/mariowOS/stable/main/system/version.json?t=${Date.now()}`; 
     const response = await fetch(remoteUrl);
     
     if (!response.ok) {

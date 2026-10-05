@@ -4,27 +4,5 @@
     "content": "",
     "name": "Note",
     "color": "transparent"
-  },
-  {
-    "id": "1790967772788",
-    "content": "",
-    "name": "Note",
-    "color": "transparent"
-  },
-  {
-    "id": "1790967780772",
-    "content": "link davidecarosi esercizi 03/10/2026\r<br>\r<br>https://www.swisstransfer.com/dl/01a0fd39-d9a4-7229-88fe-523212a6ea43",
-    "name": "davidecarosi",
-    "color": "transparent"
-  },
-  {
-    "id": "1791121961649",
-    "content": "@echo off<br>setlocal<br>title mariowOS<br>cd /d \"%~dp0\"<br><br>where node &gt;nul 2&gt;nul<br>if errorlevel 1 (<br>  echo Node.js was not found. Install Node.js 22.12 or newer and try again.<br>  pause<br>  exit /b 1<br>)<br><br>where npm &gt;nul 2&gt;nul<br>if errorlevel 1 (<br>  echo npm was not found. Reinstall Node.js with npm included and try again.<br>  pause<br>  exit /b 1<br>)<br><br>if not exist \"node_modules\\electron\" (<br>  echo Dependencies are not installed. Run npm install first.<br>  pause<br>  exit /b 1<br>)<br><br>echo booting mariowOS gui...<br>call npm run start-os<br>set \"exitCode=%errorlevel%\"<br>if not \"%exitCode%\"==\"0\" (<br>  echo mariowOS exited with code %exitCode%.<br>  pause<br>)<br>exit /b %exitCode%<br>",
-    "name": "start.bat",
-    "color": "transparent",
-    "sourcePath": "/device/C:/Users/anten/mariowos/development",
-    "sourceName": "start.bat",
-    "sourceFormat": "text",
-    "sourceTemplate": ""
   }
 ]
