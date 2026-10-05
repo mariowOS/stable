@@ -1,26 +1,21 @@
 {
-  "name": "system",
+  "name": "development",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "<img width=\"1167\" height=\"360\" alt=\"Frame 340\" src=\"https://github.com/user-attachments/assets/75bb4aad-f059-44b1-9c6e-77df29639fc2\" />",
+  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start-os": "electron system/launcher.js",
+    "boot:verbose": "node system/boot-mode.js verbose",
+    "boot:quiet": "node system/boot-mode.js quiet",
+    "boot:status": "node system/boot-mode.js status"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@tomphttp/bare-server-node": "^2.0.6",
-    "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.0",
-    "express": "^5.1.0",
-    "multer": "^2.0.2",
-    "node-cron": "^3.0.3",
-    "nodemailer": "^7.0.0"
-  },
-  "allowScripts": {
-    "bcrypt@6.0.0": true
+    "body-parser": "^2.2.2",
+    "express": "^5.2.1",
+    "nodemailer": "^7.0.12"
   },
   "devDependencies": {
     "electron": "^44.4.3"
