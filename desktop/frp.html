@@ -1,0 +1,71 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Factory Reset Protection</title>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <style>
+    body { color-scheme: dark; margin: 0; height: 100vh; display: flex; align-items: center; justify-content: center; background: radial-gradient(circle at 50% 30%, #1b2233, #0b0d12 70%); color: #fff; -webkit-font-smoothing: antialiased; font-family: 'Poppins', sans-serif; }
+    .card { background: rgba(28,30,38,0.97); border: 1px solid rgba(255,255,255,0.1); padding: 40px; border-radius: 18px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); width: 100%; max-width: 400px; margin: 0 16px; text-align: center; box-sizing: border-box; }
+    h2 { margin: 0 0 10px 0; color: #fff; font-size: 20px; font-weight: 600; }
+    p { color: rgba(255,255,255,0.5); font-size: 13px; margin-bottom: 30px; }
+    input[type="password"] { width: 100%; padding: 12px; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; margin-bottom: 20px; box-sizing: border-box; font-family: inherit; font-size: 13px; outline: none; background: rgba(0,0,0,0.2); color: #fff; transition: border-color 0.2s; }
+    input::placeholder { color: rgba(255,255,255,0.4); }
+    input[type="password"]:focus { border-color: #0a84ff; box-shadow: 0 0 0 2px rgba(10,132,255,0.4); }
+    .btn:hover { background: #007aff; }
+    .btn-secondary:hover { background: rgba(10,132,255,0.18); }
+    .btn { background: #0a84ff; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; cursor: pointer; font-family: inherit; font-weight: 500; font-size: 13px; margin-bottom: 10px; transition: background 0.15s; }
+    .btn-secondary { background: transparent; color: #0a84ff; border: 1px solid #0a84ff; }
+    .error { color: #ff453a; font-size: 12px; margin-bottom: 15px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Device Protected</h2>
+    <p>This OS was reset through recovery. To continue setup, enter the previous password or import a valid config.</p>
+    
+    <div class="error" id="err-msg"></div>
+    
+    <input type="password" id="frp-pass" placeholder="Previous Password">
+    <button class="btn" onclick="verifyFRP()">Verify Password</button>
+    
+    <div style="margin: 20px 0; color: rgba(255,255,255,0.5); font-size: 12px;">OR</div>
+    
+    <button class="btn btn-secondary" onclick="document.getElementById('file-upload').click()">Import credentials.json</button>
+    <input type="file" id="file-upload" accept=".json" style="display: none;" onchange="importFRP(event)">
+  </div>
+
+<script>
+  async function unlock(type, payload) {
+    const res = await fetch('/api/system/frp-unlock', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type, payload })
+    });
+    const data = await res.json();
+    if (data.success) {
+      window.location.reload(); // Will hit root and redirect to setup/welcome
+    } else {
+      const err = document.getElementById('err-msg');
+      err.innerText = data.error;
+      err.style.display = 'block';
+    }
+  }
+
+  function verifyFRP() {
+    const pass = document.getElementById('frp-pass').value;
+    if (pass) unlock('password', pass);
+  }
+
+  function importFRP(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => unlock('file', event.target.result);
+    reader.readAsText(file);
+  }
+</script>
+</body>
+</html>

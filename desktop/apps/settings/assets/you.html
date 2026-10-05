@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<script src="/desktop/assets/mariowos-dialogs.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+
+  <style>
+    body { 
+      font-family: 'Poppins', sans-serif; 
+      color: white; 
+      margin: 0; 
+      padding: 20px 0 60px 0; 
+      background: transparent;
+      overflow-x: hidden; 
+      overflow-y: auto; 
+    }
+
+    .container {
+      width: 100%;
+      padding: 0 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    /* Top Header Section */
+    .header-panel {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      width: 88px;
+      height: 88px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      border-radius: 50%;
+    }
+
+    .avatar-img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+      background: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.3);
+      transition: filter 0.2s;
+    }
+
+    .avatar-wrapper:hover .avatar-img {
+      filter: brightness(0.7);
+    }
+
+    .avatar-edit-overlay {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 11px;
+      font-weight: 500;
+      color: white;
+      opacity: 0;
+      transition: opacity 0.2s;
+      pointer-events: none;
+    }
+
+    .avatar-wrapper:hover .avatar-edit-overlay {
+      opacity: 1;
+    }
+
+    .user-name {
+      font-size: 20px;
+      font-weight: 600;
+      margin: 0;
+      letter-spacing: -0.3px;
+    }
+
+    .user-email {
+      font-size: 13px;
+      color: rgba(255, 255, 255, 0.6);
+      margin: 0;
+    }
+
+    /* macOS Panel Groups - Full Width Edge-to-Edge */
+    .list-group { 
+      background: rgba(255, 255, 255, 0.06); 
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+      border-radius: 10px; 
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .list-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    
+    .list-item:hover { background: rgba(255, 255, 255, 0.1); }
+    .list-item:last-child { border-bottom: none; }
+
+    .item-left {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .icon-badge {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      color: white;
+      flex-shrink: 0;
+    }
+    
+    .icon-badge .material-symbols-outlined { font-size: 18px; }
+
+    /* macOS Icon Colors */
+    .bg-gray { background: linear-gradient(180deg, #8e8e93, #636366); }
+    .bg-blue { background: linear-gradient(180deg, #64d2ff, #2bc0ff); }
+    .bg-family { background: linear-gradient(180deg, #0a84ff, #007aff); }
+    .bg-appstore { background: linear-gradient(180deg, #0a84ff, #007aff); }
+    .bg-black { background: linear-gradient(180deg, #48484a, #2c2c2e); }
+
+    .item-title {
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .item-subtitle {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.5);
+      margin-top: 2px;
+    }
+
+    .item-right {
+      color: rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: center;
+    }
+
+    /* Section Titles */
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.5);
+      margin: 12px 0 4px 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Expandable Edit Area */
+    .edit-panel {
+      display: none;
+      flex-direction: column;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(0, 0, 0, 0.15);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .edit-panel input {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 10px 14px; 
+      border-radius: 8px; 
+      border: 1px solid rgba(255, 255, 255, 0.1); 
+      background: rgba(0, 0, 0, 0.25); 
+      color: white; 
+      font-family: inherit; 
+      font-size: 13px; 
+      outline: none; 
+      transition: border-color 0.2s;
+    }
+    
+    .edit-panel input:focus { border-color: #0a84ff; }
+
+    .btn-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+    }
+
+    .btn { 
+      padding: 8px 16px; 
+      border-radius: 6px; 
+      border: none; 
+      background: #0a84ff; 
+      color: white; 
+      font-weight: 500; 
+      font-size: 13px;
+      cursor: pointer; 
+      font-family: inherit; 
+      transition: background 0.2s; 
+    }
+    .btn:hover { background: #007aff; }
+
+    .btn-danger-text {
+      background: transparent;
+      border: none;
+      color: #ff453a;
+      font-family: inherit;
+      font-size: 13px;
+      cursor: pointer;
+      padding: 0;
+    }
+    .btn-danger-text:hover { text-decoration: underline; }
+
+    html::-webkit-scrollbar { display: none; }
+    .verify-row { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:8px; }
+    .verify-badge { font-size:12px; padding:3px 10px; border-radius:999px; font-weight:600; }
+    .verify-badge.ok { background:rgba(48,209,88,0.2); color:#30d158; }
+    .verify-badge.no { background:rgba(255,159,10,0.2); color:#ff9f0a; }
+    .verify-link { background:none; border:none; color:#0a84ff; cursor:pointer; font-size:13px; padding:0; }
+    .verify-link:hover { text-decoration:underline; }
+    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modal-backdrop.show { display:flex; }
+    .modal { background:rgba(28,30,38,0.97); border:1px solid rgba(255,255,255,0.1); border-radius:18px; padding:22px; width:min(400px, calc(100vw - 32px)); box-shadow:0 24px 60px rgba(0,0,0,0.55); color:#fff; display:flex; flex-direction:column; gap:12px; }
+    .modal h3 { margin:0; font-size:16px; font-weight:600; }
+    .modal p { margin:0; font-size:13px; opacity:0.75; }
+    .code-input { font-size:26px; letter-spacing:10px; text-align:center; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; outline:none; }
+    .code-input:focus { border-color:#0a84ff; }
+    .modal-msg { font-size:13px; min-height:18px; }
+    .modal-msg.err { color:#ff453a; } .modal-msg.ok { color:#30d158; }
+    .btn:disabled { opacity:0.5; cursor:default; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  
+  <!-- Header: Avatar, Name, Email -->
+  <div class="header-panel">
+    <div class="avatar-wrapper" onclick="document.getElementById('pfpUpload').click()">
+      <img src="/desktop/assets/avatar.user.png" id="pfpPreview" class="avatar-img" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTEyIDJDMiAxMiA2LjQ4IDEyIDEyIDEyIDEyczEwLTQuNDggMTAtMTAgMTAuNDgtMTAgMTItMTB6IiBvcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNMTIgMTJjMi4yMSAwIDQtMS43OSA0LTRzLTEuNzktNC00LTQtNCAxLjc5LTQgNCAxLjc5IDQgNCA0em0wIDJjLTIuNjcgMC04IDEuMzQtOCA0djJoMTZ2LTJjMC0yLjY2LTUuMzMtNC04LTR6Ii8+PC9zdmc+'">
+      <div class="avatar-edit-overlay">Edit</div>
+      <input type="file" id="pfpUpload" accept="image/png, image/jpeg" style="display: none;" onchange="previewAvatar(this)">
+    </div>
+    <div class="user-name" id="displayName">mariowOS User</div>
+    <div class="user-email" id="displayEmail">mariowOS Account</div>
+    <div class="verify-row" id="verifyRow" style="display:none;">
+      <span class="verify-badge no" id="verifyBadge">Not verified</span>
+      <button class="verify-link" id="verifyBtn" onclick="openVerifyModal()">Verify email</button>
+    </div>
+  </div>
+
+  <!-- Group 1: Personal & Security -->
+  <div class="list-group">
+    
+    <!-- Personal Info Trigger -->
+    <div class="list-item" onclick="toggleEditPanel()">
+      <div class="item-left">
+        <div class="icon-badge bg-gray"><span class="material-symbols-outlined">badge</span></div>
+        <div class="item-title">Personal Information</div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined" id="personalIcon">chevron_right</span></div>
+    </div>
+
+    <!-- Hidden Edit Panel -->
+    <div class="edit-panel" id="editPanel">
+      <input type="text" id="username" placeholder="Username">
+      <input type="email" id="email" placeholder="Email Address">
+      
+      <div class="btn-row">
+        <button class="btn-danger-text" onclick="resetAvatar()">Remove Profile Picture</button>
+        <button class="btn" onclick="saveSettings()">Save</button>
+      </div>
+    </div>
+
+    <div class="list-item" onclick="jumpToSecurity()">
+      <div class="item-left">
+        <div class="icon-badge bg-gray"><span class="material-symbols-outlined">gpp_good</span></div>
+        <div class="item-title">Sign-In & Security</div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>
+  </div>
+
+  <!-- Group 2: Cloud & Services -->
+  <div class="list-group">
+    <div class="list-item" onclick="exportSettings()">
+      <div class="item-left">
+        <div class="icon-badge bg-blue"><span class="material-symbols-outlined">cloud</span></div>
+        <div class="item-title">mariowOS Sync (Export Settings)</div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined" style="opacity: 0.8;">download</span></div>
+    </div>
+
+
+    <div class="list-item" onclick="jumpToApps()">
+      <div class="item-left">
+        <div class="icon-badge bg-appstore"><span class="material-symbols-outlined">storefront</span></div>
+        <div class="item-title">Media & Purchases</div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>
+  </div>
+
+  <!-- Devices Section -->
+  <div class="section-title">Devices</div>
+  <div class="list-group">
+    <div class="list-item" onclick="jumpToAbout()">
+      <div class="item-left">
+        <div class="icon-badge bg-gray" style="background: transparent; color: rgba(255,255,255,0.7);"><span class="material-symbols-outlined" style="font-size: 32px;">laptop_mac</span></div>
+        <div>
+          <div class="item-title" id="deviceName">mariowOS PC</div>
+          <div class="item-subtitle">This Device</div>
+        </div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="modal-backdrop" id="verifyModal">
+  <div class="modal">
+    <h3>Verify your email</h3>
+    <p id="verifyText">We sent a 6-digit code to your email.</p>
+    <input class="code-input" id="codeInput" inputmode="numeric" maxlength="6" autocomplete="one-time-code" placeholder="000000">
+    <div class="modal-msg" id="verifyMsg"></div>
+    <div class="btn-row">
+      <button class="verify-link" id="resendBtn" onclick="sendCode()">Resend code</button>
+      <div style="display:flex; gap:8px;">
+        <button class="btn" style="background:rgba(255,255,255,0.12);" onclick="closeVerifyModal()">Cancel</button>
+        <button class="btn" id="confirmCodeBtn" onclick="confirmCode()">Verify</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let currentEmail = '';
+let resendTimer = null;
+
+async function readJson(res) {
+  try { return await res.json(); }
+  catch (e) { return { success: false, error: res.status === 404 ? 'The system kernel is outdated: close and restart mariowOS.' : 'Unexpected server response (' + res.status + ').' }; }
+}
+
+function renderVerified(email, verified) {
+  currentEmail = email || '';
+  const row = document.getElementById('verifyRow');
+  row.style.display = currentEmail ? 'flex' : 'none';
+  const badge = document.getElementById('verifyBadge');
+  badge.className = 'verify-badge ' + (verified ? 'ok' : 'no');
+  badge.innerText = verified ? 'Verified' : 'Not verified';
+  document.getElementById('verifyBtn').style.display = verified ? 'none' : 'inline';
+}
+
+function setVerifyMsg(text, kind) {
+  const el = document.getElementById('verifyMsg');
+  el.innerText = text || '';
+  el.className = 'modal-msg' + (kind ? ' ' + kind : '');
+}
+
+function startResendCooldown(seconds) {
+  const btn = document.getElementById('resendBtn');
+  clearInterval(resendTimer);
+  let left = seconds;
+  btn.disabled = true;
+  btn.innerText = `Resend code (${left}s)`;
+  resendTimer = setInterval(() => {
+    left--;
+    if (left <= 0) { clearInterval(resendTimer); btn.disabled = false; btn.innerText = 'Resend code'; }
+    else btn.innerText = `Resend code (${left}s)`;
+  }, 1000);
+}
+
+async function sendCode() {
+  setVerifyMsg('Sending code...');
+  try {
+    const res = await fetch('/api/email/send-code', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail })
+    });
+    const data = await readJson(res);
+    if (!data.success) {
+      setVerifyMsg(data.error || 'Could not send the code.', 'err');
+      if (data.retryAfter) startResendCooldown(data.retryAfter);
+      return false;
+    }
+    document.getElementById('verifyText').innerText = `We sent a 6-digit code to ${currentEmail}. It expires in 10 minutes.`;
+    setVerifyMsg('Code sent.', 'ok');
+    startResendCooldown(60);
+    return true;
+  } catch (e) {
+    setVerifyMsg('Network error: ' + e.message, 'err');
+    return false;
+  }
+}
+
+function openVerifyModal() {
+  if (!currentEmail) return;
+  document.getElementById('codeInput').value = '';
+  document.getElementById('verifyModal').classList.add('show');
+  document.getElementById('codeInput').focus();
+  sendCode();
+}
+
+function closeVerifyModal() {
+  document.getElementById('verifyModal').classList.remove('show');
+  setVerifyMsg('');
+}
+
+async function confirmCode() {
+  const code = document.getElementById('codeInput').value.trim();
+  if (!/^\d{6}$/.test(code)) { setVerifyMsg('Enter the 6-digit code.', 'err'); return; }
+  const btn = document.getElementById('confirmCodeBtn');
+  btn.disabled = true;
+  try {
+    const res = await fetch('/api/email/verify-code', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: currentEmail, code })
+    });
+    const data = await readJson(res);
+    if (!data.success) { setVerifyMsg(data.error || 'Wrong code.', 'err'); return; }
+    renderVerified(currentEmail, true);
+    setVerifyMsg('Email verified!', 'ok');
+    setTimeout(closeVerifyModal, 900);
+  } catch (e) {
+    setVerifyMsg('Network error: ' + e.message, 'err');
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('verifyModal').classList.contains('show')) confirmCode();
+  if (e.key === 'Escape') closeVerifyModal();
+});
+
+function jumpToAbout() {
+  if (window.parent && typeof window.parent.loadPage === 'function') {
+    const aboutBtn = window.parent.document.querySelector('.menu-item[onclick*="about"]');
+    if (aboutBtn) { aboutBtn.click(); return; }
+  }
+  window.location.href = 'about.html';
+}
+
+let avatarChanged = false;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const resp = await fetch('/get-settings');
+    if (!resp.ok) return;
+
+    const cfg = await resp.json();
+
+    if (cfg.username) {
+      document.getElementById('username').value = cfg.username;
+      document.getElementById('displayName').innerText = cfg.username;
+      document.getElementById('deviceName').innerText = cfg.username + "'s PC";
+    }
+    if (cfg.email) {
+      document.getElementById('email').value = cfg.email;
+      document.getElementById('displayEmail').innerText = cfg.email;
+    }
+    renderVerified(cfg.email, cfg.verified === true);
+
+    // Cache-bust the avatar preview
+    document.getElementById('pfpPreview').src = `/desktop/assets/avatar.user.png?t=${new Date().getTime()}`;
+
+  } catch (err) {
+    console.warn('Settings check failed:', err);
+  }
+});
+
+function toggleEditPanel() {
+  const panel = document.getElementById('editPanel');
+  const icon = document.getElementById('personalIcon');
+  if (panel.style.display === 'flex') {
+    panel.style.display = 'none';
+    icon.innerText = 'chevron_right';
+  } else {
+    panel.style.display = 'flex';
+    icon.innerText = 'expand_more';
+  }
+}
+
+function jumpToSecurity() {
+  if (window.parent && typeof window.parent.loadPage === 'function') {
+    const securityBtn = window.parent.document.querySelector('.menu-item[onclick*="security"]');
+    if (securityBtn) securityBtn.click();
+  }
+}
+
+function jumpToApps() {
+  if (window.parent && typeof window.parent.loadPage === 'function') {
+    const appsBtn = window.parent.document.querySelector('.menu-item[onclick*="apps"]');
+    if (appsBtn) appsBtn.click();
+  }
+}
+
+async function exportSettings() {
+  try {
+    const resp = await fetch('/get-settings');
+    if (!resp.ok) throw new Error('Failed to fetch settings');
+    const cfg = await resp.json();
+    
+    // Create and trigger download of the JSON file
+    const dataStr = JSON.stringify(cfg, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = "mariowOS-sync.json";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (e) {
+    await mDialog.alert('Could not export settings: ' + e.message);
+  }
+}
+
+function previewAvatar(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      document.getElementById('pfpPreview').src = e.target.result;
+      avatarChanged = true;
+      saveAvatarOnly();
+    }
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+
+async function saveAvatarOnly() {
+  const fileInput = document.getElementById('pfpUpload');
+  if (fileInput.files.length > 0) {
+    const formData = new FormData();
+    formData.append('avatar', fileInput.files[0]);
+    try {
+      const response = await fetch('/upload-avatar', { method: 'POST', body: formData });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Avatar upload failed');
+      avatarChanged = false;
+      document.getElementById('pfpPreview').src = `/desktop/assets/avatar.user.png?t=${Date.now()}`;
+      if (window.parent && typeof window.parent.fetchServerInfo === 'function') {
+        window.parent.fetchServerInfo(); 
+      }
+    } catch (err) {
+      await mDialog.alert(`Could not update profile picture: ${err.message}`);
+    }
+  }
+}
+
+async function resetAvatar() {
+  if (await mDialog.confirm("Are you sure you want to remove your profile picture?", { danger: true, okText: "Remove" })) {
+    try {
+      const response = await fetch('/reset-avatar', { method: 'POST' });
+      const result = await response.json();
+      if (!response.ok || !result.success) throw new Error(result.error || 'Avatar reset failed');
+      document.getElementById('pfpUpload').value = "";
+      avatarChanged = false;
+      document.getElementById('pfpPreview').src = "data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTEyIDJDMiAxMiA2LjQ4IDEyIDEyIDEyIDEyczEwLTQuNDggMTAtMTAgMTAuNDgtMTAgMTItMTB6IiBvcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNMTIgMTJjMi4yMSAwIDQtMS43OSA0LTRzLTEuNzktNC00LTQtNCAxLjc5LTQgNCAxLjc5IDQgNCA0em0wIDJjLTIuNjcgMC04IDEuMzQtOCA0djJoMTZ2LTJjMC0yLjY2LTUuMzMtNC04LTR6Ii8+PC9zdmc+";
+      
+      if (window.parent && typeof window.parent.fetchServerInfo === 'function') {
+        window.parent.fetchServerInfo();
+      }
+    } catch (error) {
+      await mDialog.alert(`Failed to reset avatar: ${error.message}`);
+    }
+  }
+}
+
+async function saveSettings() {
+  const username = document.getElementById('username').value.trim();
+  const email = document.getElementById('email').value.trim();
+
+  if (!username || !email) {
+    await mDialog.alert('Username and Email cannot be empty.');
+    return;
+  }
+
+  if (username.length > 50) {
+    await mDialog.alert('Username is too long. Maximum 50 characters allowed.');
+    return;
+  }
+
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email) || email.length > 254) {
+    await mDialog.alert('Please enter a valid email address.');
+    return;
+  }
+
+  const emailChanged = email.toLowerCase() !== currentEmail.toLowerCase();
+
+  const settings = { username, email };
+
+  try {
+    const response = await fetch('/save-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    
+    const data = await readJson(response);
+    if (data.success) {
+      document.getElementById('displayName').innerText = username;
+      document.getElementById('deviceName').innerText = username + "'s PC";
+      document.getElementById('displayEmail').innerText = email;
+      if (emailChanged) {
+        renderVerified(email, false);
+        if (await mDialog.confirm('Your email changed. Send a verification code now?')) openVerifyModal();
+      }
+      
+      toggleEditPanel();
+
+      if (window.parent && typeof window.parent.fetchServerInfo === 'function') {
+        window.parent.fetchServerInfo();
+      }
+    } else {
+      await mDialog.alert('Error: ' + (data.error || 'Unknown error'));
+    }
+  } catch (err) {
+    await mDialog.alert('Error saving settings: ' + err.message);
+  }
+}
+</script>
+
+</body>
+</html>

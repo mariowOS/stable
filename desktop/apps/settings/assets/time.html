@@ -1,0 +1,118 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Time & Date</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+body {
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  margin: 0;
+  padding: 10px 10px 40px;
+  background: transparent;
+  overflow-y: auto;
+  -webkit-font-smoothing: antialiased;
+}
+.time-display { margin: 0 0 20px; }
+.time-display .clock { font-variant-numeric: tabular-nums; }
+.card-list { margin: 0 0 20px; }
+.item { gap: 14px; }
+.item:focus-visible { outline: none; box-shadow: inset 0 0 0 2px rgba(10, 132, 255, 0.4); }
+.text-group { flex: 1; min-width: 0; }
+.text-title { font-size: 14px; font-weight: 500; }
+.bg-blue { background: linear-gradient(180deg, #0a84ff, #007aff); }
+.bg-cyan { background: linear-gradient(180deg, #64d2ff, #2bc0ff); }
+html { scrollbar-width: none; }
+html::-webkit-scrollbar { display: none; }
+</style>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200">
+<link rel="stylesheet" href="settings-submenu.css">
+</head>
+<body>
+
+<div class="container">
+  <div class="settings-page-header">
+    <button class="settings-page-back" type="button" aria-label="Back to settings" onclick="goBackToSettings()">
+      <span class="material-symbols-outlined">arrow_back_ios_new</span>
+    </button>
+    <h1>Time &amp; Date</h1>
+  </div>
+
+  <div class="time-display">
+    <div class="clock" id="clock">--:-- --</div>
+    <div class="date" id="date">-</div>
+  </div>
+
+  <div class="banner">
+    <div class="title">Date &amp; Time Settings</div>
+    <div class="desc">
+      Adjust your system clock and time zone.
+    </div>
+  </div>
+
+  <div class="card-list">
+    <div class="item" role="link" tabindex="0" onclick="navigateToFile('set-time-manually.html')" onkeydown="if(event.key==='Enter'||event.key===' ')navigateToFile('set-time-manually.html')">
+      <div class="icon-badge bg-blue"><span class="material-symbols-outlined">edit</span></div>
+      <div class="text-group">
+        <div class="text-title">Set Time Manually</div>
+        <div class="text-desc">Set the system clock yourself</div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>
+
+    <div class="item" role="link" tabindex="0" onclick="navigateToFile('time-zone.html')" onkeydown="if(event.key==='Enter'||event.key===' ')navigateToFile('time-zone.html')">
+      <div class="icon-badge bg-cyan"><span class="material-symbols-outlined">public</span></div>
+      <div class="text-group">
+        <div class="text-title">Time Zone</div>
+        <div class="text-desc">Choose your UTC offset</div>
+      </div>
+      <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+function goBackToSettings() {
+  if (window.parent && typeof window.parent.closeSettingsSubmenu === 'function') {
+    window.parent.closeSettingsSubmenu('time');
+  } else {
+    window.history.back();
+  }
+}
+
+function navigateToFile(file) {
+  const openPage = () => {
+    window.location.href = `/desktop/apps/settings/assets/${file}`;
+  };
+
+  if (window.parent !== window && typeof window.parent.requirePassword === 'function') {
+    window.parent.requirePassword(openPage);
+  } else {
+    openPage();
+  }
+}
+
+function updateTime() {
+  const now = new Date();
+  let hours = now.getHours();
+  const minutes = now.getMinutes().toString().padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12 || 12;
+  document.getElementById('clock').textContent = `${hours}:${minutes} ${ampm}`;
+  document.getElementById('date').textContent = now.toLocaleDateString(undefined, { weekday: "long", year: "numeric", month: "long", day: "numeric" });
+}
+
+updateTime();
+setInterval(updateTime, 1000);
+</script>
+
+</body>
+</html>
