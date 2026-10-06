@@ -1,0 +1,10 @@
+
+> development@1.0.0 start-os
+> electron system/launcher.js
+
+
+[sniffer]: booting...
+[kernel]: kernel booted on [win32] at http://127.0.0.1:3000
+[sniffer]: kernel loaded; booting GUI.
+[9116:1005/081543.376:ERROR:content\browser\network_service_instance_impl.cc:650] Network service crashed or was terminated, restarting service.
+[sniffer]: system shutdown initiated...
