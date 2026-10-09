@@ -123,6 +123,11 @@ Licensed under the Apache License, Version 2.0
 .c-pictures { background: linear-gradient(180deg, #bf5af2, #af52de); }
 .c-videos { background: linear-gradient(180deg, #ff3b30, #ff453a); }
 .c-root { background: linear-gradient(180deg, #98989d, #706f76); }
+.c-device { background: linear-gradient(180deg, #0a84ff, #0060df); }
+.c-volume { background: linear-gradient(180deg, #64d2ff, #0a84ff); }
+.sidebar-heading { padding: 10px 10px 4px; color: var(--m3-text-muted); font-size: 10px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+.nav-item.nested { margin-left: 14px; }
+.nav-sub-label { color: var(--m3-text-muted); font-size: 11px; padding: 6px 10px; }
 .home-drive { align-items: flex-start; }
 .home-drive .icon-bg { margin-top: 1px; }
 .home-drive-info { flex: 1; min-width: 0; }
@@ -281,6 +286,16 @@ Licensed under the Apache License, Version 2.0
     <div class="nav-item" data-path="/" onclick="navClick('/')">
       <div class="icon-bg c-root"><span class="material-symbols-outlined">dns</span></div>/
     </div>
+
+    <div class="sidebar-divider"></div>
+
+    <div class="sidebar-heading">This PC</div>
+    <div class="nav-item" data-path="/device" onclick="navClick('/device')">
+      <div class="icon-bg c-device"><span class="material-symbols-outlined">computer</span></div>Device
+    </div>
+    <!-- Volumes are discovered from the host at startup, so the tree always matches
+         the real machine instead of a hard-coded guess. -->
+    <div id="volumeList"></div>
   </div>
 </aside>
 
@@ -515,7 +530,8 @@ Licensed under the Apache License, Version 2.0
         tr.dataset.name = item.name;
         tr.dataset.type = item.type;
         tr.dataset.date = item.date;
-        tr.dataset.size = item.size === '--' ? '-1' : String(parseFloat(item.size) || 0);
+        // Sort on real byte counts: the displayed size mixes B/KB/MB/GB units.
+        tr.dataset.size = String(typeof item.bytes === 'number' ? item.bytes : -1);
         
         tr.onclick = (e) => {
           if (isInlineEditing) return;
@@ -525,7 +541,7 @@ Licensed under the Apache License, Version 2.0
           }
           if (e.detail === 2) {
             if (item.type === 'folder') {
-              navigateTo(path === '/' ? `/${item.name}` : `${path}/${item.name}`);
+              navigateTo(childPath(path, item.name));
             } else if (path !== '/') openFileInNotes(item);
             return;
           }
@@ -539,7 +555,8 @@ Licensed under the Apache License, Version 2.0
         };
 
         let icon = 'description', iconClass = 'icon-doc';
-        if (item.type === 'folder') { icon = 'folder'; iconClass = 'icon-folder'; }
+        if (item.isVolume) { icon = 'hard_drive'; iconClass = 'icon-folder'; }
+        else if (item.type === 'folder') { icon = 'folder'; iconClass = 'icon-folder'; }
         else if (['.jpg', '.png', '.gif', '.jpeg'].includes(item.ext)) { icon = 'image'; iconClass = 'icon-image'; }
         else if (['.mp4', '.mkv', '.avi'].includes(item.ext)) { icon = 'movie'; iconClass = 'icon-movie'; }
         else if (['.zip', '.rar', '.7z'].includes(item.ext)) { icon = 'folder_zip'; }
@@ -603,14 +620,64 @@ Licensed under the Apache License, Version 2.0
     selectedFile = item ? item.name : null;
   }
 
+  // Joining a child onto a path is the same everywhere except at a root, where the
+  // parent already ends in the separator.
+  function childPath(parent, name) {
+    return parent === '/' ? `/${name}` : `${parent}/${name}`;
+  }
+
+  function isDevicePath(path) {
+    return path === '/device' || path.startsWith('/device/');
+  }
+
+  // The label shown in the tab and title bar for any location.
+  function describeLocation(path) {
+    if (path === '/') return 'System Root';
+    if (path === '/home') return 'Home';
+    if (path === '/device') return 'This PC';
+    return path.split('/').pop();
+  }
+
   function updateSidebar(path) {
     document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+
     let matchPath = path;
-    if (path !== '/' && path.startsWith('/') && !path.startsWith('/home')) {
-      matchPath = '/'; 
+    if (isDevicePath(path)) {
+      // Highlight the deepest sidebar entry that contains this path: the volume if
+      // we are inside one, otherwise the device root.
+      const volumeMatch = /^\/device\/[^/]+/.exec(path);
+      matchPath = volumeMatch ? volumeMatch[0] : '/device';
+    } else if (path !== '/' && path.startsWith('/') && !path.startsWith('/home')) {
+      matchPath = '/';
     }
+
     const activeMatch = [...document.querySelectorAll('.nav-item')].find(el => el.dataset.path === matchPath);
     if (activeMatch) activeMatch.classList.add('active');
+  }
+
+  // Mount points come from the kernel, so Windows shows its drive letters and
+  // macOS/Linux show their single root without the app having to know which it is.
+  async function loadVolumes() {
+    const container = document.getElementById('volumeList');
+    try {
+      const res = await fetch('/api/system/files?path=/device');
+      const data = await res.json();
+      if (!data.success || !data.contents.length) throw new Error('No volumes reported');
+
+      container.replaceChildren();
+      data.contents.forEach(volume => {
+        const path = `/device/${volume.name}`;
+        const item = document.createElement('div');
+        item.className = 'nav-item nested';
+        item.dataset.path = path;
+        item.onclick = () => navClick(path);
+        item.innerHTML = `<div class="icon-bg c-volume"><span class="material-symbols-outlined">hard_drive</span></div>${volume.name}`;
+        container.appendChild(item);
+      });
+      updateSidebar(currentPath);
+    } catch (e) {
+      container.innerHTML = '<div class="nav-sub-label">No volumes detected</div>';
+    }
   }
 
   function navClick(path) { navigateTo(path); }
@@ -626,14 +693,17 @@ Licensed under the Apache License, Version 2.0
     renderList(path);
     updateSidebar(path);
     
-    const folderName = path === '/' ? 'System Root' : (path === '/home' ? 'Home' : path.split('/').pop());
-    updateTabTitle(folderName);
-    document.getElementById('btnUp').disabled = (path === '/' || path === '/home');
+    updateTabTitle(describeLocation(path));
+    document.getElementById('btnUp').disabled = isTopLevel(path);
+  }
+
+  function isTopLevel(path) {
+    return path === '/' || path === '/home' || path === '/device';
   }
 
   function goUp() {
     const activeTab = tabs.find(t => t.id === currentTabId);
-    if(!activeTab || activeTab.path === '/' || activeTab.path === '/home') return;
+    if (!activeTab || isTopLevel(activeTab.path)) return;
     const parts = activeTab.path.split('/');
     parts.pop();
     navigateTo(parts.join('/') || '/');
@@ -906,7 +976,7 @@ Licensed under the Apache License, Version 2.0
   function openSelected() {
     if (!selectedItem) return;
     if (selectedItem.type === 'folder') {
-      navigateTo(currentPath === '/' ? `/${selectedItem.name}` : `${currentPath}/${selectedItem.name}`);
+      navigateTo(childPath(currentPath, selectedItem.name));
     } else {
       openFileInNotes(selectedItem);
     }
@@ -1055,6 +1125,7 @@ Licensed under the Apache License, Version 2.0
 
   // Boot Up
   createTab('/home', 'Home');
+  loadVolumes();
   refreshDriveUsage();
   setInterval(refreshDriveUsage, 60000);
 </script>

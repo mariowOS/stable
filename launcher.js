@@ -1,6 +1,6 @@
 // mariowOS Electron entry point. The backend owns the web shell; Electron owns
 // the fullscreen window and supervises the backend's explicit lifecycle codes.
-const { app, BrowserWindow, ipcMain } = require('electron');
+const { app, BrowserWindow, ipcMain, shell } = require('electron');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -344,6 +344,25 @@ function bootMariowOS() {
         console.error('[sniffer]: could not load boot animation:', error);
     });
 }
+
+// SECURITY (B-01): webviewTag is enabled for the in-OS browser app, so every webview
+// and every attempt to open a new window must be constrained. Without this, a page
+// loaded in a webview could attach a webview with nodeIntegration on, inject a
+// preload, or pop native windows pointing anywhere.
+app.on('web-contents-created', (_event, contents) => {
+    // Never let a child webview turn Node back on or load a preload of its choosing.
+    contents.on('will-attach-webview', (_e, webPreferences, params) => {
+        delete webPreferences.preload;
+        webPreferences.nodeIntegration = false;
+        webPreferences.contextIsolation = true;
+        webPreferences.sandbox = true;
+    });
+    // Window.open / target=_blank: open http(s) in the user's real browser, deny the rest.
+    contents.setWindowOpenHandler(({ url }) => {
+        if (/^https?:\/\//i.test(url)) { shell.openExternal(url); }
+        return { action: 'deny' };
+    });
+});
 
 app.whenReady().then(() => {
     console.log('[sniffer]: booting...');

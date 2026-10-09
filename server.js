@@ -57,6 +57,67 @@ const SOTA_COMPONENTS = new Set([
   "store", "terminal", "desktop"
 ]);
 
+// Semantic version comparison. The updater must only ever offer a NEWER build:
+// comparing versions as plain strings made 1.0.0 look like an "update" for 1.1.0,
+// which offered the user a silent downgrade.
+const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
+
+function parseVersion(version) {
+  const match = SEMVER_PATTERN.exec(String(version || "").trim());
+  if (!match) return null;
+  return {
+    release: [Number(match[1]), Number(match[2]), Number(match[3])],
+    prerelease: match[4] ? match[4].split(".") : []
+  };
+}
+
+function comparePrerelease(left, right) {
+  // A build with no prerelease tag outranks the same release with one (1.2.0 > 1.2.0-beta).
+  if (!left.length && !right.length) return 0;
+  if (!left.length) return 1;
+  if (!right.length) return -1;
+
+  for (let index = 0; index < Math.max(left.length, right.length); index++) {
+    const leftPart = left[index];
+    const rightPart = right[index];
+    if (leftPart === undefined) return -1;
+    if (rightPart === undefined) return 1;
+
+    const leftNumeric = /^\d+$/.test(leftPart);
+    const rightNumeric = /^\d+$/.test(rightPart);
+    if (leftNumeric && rightNumeric) {
+      if (Number(leftPart) !== Number(rightPart)) return Number(leftPart) < Number(rightPart) ? -1 : 1;
+    } else if (leftNumeric !== rightNumeric) {
+      return leftNumeric ? -1 : 1;
+    } else if (leftPart !== rightPart) {
+      return leftPart < rightPart ? -1 : 1;
+    }
+  }
+  return 0;
+}
+
+// Returns -1, 0 or 1, or null when either side is not a version we understand.
+function compareVersions(left, right) {
+  const parsedLeft = parseVersion(left);
+  const parsedRight = parseVersion(right);
+  if (!parsedLeft || !parsedRight) return null;
+
+  for (let index = 0; index < 3; index++) {
+    if (parsedLeft.release[index] !== parsedRight.release[index]) {
+      return parsedLeft.release[index] < parsedRight.release[index] ? -1 : 1;
+    }
+  }
+  return comparePrerelease(parsedLeft.prerelease, parsedRight.prerelease);
+}
+
+// The only question the updater should ever ask: is `candidate` strictly newer than
+// `installed`? Unparseable versions fall back to "different means newer" so a custom
+// build string still gets offered, but equal strings never do.
+function isNewerVersion(candidate, installed) {
+  const order = compareVersions(candidate, installed);
+  return order === null ? String(candidate) !== String(installed) : order > 0;
+}
+
 function getRawGithubUrl(repoUrl) {
   // Store apps live on GitHub, and this helper turns a repo URL into a default icon URL.
   // It helps the app catalog show something meaningful even before a custom icon is uploaded.
@@ -64,6 +125,151 @@ function getRawGithubUrl(repoUrl) {
   const cleanUrl = repoUrl.replace(/\.git$/, '');
   const match = cleanUrl.match(/github\.com\/([^/]+\/[^/]+)/);
   return match ? `https://raw.githubusercontent.com/${match[1]}/main/icon.png` : null;
+}
+
+// SECURITY (A-07 adjacent): store apps are installed from, and updated against, their
+// source repository. Accept ONLY https github.com repo URLs so that:
+//  - `git clone`/`git pull` can't be pointed at a local path, a non-https transport,
+//    or an "ext::"/option-injection URL, and
+//  - update checks fetch version metadata only from the repo the app came from.
+function isAllowedRepoUrl(repoUrl) {
+  if (typeof repoUrl !== "string") return false;
+  try {
+    const u = new URL(repoUrl);
+    return u.protocol === "https:" &&
+      (u.hostname === "github.com" || u.hostname === "raw.githubusercontent.com") &&
+      /^\/[^/]+\/[^/]+/.test(u.pathname);
+  } catch (e) { return false; }
+}
+
+// Raw URLs for a file in the repo, trying main then master.
+function getRepoRawUrls(repoUrl, file) {
+  if (!repoUrl) return [];
+  const cleanUrl = repoUrl.replace(/\.git$/, "");
+  const match = cleanUrl.match(/github\.com\/([^/]+\/[^/]+)/);
+  if (!match) return [];
+  return ["main", "master"].map(b => `https://raw.githubusercontent.com/${match[1]}/${b}/${file}`);
+}
+
+// Read a repo's declared version from its version.json (the app author's own file).
+async function fetchRepoVersion(repoUrl) {
+  for (const url of getRepoRawUrls(repoUrl, "version.json")) {
+    try {
+      const r = await fetch(url);
+      if (!r.ok) continue;
+      const data = JSON.parse(await r.text());
+      if (data && typeof data.version === "string") return data.version;
+    } catch (e) { /* try next branch */ }
+  }
+  return null;
+}
+
+// Read the version.json an installed app shipped with (local copy).
+function readInstalledAppVersion(appId) {
+  try {
+    const p = path.join(__dirname, "desktop", "apps", appId, "version.json");
+    const data = JSON.parse(fs.readFileSync(p, "utf8"));
+    return (data && typeof data.version === "string") ? data.version : null;
+  } catch (e) { return null; }
+}
+
+// --- UPDATE AUTHENTICITY (A-07) ---
+// The system updater clones the official repo over HTTPS. That protects the download in
+// transit but not against a compromised/malicious source: whoever controls the source
+// controls both the code and any plain hash manifest. Real authenticity needs a
+// signature verified against a key that ships with the client.
+//
+// This is opt-in by presence of a public key: drop an Ed25519/RSA public key at
+// update-pubkey.pem and publish a detached base64 signature of version.json at
+// <repo>/version.json.sig. When the key is present, the updater REFUSES any
+// release whose version.json is missing a valid signature. When it is absent, behavior
+// is unchanged (updates proceed unsigned) and a warning is logged — so nothing breaks
+// before signing is set up, and everything is authenticated the moment it is.
+const updatePubKeyFile = path.join(__dirname, "update-pubkey.pem");
+function getUpdatePublicKey() {
+  try { return fs.readFileSync(updatePubKeyFile, "utf8"); } catch (e) { return null; }
+}
+
+// Verifies the detached signature of `versionUrl` using the configured public key.
+// Returns { ok, unsigned?, reason? }. ok=true with unsigned=true means "no key set".
+async function verifyUpdateAuthenticity(versionUrl) {
+  const pubKey = getUpdatePublicKey();
+  if (!pubKey) {
+    console.warn("[update] No update-pubkey.pem configured: updates are NOT signature-verified.");
+    return { ok: true, unsigned: true };
+  }
+  try {
+    const verRes = await fetch(versionUrl);
+    if (!verRes.ok) return { ok: false, reason: "version.json unreachable" };
+    const versionBytes = Buffer.from(await verRes.arrayBuffer());
+    const sigRes = await fetch(versionUrl + ".sig");
+    if (!sigRes.ok) return { ok: false, reason: "release is not signed (version.json.sig missing)" };
+    const signature = Buffer.from((await sigRes.text()).trim(), "base64");
+    const valid = crypto.verify(null, versionBytes, pubKey, signature);
+    return valid ? { ok: true } : { ok: false, reason: "invalid update signature" };
+  } catch (e) {
+    return { ok: false, reason: "signature check error: " + e.message };
+  }
+}
+
+// --- FILESYSTEM INTEGRITY / VERIFIED BOOT (tamper detection) ---
+// The recovery screen offers "verify filesystem integrity". This backs it with a real
+// check: a signed manifest (system/integrity-manifest.json, map of path -> sha256)
+// records the hashes of the files that make up a stock build. We re-hash those files
+// and report any that were modified, replaced or removed. This is the mariowOS analog
+// of Android verified boot: if a locked system (flashing NOT unlocked) has been
+// tampered with, the UI should refuse and prompt the user to reflash clean stock.
+//
+// Opt-in by presence of the manifest; its own signature is verified against
+// update-pubkey.pem so a tamperer cannot simply rewrite the manifest to match.
+const integrityManifestFile = path.join(__dirname, "integrity-manifest.json");
+function sha256File(absPath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(absPath)).digest("hex");
+}
+
+function verifyFilesystemIntegrity() {
+  let raw;
+  try { raw = fs.readFileSync(integrityManifestFile); }
+  catch (e) { return { available: false, reason: "No integrity manifest on this build." }; }
+
+  // The manifest must itself be authentic, or tamper detection is pointless.
+  const pubKey = getUpdatePublicKey();
+  let signatureVerified = false;
+  if (pubKey) {
+    try {
+      const sig = Buffer.from(fs.readFileSync(integrityManifestFile + ".sig", "utf8").trim(), "base64");
+      signatureVerified = crypto.verify(null, raw, pubKey, sig);
+    } catch (e) { signatureVerified = false; }
+    if (!signatureVerified) {
+      return { available: true, signed: true, signatureVerified: false, tampered: true,
+        reason: "The integrity manifest itself is missing a valid signature.", modified: [], missing: [] };
+    }
+  }
+
+  let manifest;
+  try { manifest = JSON.parse(raw.toString()); } catch (e) { return { available: false, reason: "Manifest is not valid JSON." }; }
+  const files = (manifest && manifest.files) || {};
+  const modified = [], missing = [];
+  for (const [rel, expected] of Object.entries(files)) {
+    // Keep the manifest inside the install tree; never let it point elsewhere.
+    const abs = path.resolve(__dirname, rel);
+    if (abs !== __dirname && !abs.startsWith(__dirname + path.sep)) { modified.push(rel); continue; }
+    try {
+      if (sha256File(abs) !== expected) modified.push(rel);
+    } catch (e) { missing.push(rel); }
+  }
+  const tampered = modified.length > 0 || missing.length > 0;
+  return {
+    available: true,
+    signed: !!pubKey,
+    signatureVerified: pubKey ? signatureVerified : undefined,
+    tampered,
+    modified,
+    missing,
+    // Verified-boot behaviour: a tampered, still-locked system should be sent to recovery.
+    locked: !config.allowFlashing,
+    recommendReflash: tampered && !config.allowFlashing
+  };
 }
 
 function exitAfterServerClose(exitCode) {
@@ -271,8 +477,138 @@ function checkCode(purpose, email, code) {
   return { ok: true };
 }
 
+// --- SESSION AUTHENTICATION (A-02) ---
+// The backend used to trust every caller: any page (or any process able to reach the
+// port) could hit the mutating API with no proof of being the logged-in user. We now
+// issue a signed, HttpOnly, SameSite=Strict session cookie on successful login and
+// require it for every state-changing request. SameSite=Strict also means a malicious
+// web page the user happens to visit cannot drive these routes via the browser (CSRF,
+// which also closes the unauthenticated factory-reset/restore vector, C-05 / M-05).
+const SESSION_COOKIE = "mw_session";
+const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
+
+// The signing secret is persisted so sessions survive the frequent backend respawns
+// (updates, reboots). It is kept in its own file, never in config.json (which is sent
+// to the frontend), and is gitignored.
+const sessionKeyFile = path.join(__dirname, "session.key");
+let SESSION_SECRET;
+try {
+  SESSION_SECRET = fs.readFileSync(sessionKeyFile, "utf8").trim();
+  if (!SESSION_SECRET) throw new Error("empty");
+} catch (e) {
+  SESSION_SECRET = crypto.randomBytes(32).toString("hex");
+  try { fs.writeFileSync(sessionKeyFile, SESSION_SECRET, { mode: 0o600 }); }
+  catch (writeErr) { console.warn("[auth] Could not persist session key:", writeErr.message); }
+}
+
+function signSession(payloadB64) {
+  return crypto.createHmac("sha256", SESSION_SECRET).update(payloadB64).digest("base64url");
+}
+
+function issueSession(res) {
+  const payload = { exp: Date.now() + SESSION_TTL_MS, nonce: crypto.randomBytes(8).toString("hex") };
+  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
+  const token = `${payloadB64}.${signSession(payloadB64)}`;
+  res.setHeader("Set-Cookie",
+    `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`);
+}
+
+function clearSession(res) {
+  res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
+}
+
+function parseCookies(req) {
+  const header = req.headers.cookie || "";
+  const out = {};
+  header.split(";").forEach(part => {
+    const i = part.indexOf("=");
+    if (i > -1) out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
+  });
+  return out;
+}
+
+function hasValidSession(req) {
+  const token = parseCookies(req)[SESSION_COOKIE];
+  if (!token || token.indexOf(".") < 0) return false;
+  const [payloadB64, sig] = token.split(".");
+  const expected = signSession(payloadB64);
+  const a = Buffer.from(sig || "");
+  const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
+  try {
+    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
+    return typeof payload.exp === "number" && Date.now() < payload.exp;
+  } catch (e) { return false; }
+}
+
+// Routes that must stay reachable WITHOUT a session: the login/recovery flow itself,
+// health checks, and the Electron shell's own token-authenticated power controls.
+const PREAUTH_POST = new Set([
+  "/login", "/set-password", "/forgot-password", "/reset-password",
+  "/api/email/send-code", "/api/email/verify-code", "/api/system/frp-unlock",
+  "/api/system/shutdown", "/api/system/reboot"
+]);
+
+function requireSession(req, res, next) {
+  // Reads are left to the route-level checks already in place; this gate covers every
+  // state-changing method, which is where the dangerous routes live.
+  if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+  if (PREAUTH_POST.has(req.path)) return next();
+  // Fresh install / no password yet: nothing to protect, let setup proceed.
+  if (!config.passwordHash) return next();
+  if (hasValidSession(req)) return next();
+  return res.status(401).json({ success: false, error: "Authentication required. Please log in again." });
+}
+
+// --- PER-APP ENDPOINT PERMISSIONS (transparent capability model) ---
+// Goal: let only the app that owns an endpoint call it (e.g. only the Terminal app
+// may call the terminal/exec routes). This is the HONEST version of that idea:
+//  - The rules live in a plain, readable file (system/app-permissions.json), not an
+//    obfuscated blob. Obscurity is not a security boundary; hiding the rules would
+//    only make auditing harder without stopping anyone.
+//  - It is OFF by default (`enforced: false`) so it never breaks apps until the
+//    desktop shell is wired to mint and send per-app tokens (see /api/app/token).
+//  - HONEST LIMITATION: apps run as same-origin iframes, so this gives
+//    least-privilege-by-convention and accountability, NOT hard isolation against a
+//    malicious same-origin app. Real isolation would require per-app origins
+//    (separate partitions / cross-origin frames) — a larger frontend change.
+const appPermissionsFile = path.join(__dirname, "app-permissions.json");
+function loadAppPermissions() {
+  try {
+    const data = JSON.parse(fs.readFileSync(appPermissionsFile, "utf8"));
+    return { enforced: !!data.enforced, rules: Array.isArray(data.rules) ? data.rules : [] };
+  } catch (e) { return { enforced: false, rules: [] }; }
+}
+
+function signAppToken(appId) {
+  const payloadB64 = Buffer.from(JSON.stringify({ appId, iat: Date.now() })).toString("base64url");
+  return `${payloadB64}.${crypto.createHmac("sha256", SESSION_SECRET).update("app:" + payloadB64).digest("base64url")}`;
+}
+function verifyAppToken(token) {
+  if (typeof token !== "string" || token.indexOf(".") < 0) return null;
+  const [payloadB64, sig] = token.split(".");
+  const expected = crypto.createHmac("sha256", SESSION_SECRET).update("app:" + payloadB64).digest("base64url");
+  const a = Buffer.from(sig || ""); const b = Buffer.from(expected);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
+  try { return JSON.parse(Buffer.from(payloadB64, "base64url").toString()); } catch (e) { return null; }
+}
+
+function enforceAppPermissions(req, res, next) {
+  const perms = loadAppPermissions();
+  if (!perms.enforced) return next();
+  const rule = perms.rules.find(r => typeof r.prefix === "string" && req.path.startsWith(r.prefix));
+  if (!rule) return next(); // endpoint not restricted to a specific app
+  const payload = verifyAppToken(req.get("x-app-token"));
+  if (!payload || !Array.isArray(rule.apps) || !rule.apps.includes(payload.appId)) {
+    return res.status(403).json({ success: false, error: "This app is not allowed to use this endpoint." });
+  }
+  next();
+}
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.json());
+app.use(requireSession);
+app.use(enforceAppPermissions);
 
 app.get('/api/system/health', (req, res) => {
   res.set('Cache-Control', 'no-store');
@@ -379,7 +715,12 @@ app.get('/desktop/apps/settings/assets/you.html', (req, res, next) => {
   next();
 });
 
-const avatarUpload = multer({ 
+// SECURITY (M-04): every upload caps its file size so a client cannot exhaust disk or
+// memory. Image uploads also restrict the MIME type. Shared cap for images:
+const IMAGE_UPLOAD_LIMIT = { fileSize: 8 * 1024 * 1024 };
+
+const avatarUpload = multer({
+  limits: IMAGE_UPLOAD_LIMIT,
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, path.join(__dirname, "desktop/assets")),
     filename: (req, file, cb) => cb(null, "avatar.user.png")
@@ -398,7 +739,8 @@ app.post("/reset-avatar", (req, res) => {
   res.json({ success: true, message: "Avatar reset!" });
 });
 
-const wallpaperUpload = multer({ 
+const wallpaperUpload = multer({
+  limits: IMAGE_UPLOAD_LIMIT,
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, path.join(__dirname,"desktop/assets")),
     filename: (req, file, cb) => cb(null, "wallpaper.user.png")
@@ -436,6 +778,7 @@ app.post("/api/system/set-volume", (req, res) => {
 });
 
 const appIconUpload = multer({
+  limits: IMAGE_UPLOAD_LIMIT,
   storage: multer.diskStorage({
     destination: (req, file, cb) => cb(null, path.join(__dirname, "desktop/assets")),
     filename: (req, file, cb) => {
@@ -717,6 +1060,17 @@ app.post("/api/system/connect-wifi", (req, res) => {
   const { ssid, password } = req.body;
   if (!ssid) return res.status(400).json({ success: false, error: "Missing SSID" });
 
+  // SECURITY (A-04): ssid/password are interpolated into a shell command. Reject any
+  // value containing shell metacharacters or quotes so it cannot break out of the
+  // quoted argument and inject commands. (See also the spawn() helper at the top of
+  // this file for the preferred no-shell approach.)
+  const SHELL_UNSAFE = /["'`$\\;&|<>\n\r]/;
+  if (typeof ssid !== "string" || SHELL_UNSAFE.test(ssid) ||
+      (password !== undefined && password !== null &&
+        (typeof password !== "string" || SHELL_UNSAFE.test(password)))) {
+    return res.status(400).json({ success: false, error: "SSID or password contains invalid characters." });
+  }
+
   let cmd = "";
   if (currentOS === "linux") {
     cmd = password ? `nmcli dev wifi connect "${ssid}" password "${password}"` : `nmcli dev wifi connect "${ssid}"`;
@@ -811,6 +1165,13 @@ app.post("/api/system/connect-bt", (req, res) => {
   const target = mac || name;
   if (!target) return res.status(400).json({ success: false, error: "Missing target" });
 
+  // SECURITY (A-04): `target` is interpolated unquoted into a shell command. A MAC
+  // address is all we should accept here; reject anything that isn't one so command
+  // injection is impossible.
+  if (typeof target !== "string" || !/^[0-9A-Fa-f:-]{1,32}$/.test(target)) {
+    return res.status(400).json({ success: false, error: "Invalid Bluetooth target." });
+  }
+
   const isConnected = config.quickSettings.connectedBt === name;
   let cmd = "";
 
@@ -833,7 +1194,7 @@ app.post("/api/system/connect-bt", (req, res) => {
 // --- BACKUP & RESTORE ---
 // This section protects user config and makes it easy to save and restore a machine state.
 // In practice, it is one of the most important pieces for anyone building a custom mariowOS image.
-const backupUpload = multer({ storage: multer.memoryStorage() });
+const backupUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } }); // M-04
 
 app.get("/api/system/backup", (req, res) => {
   // Send current config, but explicitly remove the passwordHash for security
@@ -874,6 +1235,35 @@ app.get("/", (req, res) => {
 });
 
 // 2. Recovery Factory Reset (Triggers FRP)
+// Verified-boot check backing the recovery "verify filesystem integrity" screen.
+// Read-only; reports which stock files were modified/removed and whether the system
+// should be sent to a clean reflash.
+app.get("/api/recovery/verify-integrity", (req, res) => {
+  try {
+    res.json({ success: true, ...verifyFilesystemIntegrity() });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// Deliberate, authenticated "unlock" of custom flashing (the Android OEM-unlock analog).
+// Requires the account password so only the local logged-in user can flip it — it can
+// no longer be toggled by a plain request (that was C-03). The unlocked state is meant
+// to be surfaced to the user by the UI as a standing "integrity not guaranteed" warning.
+app.post("/api/recovery/set-flashing", async (req, res) => {
+  const { password, enabled } = req.body || {};
+  if (typeof enabled !== "boolean") return res.status(400).json({ success: false, error: "`enabled` must be boolean." });
+  if (!config.passwordHash) return res.status(403).json({ success: false, error: "Set an account password first." });
+  const ok = typeof password === "string" && await bcrypt.compare(password, config.passwordHash);
+  if (!ok) return res.status(403).json({ success: false, error: "Incorrect password." });
+  config.allowFlashing = enabled;
+  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  res.json({ success: true, allowFlashing: enabled,
+    note: enabled
+      ? "Custom flashing unlocked. Unsigned builds can now be installed deliberately; the system is no longer integrity-guaranteed."
+      : "Custom flashing locked. Only verified stock updates will be accepted." });
+});
+
 app.post("/api/recovery/wipe", (req, res) => {
   const preservedHash = config.passwordHash;
   const allowFlashing = config.allowFlashing || false;
@@ -906,9 +1296,18 @@ app.post("/api/system/frp-unlock", async (req, res) => {
     return res.json({ success: false, error: "Incorrect password." });
   } 
   else if (type === "file") {
+    // SECURITY (C-04): never rebuild the whole config from an uploaded file. That
+    // let a caller set an arbitrary passwordHash and take over the account while
+    // bypassing the FRP lock. A recovery file may only prove ownership by carrying
+    // the SAME passwordHash already stored; it can never change credentials here.
     try {
       const importedConfig = typeof payload === 'string' ? JSON.parse(payload) : payload;
-      config = { ...importedConfig, frpLock: false };
+      if (!importedConfig || typeof importedConfig !== 'object' ||
+          !config.passwordHash ||
+          importedConfig.passwordHash !== config.passwordHash) {
+        return res.json({ success: false, error: "Invalid credentials file." });
+      }
+      config.frpLock = false;
       fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
       return res.json({ success: true });
     } catch (e) {
@@ -918,15 +1317,29 @@ app.post("/api/system/frp-unlock", async (req, res) => {
 });
 
 // 4. Recovery Debug Terminal Endpoint
-app.post("/api/recovery/debug", (req, res) => {
+app.post("/api/recovery/debug", async (req, res) => {
+  // SECURITY (C-01): this route runs arbitrary shell commands. It was previously
+  // gated only by the `allowFlashing` flag, which an unauthenticated caller could
+  // turn on by itself (see C-03). It now requires BOTH the flag AND the account
+  // password, and the flag is off by default (config.json).
   if (!config.allowFlashing) {
     return res.status(403).json({ error: "locked", message: "Flashing/Debug is disabled in Functions Lab." });
   }
-  
+  if (!config.passwordHash) {
+    return res.status(403).json({ error: "locked", message: "Set a password before using the debug terminal." });
+  }
+  const match = await bcrypt.compare(String(req.body.password || ""), config.passwordHash);
+  if (!match) {
+    return res.status(403).json({ error: "unauthorized", message: "Invalid password." });
+  }
+  if (typeof req.body.command !== "string" || !req.body.command.trim()) {
+    return res.status(400).json({ error: "bad-request", message: "No command provided." });
+  }
+
   exec(req.body.command, (err, stdout, stderr) => {
-    res.json({ 
-      success: !err, 
-      output: stdout || stderr || (err ? err.message : "") 
+    res.json({
+      success: !err,
+      output: stdout || stderr || (err ? err.message : "")
     });
   });
 });
@@ -1009,6 +1422,7 @@ app.post("/login", async (req, res) => {
   
   const match = await bcrypt.compare(password, currentConfig.passwordHash);
   if (!match) return res.status(401).send("Incorrect password.");
+  issueSession(res); // A-02: start an authenticated session for subsequent API calls.
   res.sendFile(path.join(__dirname, "desktop/com.mariowos.desktop.html"));
 });
 
@@ -1018,9 +1432,17 @@ app.get("/get-settings", (req, res) => {
   res.json(safe);
 });
 
+// SECURITY (C-03): this route is an allowlist, not a denylist. It previously
+// copied ANY field that was not explicitly protected into config.json, which let
+// an unauthenticated caller flip security flags such as `allowFlashing` or
+// `frpLock` and unlock the command-execution routes. Only user-facing preferences
+// may be written here; everything else is ignored.
+const SAVE_SETTINGS_ALLOWED = new Set([
+  "darkMode", "performance", "animations", "developer",
+  "sendReports", "wallpaper", "theme", "accentColor", "language"
+]);
 app.post("/save-settings", (req, res) => {
   const { username, email, ...extra } = req.body;
-  const PROTECTED = ["passwordHash", "verified", "quickSettings"];
   if (username !== undefined || email !== undefined) {
     const cleanName = String(username || "").trim();
     const cleanEmail = String(email || "").trim();
@@ -1035,7 +1457,7 @@ app.post("/save-settings", (req, res) => {
     config.email = cleanEmail;
   }
   Object.keys(extra).forEach(key => {
-    if (!PROTECTED.includes(key)) config[key] = extra[key];
+    if (SAVE_SETTINGS_ALLOWED.has(key)) config[key] = extra[key];
   });
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
   res.json({ success: true, message: "Settings saved!" });
@@ -1058,6 +1480,7 @@ app.post("/set-password", async (req, res) => {
   config.username = username;
   config.passwordHash = await bcrypt.hash(newPassword, 10);
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  issueSession(res); // A-02: the user who just set the password is now authenticated.
   res.send("Configurazione completata!");
 });
 
@@ -1069,7 +1492,23 @@ app.post("/clear-password", async (req, res) => {
   }
   config.passwordHash = null;
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  clearSession(res);
   res.send("Password cleared! You can now log in without a password.");
+});
+
+// A-02: explicit logout so the desktop can drop the session on sign-out / lock.
+app.post("/api/system/logout", (req, res) => {
+  clearSession(res);
+  res.json({ success: true });
+});
+
+// The desktop shell (already authenticated by the session cookie) mints a per-app
+// token when it opens an app's iframe, then injects it into that app so the app can
+// send it as `X-App-Token` on its API calls. See enforceAppPermissions.
+app.post("/api/app/token", (req, res) => {
+  const appId = req.body && req.body.appId;
+  if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: "Invalid app ID" });
+  res.json({ success: true, token: signAppToken(appId) });
 });
 
 
@@ -1222,48 +1661,52 @@ app.get("/api/store/update", async (req, res) => {
   }
 });
 
-app.get("/api/store/check-upgrades", (req, res) => {
+// Version-aware upgrade check. For each installed app we compare the version it was
+// installed with against the version declared in its repo's version.json (the app
+// author's own file, on their git). An app is upgradable only when the repo declares
+// a strictly NEWER semantic version — the same rule the system updater uses.
+app.get("/api/store/check-upgrades", async (req, res) => {
   const installedApps = config.installedApps || [];
   const upgrades = [];
-  let checksPending = installedApps.length;
-  if (checksPending === 0) return res.json({ success: true, upgrades: [] });
-
-  let checkDone = 0;
-  installedApps.forEach(app => {
-     const targetPath = path.join(__dirname, "desktop/apps", app.appId);
-     if (fs.existsSync(targetPath)) {
-        exec('git fetch origin && git status -uno', { cwd: targetPath }, (err, stdout) => {
-           if (!err && stdout.includes('Your branch is behind')) upgrades.push(app.appId);
-           checkDone++;
-           if (checkDone === checksPending) res.json({ success: true, upgrades });
-        });
-     } else {
-        checkDone++;
-        if (checkDone === checksPending) res.json({ success: true, upgrades });
-     }
-  });
+  for (const app of installedApps) {
+    const targetPath = path.join(__dirname, "desktop/apps", app.appId);
+    if (!fs.existsSync(targetPath) || !isAllowedRepoUrl(app.repoUrl)) continue;
+    const current = app.version || readInstalledAppVersion(app.appId);
+    const latest = await fetchRepoVersion(app.repoUrl);
+    if (latest && (!current || isNewerVersion(latest, current))) {
+      upgrades.push({ appId: app.appId, title: app.title, current: current || "unknown", latest });
+    }
+  }
+  res.json({ success: true, upgrades });
 });
 
-app.post("/api/store/do-upgrade", (req, res) => {
+// Apply upgrades. Only apps that are git clones from an allowed repo and that actually
+// declare a newer version.json are pulled; the recorded version is then refreshed.
+app.post("/api/store/do-upgrade", async (req, res) => {
   const installedApps = config.installedApps || [];
   let count = 0;
-  let checksPending = installedApps.length;
-  if (checksPending === 0) return res.json({ success: true, count: 0 });
+  const updated = [];
+  for (const app of installedApps) {
+    const targetPath = path.join(__dirname, "desktop/apps", app.appId);
+    if (!fs.existsSync(path.join(targetPath, ".git")) || !isAllowedRepoUrl(app.repoUrl)) continue;
+    const current = app.version || readInstalledAppVersion(app.appId);
+    const latest = await fetchRepoVersion(app.repoUrl);
+    if (!latest || (current && !isNewerVersion(latest, current))) continue;
 
-  let checkDone = 0;
-  installedApps.forEach(app => {
-     const targetPath = path.join(__dirname, "desktop/apps", app.appId);
-     if (fs.existsSync(targetPath)) {
-        exec('git pull', { cwd: targetPath }, (err, stdout) => {
-           if (!err && !stdout.includes('Already up to date')) count++;
-           checkDone++;
-           if (checkDone === checksPending) res.json({ success: true, count });
-        });
-     } else {
-        checkDone++;
-        if (checkDone === checksPending) res.json({ success: true, count });
-     }
-  });
+    const pulled = await new Promise(resolve => {
+      // Pull from the pinned origin only; never a URL taken from the request body.
+      const child = spawn("git", ["pull", "--ff-only"], { cwd: targetPath });
+      child.on("error", () => resolve(false));
+      child.on("close", code => resolve(code === 0));
+    });
+    if (pulled) {
+      count++;
+      app.version = readInstalledAppVersion(app.appId) || latest;
+      updated.push({ appId: app.appId, version: app.version });
+    }
+  }
+  if (count > 0) fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+  res.json({ success: true, count, updated });
 });
 
 app.post("/api/store/publish", appIconUpload.single("iconFile"), (req, res) => {
@@ -1330,6 +1773,10 @@ app.post("/api/store/install", async (req, res) => {
   // it inside the desktop shell so it behaves like a native mariowOS app.
   const { appId, title, icon, repoUrl } = req.body;
   if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: "Invalid app ID" });
+  // SECURITY (A-07 adjacent): only install from an https github.com URL.
+  if (!isAllowedRepoUrl(repoUrl)) {
+    return res.status(400).json({ success: false, error: "Only https github.com repository URLs are allowed." });
+  }
 
   installProgress[appId] = { progress: 0, status: 'downloading' };
 
@@ -1365,10 +1812,17 @@ app.post("/api/store/install", async (req, res) => {
     }
 
     if (!config.installedApps) config.installedApps = [];
-    if (!config.installedApps.find(app => app.appId === appId)) {
-      config.installedApps.push({ appId, title, icon: localIconPath, url: relativeUrl });
-      fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+    // Record repoUrl + installed version so the store can offer version.json-based
+    // upgrades later (see /api/store/check-upgrades).
+    const installedVersion = readInstalledAppVersion(appId);
+    const existing = config.installedApps.find(app => app.appId === appId);
+    if (existing) {
+      existing.repoUrl = repoUrl;
+      if (installedVersion) existing.version = installedVersion;
+    } else {
+      config.installedApps.push({ appId, title, icon: localIconPath, url: relativeUrl, repoUrl, version: installedVersion || null });
     }
+    fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
     res.json({ success: true, message: "Installation complete" });
   }
 
@@ -1665,7 +2119,11 @@ function executeRuleAction(action, params) {
       });
       break;
     case 'run':
-      if (params && params.command) exec(params.command, (err) => { if (err) console.error('Rule exec error:', err.message); });
+      // SECURITY (A-06): disabled. This ran an arbitrary shell command stored in a
+      // rule, which gave anyone who could save a rule a persistent, cron-triggered
+      // code-execution foothold. Automation actions must come from the fixed set
+      // handled by the other cases; free-form commands are not allowed.
+      console.warn("Rule action 'run' is disabled for security reasons and was ignored.");
       break;
     case 'power-mode':
       if (params && params.mode) {
@@ -1722,6 +2180,12 @@ setInterval(() => {
 
 // --- SANDBOX VM ENGINE ---
 const sandboxBaseDir = path.join(__dirname, "desktop/apps/sandbox");
+// SECURITY (C-06): vmId is used to build filesystem paths and then code is executed
+// from the resulting directory. Without validation a value like "../../.." escapes
+// the sandbox. Allow only simple identifiers; reject everything else.
+function isValidVmId(vmId) {
+  return typeof vmId === 'string' && /^[a-zA-Z0-9_-]+$/.test(vmId);
+}
 const activeVMs = {}; 
 let currentSandboxPort = 3001;
 
@@ -1740,7 +2204,8 @@ function findServerJs(dir) {
   return null;
 }
 
-const sandboxUpload = multer({ 
+const sandboxUpload = multer({
+  limits: { fileSize: 512 * 1024 * 1024 }, // M-04: VM disk images are large but not unbounded
   storage: multer.diskStorage({
     destination: (req, file, cb) => {
       if (!fs.existsSync(sandboxBaseDir)) fs.mkdirSync(sandboxBaseDir, { recursive: true });
@@ -1754,9 +2219,9 @@ app.post("/api/sandbox/upload", sandboxUpload.single("vmZip"), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
   
   const vmId = req.body.vmId;
-  if (!vmId) {
+  if (!isValidVmId(vmId)) {
     fs.unlinkSync(req.file.path);
-    return res.status(400).json({ success: false, error: "Virtual Machine ID is required." });
+    return res.status(400).json({ success: false, error: "Valid Virtual Machine ID is required." });
   }
 
   const vmDisk = path.join(sandboxBaseDir, vmId, "disk");
@@ -1790,7 +2255,7 @@ app.post("/api/sandbox/upload", sandboxUpload.single("vmZip"), (req, res) => {
 
 app.post("/api/sandbox/start", (req, res) => {
   const vmId = req.body.vmId;
-  if (!vmId) return res.status(400).json({ success: false, error: "Missing VM ID." });
+  if (!isValidVmId(vmId)) return res.status(400).json({ success: false, error: "Invalid VM ID." });
 
   if (activeVMs[vmId]) return res.json({ success: true, running: true, port: activeVMs[vmId].port });
   
@@ -1844,7 +2309,7 @@ app.post("/api/sandbox/stop", (req, res) => {
 
 app.post("/api/sandbox/delete", (req, res) => {
   const vmId = req.body.vmId;
-  if (!vmId) return res.status(400).json({ success: false });
+  if (!isValidVmId(vmId)) return res.status(400).json({ success: false, error: "Invalid VM ID." });
 
   if (activeVMs[vmId]) {
     activeVMs[vmId].process.kill();
@@ -2309,9 +2774,9 @@ app.get('/api/system/check-update', async (req, res) => {
     
     const remote = await response.json();
     res.json(
-      remote.version !== local 
-        ? { updateAvailable: true, current: local, latest: remote.version, changelog: remote.changelog } 
-        : { updateAvailable: false, current: local }
+      isNewerVersion(remote.version, local)
+        ? { updateAvailable: true, current: local, latest: remote.version, changelog: remote.changelog }
+        : { updateAvailable: false, current: local, latest: remote.version }
     );
   } catch (error) { 
     const versionPath = path.join(__dirname, 'version.json');
@@ -2328,7 +2793,7 @@ app.get('/api/system/ota-update', (req, res) => {
   res.setHeader('Content-Type', 'text/event-stream');
   res.setHeader('Cache-Control', 'no-cache');
   res.setHeader('Connection', 'keep-alive');
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // SECURITY (A-05): no wildcard CORS. These SSE update streams are for the local UI only.
 
   const send = (percent, status, finished = false) => {
     const msg = `data: ${JSON.stringify({ percent, status, finished })}\n\n`;
@@ -2339,6 +2804,13 @@ app.get('/api/system/ota-update', (req, res) => {
   send(0, "Preparing update...");
   (async () => {
     try {
+      // A-07: verify the release signature (when a public key is configured) BEFORE
+      // downloading/applying anything. Refuse unauthenticated code.
+      send(2, "Verifying update authenticity...");
+      const auth = await verifyUpdateAuthenticity(
+        "https://raw.githubusercontent.com/mariowOS/stable/main/version.json");
+      if (!auth.ok) throw new Error("Update rejected: " + auth.reason);
+
       send(5, "Downloading complete update...");
       await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", "https://github.com/mariowOS/stable.git", stagePath], os.tmpdir());
       send(70, "Checking every downloaded file...");
@@ -2383,7 +2855,7 @@ app.get("/api/system/check-sota-update", async (req, res) => {
     const current = readInstalledSotaVersions();
     const latest = await fetchSotaManifest();
     const updates = [...SOTA_COMPONENTS]
-      .filter(name => latest[name] !== current[name])
+      .filter(name => isNewerVersion(latest[name], current[name]))
       .map(name => ({ name, current: current[name], latest: latest[name] }));
     res.json({ success: true, updateAvailable: updates.length > 0, updates });
   } catch (error) {
@@ -2400,7 +2872,7 @@ app.get("/api/system/sota-update", (req, res) => {
   res.setHeader("Content-Type", "text/event-stream");
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  // SECURITY (A-05): no wildcard CORS. These SSE update streams are for the local UI only.
 
   const send = (percent, status, finished = false) => {
     try { res.write(`data: ${JSON.stringify({ percent, status, finished })}\n\n`); }
@@ -2418,7 +2890,7 @@ app.get("/api/system/sota-update", (req, res) => {
       const latest = JSON.parse(fs.readFileSync(path.join(stagePath, "version.json"), "utf8"));
       validateSotaManifest(latest);
       const current = readInstalledSotaVersions();
-      const changedComponents = [...SOTA_COMPONENTS].filter(name => latest[name] !== current[name]);
+      const changedComponents = [...SOTA_COMPONENTS].filter(name => isNewerVersion(latest[name], current[name]));
 
       if (changedComponents.length === 0) {
         fs.rmSync(stagePath, { recursive: true, force: true });
@@ -2472,6 +2944,51 @@ app.get("/sysinfo", (req, res) => {
   });
 });
 
+// --- MUSIC LIBRARY ---
+// The Music app plays three kinds of source: files the user imported into the app
+// itself, audio sitting in their Home folder, and curated internet stations. This
+// endpoint covers the middle one, so dropping a file in Home/Music is enough to
+// make it playable with no import step.
+const AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".ogg", ".oga", ".m4a", ".aac", ".flac", ".opus", ".weba", ".webm"]);
+const MUSIC_LIBRARY_DIRECTORIES = [
+  { virtual: "/home/Music", real: ["desktop", "home", "Music"], url: "/api/music/file?name=" }
+];
+
+function readMusicLibrary() {
+  const tracks = [];
+  for (const source of MUSIC_LIBRARY_DIRECTORIES) {
+    const directory = path.join(__dirname, ...source.real);
+    try {
+      if (!fs.existsSync(directory)) fs.mkdirSync(directory, { recursive: true });
+      for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        if (!entry.isFile()) continue;
+        if (!AUDIO_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) continue;
+        let bytes = 0;
+        try { bytes = fs.statSync(path.join(directory, entry.name)).size; } catch (error) {}
+        tracks.push({ name: entry.name, url: source.url + encodeURIComponent(entry.name), bytes });
+      }
+    } catch (error) {
+      console.error("Could not read the music library:", error);
+    }
+  }
+  return tracks.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+app.get("/api/music/library", (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ success: true, tracks: readMusicLibrary() });
+});
+
+// Streams one file out of Home/Music. The name is matched against the directory
+// listing rather than joined blindly, so no traversal can reach another folder.
+app.get("/api/music/file", (req, res) => {
+  const requested = typeof req.query.name === "string" ? req.query.name : "";
+  const directory = path.join(__dirname, "desktop", "home", "Music");
+  const match = readMusicLibrary().find(track => track.name === requested);
+  if (!match) return res.status(404).json({ success: false, error: "Track not found" });
+  res.sendFile(path.join(directory, match.name));
+});
+
 app.get("/api/system/storage", (req, res) => {
   try {
     const stats = fs.statfsSync(__dirname);
@@ -2511,12 +3028,19 @@ app.post("/api/remote/exec", (req, res) => {
   const { command, password } = req.body;
   const currentConfig = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, "utf8")) : {};
   
-  // Authenticate remote execution request
-  bcrypt.compare(password || "", currentConfig.passwordHash || "", (err, match) => {
-    if (!match && currentConfig.passwordHash) {
+  // SECURITY (C-02): fail closed. Previously the guard was
+  // `if (!match && currentConfig.passwordHash)`, so when no password was set
+  // (first boot, after a reset, or after /clear-password) the command ran with no
+  // authentication at all. Now: no password configured => refuse outright, and a
+  // wrong password => refuse. A command only runs on a verified match.
+  if (!currentConfig.passwordHash) {
+    return res.status(403).json({ success: false, error: "Remote execution is disabled: no password is configured." });
+  }
+  bcrypt.compare(password || "", currentConfig.passwordHash, (err, match) => {
+    if (err || !match) {
       return res.status(403).json({ success: false, error: "Unauthorized: Invalid password" });
     }
-    
+
     // Execute command like a standard .sh behavior
     exec(command, (execErr, stdout, stderr) => {
       res.json({ 
@@ -2527,10 +3051,53 @@ app.post("/api/remote/exec", (req, res) => {
   });
 });
 
+// "/device" is the window onto the machine mariowOS is running on. Everything below
+// it mirrors the host filesystem exactly as the OS lays it out: drive letters on
+// Windows, the single "/" tree on macOS and Linux. It is always read-only, so the
+// desktop can show the real hierarchy without ever being able to damage the host.
+const DEVICE_ROOT = '/device';
+
+function listHostVolumes() {
+  if (currentOS !== 'win32') return [{ name: '/', realPath: path.sep }];
+
+  const volumes = [];
+  for (let code = 'A'.charCodeAt(0); code <= 'Z'.charCodeAt(0); code++) {
+    const letter = String.fromCharCode(code);
+    const realPath = letter + ':' + path.sep;
+    try {
+      if (fs.existsSync(realPath)) volumes.push({ name: letter + ':', realPath });
+    } catch (error) {
+      // An unreadable or disconnected drive simply does not appear.
+    }
+  }
+  return volumes;
+}
+
+function resolveDevicePath(virtualPath) {
+  const relative = virtualPath.slice(DEVICE_ROOT.length).replace(/^\//, '');
+  if (!relative) return { realPath: null, isReadOnly: true, isVolumeList: true };
+
+  if (currentOS !== 'win32') {
+    return { realPath: path.resolve('/', relative), isReadOnly: true };
+  }
+
+  const [volume, ...rest] = relative.split('/');
+  if (!/^[A-Za-z]:$/.test(volume)) return null;
+  const volumeRoot = volume.toUpperCase() + path.sep;
+  const realPath = path.resolve(volumeRoot, ...rest);
+  // path.resolve starting from a drive letter can hop to another volume; pin it down.
+  if (path.parse(realPath).root.toUpperCase() !== volumeRoot) return null;
+  return { realPath, isReadOnly: true };
+}
+
 function resolveVirtualPath(targetPath) {
   const requestedPath = typeof targetPath === 'string' && targetPath ? targetPath : '/home';
   const virtualPath = path.posix.normalize(requestedPath.replace(/\\/g, '/'));
   if (!virtualPath.startsWith('/')) return null;
+
+  if (virtualPath === DEVICE_ROOT || virtualPath.startsWith(DEVICE_ROOT + '/')) {
+    return resolveDevicePath(virtualPath);
+  }
 
   const isHome = virtualPath === '/home' || virtualPath.startsWith('/home/');
   const rootPath = path.resolve(__dirname, ...(isHome ? ['desktop', 'home'] : []));
@@ -2541,11 +3108,59 @@ function resolveVirtualPath(targetPath) {
   return { realPath, isReadOnly: !isHome };
 }
 
+function formatFileSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes < 0) return '--';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let value = bytes;
+  let unit = 0;
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024;
+    unit++;
+  }
+  return `${unit === 0 ? value : value.toFixed(1)} ${units[unit]}`;
+}
+
+// Real device directories hold entries this process may not be allowed to stat
+// (locked system files, offline network shares). One of those must not take down
+// the whole listing, so every entry is described on a best-effort basis.
+function describeEntry(parentPath, entry) {
+  const isDirectory = entry.isDirectory();
+  const described = {
+    name: entry.name,
+    type: isDirectory ? 'folder' : 'file',
+    ext: path.extname(entry.name).toLowerCase(),
+    size: '--',
+    bytes: -1,
+    date: '--'
+  };
+  try {
+    const stats = fs.statSync(path.join(parentPath, entry.name));
+    described.date = stats.mtime.toLocaleDateString();
+    if (!isDirectory) {
+      described.bytes = stats.size;
+      described.size = formatFileSize(stats.size);
+    }
+  } catch (error) {
+    // Keep the placeholders: the entry is still worth showing in the hierarchy.
+  }
+  return described;
+}
+
 app.get("/api/system/files", (req, res) => {
   const targetPath = req.query.path || '/home';
   const resolved = resolveVirtualPath(targetPath);
-  
+
   if (!resolved) return res.status(403).json({ success: false, error: "Access denied" });
+
+  // The device root is not a directory on disk: it is the list of mounted volumes.
+  if (resolved.isVolumeList) {
+    const contents = listHostVolumes().map(volume => {
+      let date = '--';
+      try { date = fs.statSync(volume.realPath).mtime.toLocaleDateString(); } catch (error) {}
+      return { name: volume.name, type: 'folder', ext: '', size: '--', bytes: -1, date, isVolume: true };
+    });
+    return res.json({ success: true, contents, isReadOnly: true });
+  }
 
   try {
     if (!fs.existsSync(resolved.realPath)) {
@@ -2561,16 +3176,10 @@ app.get("/api/system/files", (req, res) => {
     if (!fs.statSync(resolved.realPath).isDirectory()) {
       return res.status(400).json({ success: false, error: "Path is not a directory" });
     }
-    
+
     const items = fs.readdirSync(resolved.realPath, { withFileTypes: true });
-    const contents = items.map(item => ({
-      name: item.name,
-      type: item.isDirectory() ? 'folder' : 'file',
-      ext: path.extname(item.name).toLowerCase(),
-      size: item.isDirectory() ? '--' : (fs.statSync(path.join(resolved.realPath, item.name)).size / 1024).toFixed(1) + ' KB',
-      date: fs.statSync(path.join(resolved.realPath, item.name)).mtime.toLocaleDateString()
-    }));
-    
+    const contents = items.map(item => describeEntry(resolved.realPath, item));
+
     contents.sort((a, b) => {
       if (a.type === b.type) return a.name.localeCompare(b.name);
       return a.type === 'folder' ? -1 : 1;
@@ -2659,8 +3268,13 @@ app.post("/api/system/files/upload", (req, res) => {
 
 app.get("/api/system/files/content", (req, res) => {
   const resolved = resolveVirtualPath(req.query.path);
-  if (!resolved) return res.status(403).json({ success: false, error: "Access denied" });
-  
+  if (!resolved || !resolved.realPath) return res.status(403).json({ success: false, error: "Access denied" });
+  // SECURITY (A-03): the /device tree mirrors the entire host filesystem. Listing it
+  // is acceptable, but streaming the CONTENT of arbitrary host files over HTTP turns
+  // this into a file-exfiltration endpoint (SSH keys, browser data, credentials).
+  // Reading file content is limited to the mariowOS home area.
+  if (resolved.isReadOnly) return res.status(403).json({ success: false, error: "Reading file content outside the home area is not allowed." });
+
   try {
     const fileName = typeof req.query.name === 'string' ? req.query.name : '';
     if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName === '.' || fileName === '..') {
@@ -2693,7 +3307,13 @@ app.post("/api/system/files/content", (req, res) => {
   }
 });
 
-httpServer = app.listen(PORT, () => console.log(`kernel booted on [${currentOS}] at http://127.0.0.1:${PORT}`));
+// SECURITY (A-01): bind only to the loopback interface. The backend is a local
+// companion to the Electron shell, not a network service. Binding to all
+// interfaces previously exposed every API route to the whole LAN. A deployment
+// that genuinely needs remote access must set MARIOWOS_BIND_HOST explicitly and
+// is expected to add TLS + authentication in front of it.
+const BIND_HOST = process.env.MARIOWOS_BIND_HOST || '127.0.0.1';
+httpServer = app.listen(PORT, BIND_HOST, () => console.log(`kernel booted on [${currentOS}] at http://${BIND_HOST}:${PORT}`));
 httpServer.on('error', error => {
   console.error('kernel failed to bind its HTTP server:', error);
   process.exit(1);

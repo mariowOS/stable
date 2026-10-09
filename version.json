@@ -1,5 +1,5 @@
 {
-  "version": "1.1.0",
-  "changelog": "Email verification, Calendar app, system-wide design pass and taskbar context menus.",
+  "version": "1.2.0",
+  "changelog": "Security hardening: localhost-only backend, session authentication on all APIs, closed unauthenticated command-execution paths, input validation, update authenticity & verified-boot groundwork, dependency patches.",
   "_comment": "obb."
 }
