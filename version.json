@@ -1,5 +1,5 @@
 {
-  "version": "1.2.0",
-  "changelog": "Security hardening: localhost-only backend, session authentication on all APIs, closed unauthenticated command-execution paths, input validation, update authenticity & verified-boot groundwork, dependency patches.",
+  "version": "1.3.0",
+  "changelog": "New customization options, reimagined music app and more.",
   "_comment": "obb."
 }

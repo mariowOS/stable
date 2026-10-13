@@ -8,10 +8,8 @@ Licensed under the Apache License, Version 2.0
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"/>
+  <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
+  <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   <title>mariowOS Music</title>
   <style>
     :root {
@@ -117,6 +115,123 @@ Licensed under the Apache License, Version 2.0
     .c-library { background: linear-gradient(180deg, #0a84ff, #007aff); }
     .c-home    { background: linear-gradient(180deg, #32d74b, #28cd41); }
     .c-radio   { background: linear-gradient(180deg, #ff9f0a, #d98608); }
+    .c-spotify { background: linear-gradient(180deg, #1ed760, #1db954); }
+    .c-lastfm  { background: linear-gradient(180deg, #e31b23, #b90000); }
+    .c-world   { background: linear-gradient(180deg, #5e5ce6, #3a38b8); }
+    .c-audius  { background: linear-gradient(180deg, #cc0fe0, #7e1bcc); }
+    .c-web     { background: linear-gradient(180deg, #8e8e93, #636366); }
+
+    /* ─────────────── Online services ─────────────── */
+    .view-tools { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+    .view-tools:empty { display: none; }
+    .svc-search {
+      flex: 1; min-width: 220px; max-width: 460px; display: flex; align-items: center; gap: 8px;
+      padding: 0 14px; height: 38px; border-radius: 999px; background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--glass-border);
+    }
+    .svc-search:focus-within { border-color: var(--accent); }
+    .svc-search .material-symbols-outlined { font-size: 18px; color: var(--text-muted); }
+    .svc-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font: 13px 'Poppins', sans-serif; user-select: text; }
+    .svc-chip {
+      height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--glass-border);
+      background: rgba(255, 255, 255, 0.06); color: var(--text-muted); font: 500 12px 'Poppins', sans-serif; cursor: pointer;
+    }
+    .svc-chip:hover, .svc-chip.on { color: #fff; background: rgba(255, 255, 255, 0.14); }
+    .track-art img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
+    .svc-recent { display: flex; flex-direction: column; gap: 2px; }
+    .svc-recent .track-row { grid-template-columns: 44px 1fr auto; cursor: default; }
+    .web-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; }
+    .web-tile {
+      display: flex; flex-direction: column; gap: 6px; padding: 16px; border-radius: 16px; cursor: pointer;
+      background: var(--surface); border: 1px solid var(--glass-border);
+      transition: transform 0.2s var(--spring), background 0.2s;
+      animation: rowIn 0.35s var(--spring) both;
+    }
+    .web-tile:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.1); }
+    .web-logo { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: #fff; }
+    .web-name { font-size: 14px; font-weight: 600; margin-top: 4px; }
+    .web-sub { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
+    .pc-controls { display: flex; gap: 10px; margin-top: 14px; }
+    .pc-controls button {
+      width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      background: rgba(255, 255, 255, 0.1); color: #fff; transition: transform 0.15s;
+    }
+    .pc-controls button:hover { transform: scale(1.08); }
+    .pc-controls button.main { background: var(--accent); }
+    .pc-controls .material-symbols-outlined { font-size: 22px; font-variation-settings: 'FILL' 1; }
+
+    /* ─────────────── Spotify ─────────────── */
+    .sp-card {
+      position: relative;
+      padding: 22px;
+      border-radius: 18px;
+      background: var(--surface);
+      border: 1px solid var(--glass-border);
+      margin-bottom: 18px;
+      animation: rowIn 0.35s var(--spring) both;
+    }
+    .sp-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
+    .sp-card p, .sp-card li { color: var(--text-muted); font-size: 12.5px; line-height: 1.6; }
+    .sp-card ol { padding-left: 18px; margin: 8px 0 14px; }
+    .sp-card code { padding: 2px 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); color: #fff; font-size: 11.5px; user-select: text; }
+    .sp-card a { color: #1ed760; }
+    .sp-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .sp-input {
+      flex: 1; min-width: 220px; padding: 10px 14px; border-radius: 12px; outline: none;
+      border: 1px solid var(--glass-border); background: rgba(0, 0, 0, 0.3); color: #fff;
+      font: 13px 'Poppins', sans-serif; user-select: text;
+    }
+    .sp-input:focus { border-color: #1ed760; }
+    .sp-btn {
+      display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border: none; border-radius: 999px;
+      background: #1ed760; color: #000; font: 600 13px 'Poppins', sans-serif; cursor: pointer;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+    .sp-btn:hover { transform: scale(1.04); filter: brightness(1.08); }
+    .sp-btn.ghost { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .sp-btn .material-symbols-outlined { font-size: 18px; }
+    .sp-account { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 12.5px; color: var(--text-muted); }
+    .sp-account strong { color: #fff; font-weight: 600; }
+    .sp-badge { padding: 2px 8px; border-radius: 999px; background: rgba(30, 215, 96, 0.18); color: #1ed760; font-size: 10.5px; font-weight: 600; }
+    .sp-badge.warn { background: rgba(255, 159, 10, 0.18); color: #ff9f0a; }
+    .sp-account .sp-btn { margin-left: auto; padding: 6px 14px; font-size: 12px; }
+    .sp-now { display: flex; align-items: center; gap: 22px; }
+    .sp-now-art {
+      width: 132px; height: 132px; flex: 0 0 132px; border-radius: 14px; object-fit: cover;
+      background: linear-gradient(145deg, #1ed760, #0f5f2c); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
+      display: flex; align-items: center; justify-content: center; font-size: 44px;
+    }
+    .sp-now-label { color: #1ed760; font-size: 10.5px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; }
+    .sp-now-title { margin-top: 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.4px; }
+    .sp-now-artist { color: var(--text-muted); font-size: 13px; margin-top: 2px; }
+    .sp-device { display: inline-flex; align-items: center; gap: 6px; margin-top: 12px; color: var(--text-dim); font-size: 11.5px; }
+    .sp-device .material-symbols-outlined { font-size: 16px; color: #1ed760; }
+    .sp-section { margin: 6px 0 12px; font-size: 15px; font-weight: 600; }
+    .sp-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 16px; }
+    .sp-tile {
+      padding: 12px; border-radius: 14px; background: var(--surface); cursor: pointer;
+      transition: background 0.2s ease, transform 0.2s var(--spring);
+      animation: rowIn 0.35s var(--spring) both;
+    }
+    .sp-tile:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-3px); }
+    .sp-tile-art {
+      position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; margin-bottom: 10px;
+      background: linear-gradient(145deg, #333, #1a1a1a); display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    }
+    .sp-tile-art img { width: 100%; height: 100%; object-fit: cover; }
+    .sp-tile-play {
+      position: absolute; right: 8px; bottom: 8px; width: 38px; height: 38px; border-radius: 50%;
+      background: #1ed760; color: #000; display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.45); opacity: 0; transform: translateY(6px);
+      transition: opacity 0.2s, transform 0.25s var(--spring);
+    }
+    .sp-tile:hover .sp-tile-play { opacity: 1; transform: none; }
+    .sp-tile-play .material-symbols-outlined { font-size: 24px; font-variation-settings: 'FILL' 1; }
+    .sp-tile-name { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .sp-tile-sub { color: var(--text-muted); font-size: 11.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .player.spotify .btn-play { background: #1ed760; color: #000; box-shadow: 0 4px 14px rgba(30, 215, 96, 0.4); }
+    .player.spotify .seek-fill { background: #1ed760; }
 
     .sidebar-upload {
       margin-top: auto;
@@ -432,6 +547,8 @@ Licensed under the Apache License, Version 2.0
     * { scrollbar-width: none; }
     *::-webkit-scrollbar { display: none; }
   </style>
+<script src="/desktop/assets/mariowos-dialogs.js"></script>
+<script src="/desktop/assets/external-consent.js"></script>
 </head>
 
 <body>
@@ -457,6 +574,32 @@ Licensed under the Apache License, Version 2.0
       <span class="nav-count" id="count-library">0</span>
     </div>
 
+    <div class="sidebar-heading">Online services</div>
+    <div class="nav-item" data-source="spotify" onclick="selectSource('spotify')">
+      <div class="icon-bg c-spotify"><span class="material-symbols-outlined">graphic_eq</span></div>
+      Spotify
+      <span class="nav-count" id="spotify-dot"></span>
+    </div>
+    <div class="nav-item" data-source="lastfm" onclick="selectSource('lastfm')">
+      <div class="icon-bg c-lastfm"><span class="material-symbols-outlined">podcasts</span></div>
+      Last.fm
+      <span class="nav-count" id="lastfm-dot"></span>
+    </div>
+    <div class="nav-item" data-source="worldradio" onclick="selectSource('worldradio')">
+      <div class="icon-bg c-world"><span class="material-symbols-outlined">public</span></div>
+      World Radio
+      <span class="nav-count" id="count-worldradio">0</span>
+    </div>
+    <div class="nav-item" data-source="audius" onclick="selectSource('audius')">
+      <div class="icon-bg c-audius"><span class="material-symbols-outlined">album</span></div>
+      Audius
+      <span class="nav-count" id="count-audius">0</span>
+    </div>
+    <div class="nav-item" data-source="webplayers" onclick="selectSource('webplayers')">
+      <div class="icon-bg c-web"><span class="material-symbols-outlined">language</span></div>
+      Web players
+    </div>
+
     <div class="sidebar-upload" onclick="document.getElementById('file-input').click()">+ Import audio files</div>
   </aside>
 
@@ -467,6 +610,7 @@ Licensed under the Apache License, Version 2.0
       <div class="view-head">
         <div class="view-title" id="view-title">Radio</div>
         <div class="view-sub" id="view-sub">Loading…</div>
+        <div class="view-tools" id="view-tools"></div>
       </div>
       <div class="track-table" id="track-table"></div>
     </div>
@@ -510,7 +654,7 @@ Licensed under the Apache License, Version 2.0
 </div>
 
 <input type="file" id="file-input" multiple accept="audio/*" style="display:none;">
-<audio id="audio" preload="metadata" crossorigin="anonymous"></audio>
+<audio id="audio" preload="metadata"></audio>
 
 <script>
   /* ────────────────────────── Built-in stations ──────────────────────────
@@ -531,10 +675,15 @@ Licensed under the Apache License, Version 2.0
   const SOURCE_LABELS = {
     radio:   { title: 'Radio',       sub: 'Stations that are ready to play right now' },
     home:    { title: 'Home folder', sub: 'Audio files found in your Home/Music folder' },
-    library: { title: 'My library',  sub: 'Everything you have imported into Music' }
+    library: { title: 'My library',  sub: 'Everything you have imported into Music' },
+    spotify: { title: 'Spotify',     sub: 'Control what is playing on your Spotify devices' },
+    lastfm:  { title: 'Last.fm',     sub: 'What you are listening to on any device, from your scrobbles' },
+    worldradio: { title: 'World Radio', sub: 'Thousands of free stations from radio-browser.info' },
+    audius:  { title: 'Audius',      sub: 'Free, full-length tracks from independent artists' },
+    webplayers: { title: 'Web players', sub: 'Streaming sites that work in the mariowOS browser' }
   };
 
-  const sources = { radio: STATIONS, home: [], library: [] };
+  const sources = { radio: STATIONS, home: [], library: [], worldradio: [], audius: [] };
   let currentSource = 'radio';
   let queue = STATIONS;          // the list the transport controls walk through
   let currentTrack = null;
@@ -600,6 +749,9 @@ Licensed under the Apache License, Version 2.0
 
   function selectSource(name) {
     currentSource = name;
+    el('view-tools').replaceChildren();
+    if (name === 'spotify') openSpotifyView();
+    else openServiceView(name);
     document.querySelectorAll('.nav-item').forEach(item => {
       item.classList.toggle('active', item.dataset.source === name);
     });
@@ -609,6 +761,9 @@ Licensed under the Apache License, Version 2.0
   }
 
   function renderTracks() {
+    if (currentSource === 'spotify') { renderSpotify(); return; }
+    if (currentSource === 'lastfm') { renderLastfm(); return; }
+    if (currentSource === 'webplayers') { renderWebPlayers(); return; }
     const table = el('track-table');
     const tracks = sources[currentSource];
     table.replaceChildren();
@@ -618,11 +773,13 @@ Licensed under the Apache License, Version 2.0
       empty.className = 'empty';
       const icon = document.createElement('span');
       icon.className = 'material-symbols-outlined';
-      icon.textContent = currentSource === 'home' ? 'folder_open' : 'library_music';
+      icon.textContent = { home: 'folder_open', worldradio: 'public', audius: 'album' }[currentSource] || 'library_music';
       const text = document.createElement('div');
-      text.textContent = currentSource === 'home'
-        ? 'Drop audio files into Home/Music and they will show up here.'
-        : 'Import audio files to build your library.';
+      text.textContent = {
+        home: 'Drop audio files into Home/Music and they will show up here.',
+        worldradio: serviceState.worldradio.loading ? 'Looking for stations…' : 'No stations found. Try another search.',
+        audius: serviceState.audius.loading ? 'Loading tracks…' : 'No tracks found. Try another search.'
+      }[currentSource] || 'Import audio files to build your library.';
       empty.append(icon, text);
       table.appendChild(empty);
       return;
@@ -656,6 +813,14 @@ Licensed under the Apache License, Version 2.0
       art.className = 'track-art';
       art.style.background = gradientFor(hue);
       art.innerHTML = `<span class="material-symbols-outlined">${track.live ? 'graphic_eq' : 'music_note'}</span>`;
+      if (track.image) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.loading = 'lazy';
+        img.src = track.image;
+        img.onerror = () => img.remove();
+        art.replaceChildren(img);
+      }
 
       const text = document.createElement('div');
       text.className = 'track-text';
@@ -669,7 +834,7 @@ Licensed under the Apache License, Version 2.0
 
       const meta = document.createElement('div');
       meta.className = 'track-meta';
-      meta.textContent = track.live ? 'LIVE' : (track.sizeLabel || '');
+      meta.textContent = track.live ? 'LIVE' : (track.sizeLabel || (track.duration ? formatTime(track.duration) : ''));
 
       const action = document.createElement('button');
       action.className = 'row-action';
@@ -686,7 +851,10 @@ Licensed under the Apache License, Version 2.0
 
   /* ────────────────────────── Playback ────────────────────────── */
 
-  function playTrack(track, sourceName) {
+  async function playTrack(track, sourceName) {
+    const consent = track.consent || (/^https?:/.test(track.url) ? ['somafm', 'SomaFM radio (somafm.com)'] : null);
+    if (consent && !(await mwExternalConsent(consent[0], consent[1]))) return;
+    setSpotifyActive(false);
     currentTrack = track;
     queue = sources[sourceName] || sources[currentSource];
 
@@ -696,6 +864,13 @@ Licensed under the Apache License, Version 2.0
     applyAccent(track.hue !== undefined ? track.hue : hueFor(track.title));
     el('now-art').style.background = gradientFor(track.hue !== undefined ? track.hue : hueFor(track.title));
     el('now-art').innerHTML = `<span class="material-symbols-outlined">${track.live ? 'graphic_eq' : 'music_note'}</span>`;
+    if (track.bigImage || track.image) {
+      const img = document.createElement('img');
+      img.alt = '';
+      img.src = track.bigImage || track.image;
+      img.onerror = () => { el('now-art').innerHTML = '<span class="material-symbols-outlined">music_note</span>'; };
+      el('now-art').replaceChildren(img);
+    }
 
     if (track.live) {
       el('time-total').textContent = 'LIVE';
@@ -746,6 +921,7 @@ Licensed under the Apache License, Version 2.0
   }
 
   el('play-btn').onclick = () => {
+    if (spotify.active) { spotifyCommand(spotify.player?.isPlaying ? 'pause' : 'play'); return; }
     if (!currentTrack) {
       const first = sources[currentSource][0];
       if (first) playTrack(first, currentSource);
@@ -753,16 +929,22 @@ Licensed under the Apache License, Version 2.0
     }
     isPlaying ? pause() : play();
   };
-  el('next-btn').onclick = () => step(1);
-  el('prev-btn').onclick = () => step(-1);
+  el('next-btn').onclick = () => spotify.active ? spotifyCommand('next') : step(1);
+  el('prev-btn').onclick = () => spotify.active ? spotifyCommand('previous') : step(-1);
 
   el('shuffle-btn').onclick = () => {
+    if (spotify.active) { spotifyCommand('shuffle', { value: !spotify.player?.shuffle }); return; }
     isShuffled = !isShuffled;
     el('shuffle-btn').classList.toggle('active', isShuffled);
     toast(isShuffled ? 'Shuffle on' : 'Shuffle off');
   };
 
   el('repeat-btn').onclick = () => {
+    if (spotify.active) {
+      const order = ['off', 'context', 'track'];
+      spotifyCommand('repeat', { value: order[(order.indexOf(spotify.player?.repeat || 'off') + 1) % 3] });
+      return;
+    }
     repeatMode = (repeatMode + 1) % 3;
     const button = el('repeat-btn');
     button.classList.toggle('active', repeatMode > 0);
@@ -799,6 +981,12 @@ Licensed under the Apache License, Version 2.0
   });
 
   el('seek').onclick = event => {
+    if (spotify.active) {
+      const rect = event.currentTarget.getBoundingClientRect();
+      const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+      if (spotify.player?.durationMs) spotifyCommand('seek', { value: ratio * spotify.player.durationMs });
+      return;
+    }
     if (!Number.isFinite(audio.duration) || audio.duration === 0) return;
     const rect = event.currentTarget.getBoundingClientRect();
     audio.currentTime = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width)) * audio.duration;
@@ -815,7 +1003,13 @@ Licensed under the Apache License, Version 2.0
 
   el('vol-bar').onclick = event => {
     const rect = event.currentTarget.getBoundingClientRect();
-    setVolume((event.clientX - rect.left) / rect.width);
+    const ratio = Math.max(0, Math.min(1, (event.clientX - rect.left) / rect.width));
+    if (spotify.active) {
+      el('vol-fill').style.width = `${ratio * 100}%`;
+      spotifyCommand('volume', { value: ratio * 100 });
+      return;
+    }
+    setVolume(ratio);
   };
 
   let volumeBeforeMute = 0.7;
@@ -926,8 +1120,8 @@ Licensed under the Apache License, Version 2.0
       type: 'media-update',
       title: el('now-title').textContent,
       artist: el('now-artist').textContent,
-      art: '',
-      isPlaying
+      art: spotify.active ? (spotify.player?.track?.image || '') : '',
+      isPlaying: spotify.active ? Boolean(spotify.player?.isPlaying) : isPlaying
     }, '*');
   }
 
@@ -935,6 +1129,13 @@ Licensed under the Apache License, Version 2.0
     const data = event.data;
     if (!data) return;
     if (data.type === 'media-command') {
+      if (spotify.active) {
+        if (data.command === 'toggle') spotifyCommand(spotify.player?.isPlaying ? 'pause' : 'play');
+        else if (data.command === 'next') spotifyCommand('next');
+        else if (data.command === 'prev') spotifyCommand('previous');
+        else if (data.command === 'seek' && spotify.player?.durationMs) spotifyCommand('seek', { value: data.percent * spotify.player.durationMs });
+        return;
+      }
       if (data.command === 'toggle') isPlaying ? pause() : play();
       else if (data.command === 'next') step(1);
       else if (data.command === 'prev') step(-1);
@@ -947,10 +1148,707 @@ Licensed under the Apache License, Version 2.0
   });
 
   document.addEventListener('keydown', event => {
-    if (event.code !== 'Space') return;
+    if (event.code !== 'Space' || event.target.closest('input')) return;
     event.preventDefault();
-    isPlaying ? pause() : play();
+    if (spotify.active) spotifyCommand(spotify.player?.isPlaying ? 'pause' : 'play');
+    else isPlaying ? pause() : play();
   });
+
+  /* ────────────────────────── Spotify (Connect remote) ──────────────────────────
+     mariowOS never plays Spotify audio itself (that needs DRM): it shows and controls
+     what plays in the user's own Spotify app or device. Tokens stay on the server.
+     Two backends: the Spotify Web API (playlists, any device; needs Premium on the
+     app owner's account) and, as a fallback, the Spotify app on this PC read through
+     the Windows media session (no account needed; play/pause/skip/seek only). */
+
+  const spotify = {
+    status: null,        // { configured, connected, user, redirectUri }
+    player: null,        // last state from /api/spotify/player
+    playlists: null,
+    active: false,       // transport controls drive Spotify instead of local audio
+    error: '',
+    pollTimer: null,
+    tickTimer: null,
+    polledAt: 0
+  };
+
+  // Small DOM builder: text always goes in as textContent, never as HTML.
+  function h(tag, props = {}, ...children) {
+    const node = document.createElement(tag);
+    for (const [key, value] of Object.entries(props)) {
+      if (key === 'class') node.className = value;
+      else if (key === 'text') node.textContent = value;
+      else if (key.startsWith('on')) node.addEventListener(key.slice(2), value);
+      else node.setAttribute(key, value);
+    }
+    children.flat().filter(Boolean).forEach(child => node.append(child));
+    return node;
+  }
+  const icon = name => h('span', { class: 'material-symbols-outlined', text: name });
+
+  async function spotifyFetch(path, options = {}) {
+    const response = await fetch(path, {
+      ...options,
+      headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
+      cache: 'no-store'
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || data.success === false) {
+      const error = new Error(data.error || 'Spotify request failed.');
+      error.status = response.status;
+      throw error;
+    }
+    return data;
+  }
+
+  async function refreshSpotifyStatus() {
+    try { spotify.status = await spotifyFetch('/api/spotify/status'); }
+    catch (error) { spotify.status = { configured: false, connected: false, error: error.message }; }
+    el('spotify-dot').textContent = spotify.status.connected ? '●' : '';
+    el('spotify-dot').style.color = '#1ed760';
+    return spotify.status;
+  }
+
+  async function openSpotifyView() {
+    if (!(await mwExternalConsent('spotify', 'Spotify (spotify.com)'))) { selectSource('radio'); return; }
+    renderSpotify();
+    await refreshSpotifyStatus();
+    await pollSpotify();
+    if (spotify.status.connected && !spotify.apiBlocked) loadSpotifyPlaylists();
+    if (spotify.player) setSpotifyActive(true);
+    renderSpotify();
+    startSpotifyPolling();
+  }
+
+  function setSpotifyActive(active) {
+    if (spotify.active === active) return;
+    spotify.active = active;
+    document.querySelector('.player').classList.toggle('spotify', active);
+    if (active) {
+      if (isPlaying) pause();
+      updateSpotifyTransport();
+    } else {
+      el('shuffle-btn').classList.toggle('active', isShuffled);
+      el('repeat-btn').classList.toggle('active', repeatMode > 0);
+      el('repeat-btn').querySelector('.material-symbols-outlined').textContent = repeatMode === 2 ? 'repeat_one' : 'repeat';
+      ['shuffle-btn', 'repeat-btn'].forEach(id => { el(id).style.opacity = ''; });
+      el('now-art').innerHTML = '<span class="material-symbols-outlined">music_note</span>';
+      el('now-title').textContent = currentTrack ? currentTrack.title : 'Nothing playing';
+      el('now-artist').textContent = currentTrack ? currentTrack.artist : 'Pick a station or a track';
+      setVolume(audio.volume);
+    }
+  }
+
+  function startSpotifyPolling() {
+    clearInterval(spotify.pollTimer);
+    clearInterval(spotify.tickTimer);
+    spotify.pollTimer = setInterval(() => {
+      const wanted = currentSource === 'spotify' || spotify.active;
+      if (wanted && document.visibilityState === 'visible') pollSpotify();
+    }, 4000);
+    // Between polls, move the progress bar locally so it looks continuous.
+    spotify.tickTimer = setInterval(() => { if (spotify.active) updateSpotifyProgress(); }, 500);
+  }
+
+  async function pollSpotify() {
+    let player = null;
+    let apiOk = false;
+    if (spotify.status?.connected) {
+      try {
+        player = (await spotifyFetch('/api/spotify/player')).player;
+        apiOk = true;
+        spotify.apiBlocked = false;
+        spotify.error = '';
+      } catch (error) {
+        spotify.error = error.message;
+        spotify.apiBlocked = error.status === 403;
+        if (error.status === 401) await refreshSpotifyStatus();
+      }
+    }
+    // Nothing from the Web API: look at the Spotify app running on this PC,
+    // then at Last.fm, which also sees what plays on a phone (read-only).
+    if (!player) {
+      const local = await readLocalSpotify();
+      if (local) player = local;
+      else if (!apiOk) player = await readLastfmNowPlaying();
+    }
+    spotify.player = player;
+    spotify.polledAt = Date.now();
+    if (spotify.active) updateSpotifyTransport();
+    if (currentSource === 'spotify') updateSpotifyNowCard();
+  }
+
+  async function readLocalSpotify() {
+    try {
+      const { session } = await spotifyFetch('/api/media/session');
+      if (!session || !/spotify/i.test(session.app || '') || !session.title) return null;
+      return {
+        local: true,
+        isPlaying: session.isPlaying,
+        progressMs: session.positionMs || 0,
+        durationMs: session.durationMs || 0,
+        canSeek: session.canSeek,
+        device: { name: 'Spotify on this PC', type: 'Computer', volume: null },
+        track: { title: session.title, artist: session.artist || '', album: session.album || '', image: session.image || null }
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  async function loadSpotifyPlaylists() {
+    try { spotify.playlists = (await spotifyFetch('/api/spotify/playlists')).playlists; }
+    catch (error) { spotify.playlists = []; spotify.error = error.message; }
+    if (currentSource === 'spotify') renderSpotify();
+  }
+
+  async function spotifyCommand(action, extra = {}) {
+    if (spotify.player?.readOnly) {
+      toast('Playing on another device: without Spotify Premium it can only be shown, not controlled');
+      return;
+    }
+    setSpotifyActive(true);
+    // Optimistic update so the UI reacts instantly; the next poll corrects it.
+    if (spotify.player) {
+      if (action === 'play') spotify.player.isPlaying = true;
+      if (action === 'pause') spotify.player.isPlaying = false;
+      if (action === 'shuffle') spotify.player.shuffle = extra.value;
+      if (action === 'repeat') spotify.player.repeat = extra.value;
+      if (action === 'seek') { spotify.player.progressMs = extra.value; spotify.polledAt = Date.now(); }
+      updateSpotifyTransport();
+    }
+    try {
+      if (spotify.player?.local && action !== 'play-context') {
+        if (!['play', 'pause', 'next', 'previous', 'seek'].includes(action)) {
+          toast('Shuffle, repeat and volume need the Spotify app itself (or Premium)');
+          return;
+        }
+        await spotifyFetch('/api/media/control', { method: 'POST', body: JSON.stringify({ action, ...extra }) });
+      } else {
+        await spotifyFetch('/api/spotify/control', { method: 'POST', body: JSON.stringify({ action, ...extra }) });
+        if (action === 'play-context') toast('Playing on Spotify');
+      }
+    } catch (error) {
+      toast(error.message);
+    }
+    setTimeout(pollSpotify, action === 'next' || action === 'previous' || action === 'play-context' ? 700 : 300);
+  }
+
+  function spotifyProgressMs() {
+    const p = spotify.player;
+    if (!p) return 0;
+    const elapsed = p.isPlaying ? Date.now() - spotify.polledAt : 0;
+    return Math.min(p.durationMs || 0, p.progressMs + elapsed);
+  }
+
+  function updateSpotifyProgress() {
+    const p = spotify.player;
+    const duration = p?.durationMs || 0;
+    const progress = spotifyProgressMs();
+    const percent = duration ? (progress / duration) * 100 : 0;
+    el('time-now').textContent = formatTime(progress / 1000);
+    el('time-total').textContent = formatTime(duration / 1000);
+    el('seek-fill').style.width = `${percent}%`;
+    el('seek-thumb').style.left = `${percent}%`;
+  }
+
+  function updateSpotifyTransport() {
+    const p = spotify.player;
+    const track = p?.track;
+    el('now-title').textContent = track ? track.title : 'Nothing playing on Spotify';
+    el('now-artist').textContent = track ? track.artist : 'Start playback in the Spotify app';
+    const art = el('now-art');
+    if (track?.image) {
+      if (art.querySelector('img')?.src !== track.image) art.replaceChildren(h('img', { src: track.image, alt: '' }));
+    } else {
+      art.replaceChildren(icon('graphic_eq'));
+    }
+    art.style.background = 'linear-gradient(145deg, #1ed760, #0f5f2c)';
+    art.classList.toggle('playing', Boolean(p?.isPlaying));
+    el('play-btn').querySelector('.material-symbols-outlined').textContent = p?.isPlaying ? 'pause' : 'play_arrow';
+    el('play-btn').title = p?.isPlaying ? 'Pause' : 'Play';
+    ['shuffle-btn', 'repeat-btn'].forEach(id => { el(id).style.opacity = p?.local ? '0.35' : ''; });
+    el('shuffle-btn').classList.toggle('active', Boolean(p?.shuffle));
+    el('repeat-btn').classList.toggle('active', p?.repeat && p.repeat !== 'off');
+    el('repeat-btn').querySelector('.material-symbols-outlined').textContent = p?.repeat === 'track' ? 'repeat_one' : 'repeat';
+    if (p?.device && Number.isFinite(p.device.volume)) el('vol-fill').style.width = `${p.device.volume}%`;
+    updateSpotifyProgress();
+    notifyDesktop();
+  }
+
+  function updateSpotifyNowCard() {
+    const card = document.getElementById('sp-now');
+    if (!card) { renderSpotify(); return; }
+    card.replaceWith(buildSpotifyNowCard());
+  }
+
+  function buildSpotifyNowCard() {
+    const p = spotify.player;
+    const track = p?.track;
+    const art = track?.image ? h('img', { class: 'sp-now-art', src: track.image, alt: '' }) : h('div', { class: 'sp-now-art' }, icon('graphic_eq'));
+    const info = h('div', {},
+      h('div', { class: 'sp-now-label', text: p?.isPlaying ? 'Now playing' : (track ? 'Paused' : 'Nothing playing') }),
+      h('div', { class: 'sp-now-title', text: track ? track.title : 'Start something on Spotify' }),
+      h('div', { class: 'sp-now-artist', text: track ? [track.artist, track.album].filter(Boolean).join(' · ') : 'Open Spotify on your PC, phone or speaker, then control it from here.' }),
+      p?.device ? h('div', { class: 'sp-device' }, icon(p.device.type === 'Smartphone' ? 'smartphone' : p.device.type === 'Speaker' ? 'speaker' : 'computer'), `Playing on ${p.device.name}`) : null,
+      p?.local && spotify.apiBlocked ? h('div', { class: 'sp-device', style: 'color:#ff9f0a;display:flex;margin-top:6px' }, icon('info'),
+        'Spotify\'s online service is blocked (Premium required): showing the app on this PC.') : null,
+      !p && spotify.error ? h('div', { class: 'sp-device', style: 'color:#ff9f0a' }, spotify.error) : null
+    );
+    return h('div', { class: 'sp-card sp-now', id: 'sp-now' }, art, info);
+  }
+
+  function renderSpotify() {
+    const table = el('track-table');
+    const st = spotify.status;
+    if (!st) {
+      table.replaceChildren(h('div', { class: 'empty' }, icon('graphic_eq'), h('div', { text: 'Connecting to Spotify…' })));
+      return;
+    }
+
+    if (!st.configured) {
+      const input = h('input', { class: 'sp-input', placeholder: 'Paste your Client ID', spellcheck: 'false', autocomplete: 'off' });
+      const save = async () => {
+        try {
+          await spotifyFetch('/api/spotify/client-id', { method: 'POST', body: JSON.stringify({ clientId: input.value }) });
+          await refreshSpotifyStatus();
+          renderSpotify();
+        } catch (error) { toast(error.message); }
+      };
+      input.addEventListener('keydown', event => { if (event.key === 'Enter') save(); });
+      table.replaceChildren(spotify.player ? buildSpotifyNowCard() : '', h('div', { class: 'sp-card' },
+        h('h3', { text: 'Set up Spotify' }),
+        h('p', { text: 'Already works: if the Spotify app is open on this PC, mariowOS shows and controls it. For playlists and your other devices, connect a Spotify developer app (created once, its owner needs Premium):' }),
+        h('ol', {},
+          h('li', {}, 'Go to ', h('code', { text: 'developer.spotify.com/dashboard' }), ' and log in.'),
+          h('li', { text: 'Create an app (any name), and tick "Web API".' }),
+          h('li', {}, 'As Redirect URI add exactly ', h('code', { text: st.redirectUri || 'http://127.0.0.1:3000/api/spotify/callback' })),
+          h('li', { text: 'Save, open the app settings and copy the Client ID here.' })
+        ),
+        h('p', { style: 'margin-bottom:14px' }, 'Listening on your phone without Premium? Set up ',
+          h('a', { href: '#', onclick: event => { event.preventDefault(); selectSource('lastfm'); }, text: 'Last.fm' }),
+          ' and the song will show up here too.'),
+        h('div', { class: 'sp-row' }, input, h('button', { class: 'sp-btn', onclick: save }, icon('check'), 'Save'))
+      ));
+      return;
+    }
+
+    if (!st.connected) {
+      table.replaceChildren(spotify.player ? buildSpotifyNowCard() : '', h('div', { class: 'sp-card' },
+        h('h3', { text: 'Connect your Spotify account' }),
+        h('p', { text: 'You will log in on Spotify\'s own page, in a browser tab. Your password is never seen by mariowOS. Controlling playback requires Spotify Premium.' }),
+        h('div', { class: 'sp-row', style: 'margin-top:14px' },
+          h('button', { class: 'sp-btn', onclick: connectSpotify }, icon('login'), 'Connect Spotify'),
+          h('button', { class: 'sp-btn ghost', onclick: async () => { await refreshSpotifyStatus(); openSpotifyView(); } }, icon('refresh'), 'I have connected')
+        )
+      ));
+      return;
+    }
+
+    const premium = st.user?.product === 'premium';
+    // While the Web API is blocked the product is unknown: do not claim "Free".
+    const account = h('div', { class: 'sp-account' },
+      icon('account_circle'),
+      h('span', {}, 'Connected as ', h('strong', { text: st.user?.name || 'Spotify user' })),
+      st.user?.product ? h('span', { class: premium ? 'sp-badge' : 'sp-badge warn', text: premium ? 'Premium' : 'Free: view only' }) : null,
+      h('button', { class: 'sp-btn ghost', onclick: disconnectSpotify }, icon('logout'), 'Disconnect')
+    );
+
+    const grid = h('div', { class: 'sp-grid' });
+    if (spotify.apiBlocked) grid.append(h('div', { class: 'sp-tile-sub', style: 'grid-column:1/-1;white-space:normal', text: 'Playlists are unavailable until the Spotify developer app\'s owner has Premium.' }));
+    else if (spotify.playlists === null) grid.append(h('div', { class: 'sp-tile-sub', text: 'Loading playlists…' }));
+    else if (!spotify.playlists.length) grid.append(h('div', { class: 'sp-tile-sub', text: 'No playlists found.' }));
+    else spotify.playlists.forEach((pl, index) => {
+      const art = h('div', { class: 'sp-tile-art' },
+        pl.image ? h('img', { src: pl.image, alt: '', loading: 'lazy' }) : icon('queue_music'),
+        h('div', { class: 'sp-tile-play' }, icon('play_arrow')));
+      const tile = h('div', { class: 'sp-tile', title: pl.name, onclick: () => spotifyCommand('play-context', { uri: pl.uri }) },
+        art,
+        h('div', { class: 'sp-tile-name', text: pl.name }),
+        h('div', { class: 'sp-tile-sub', text: [pl.owner, pl.tracks != null ? `${pl.tracks} tracks` : ''].filter(Boolean).join(' · ') }));
+      tile.style.animationDelay = `${Math.min(index, 14) * 0.025}s`;
+      grid.append(tile);
+    });
+
+    table.replaceChildren(account, buildSpotifyNowCard(), h('div', { class: 'sp-section', text: 'Your playlists' }), grid);
+  }
+
+  function connectSpotify() {
+    const url = `${location.origin}/api/spotify/login`;
+    // Spotify's login page cannot be framed, so it opens as a tab in the mariowOS browser.
+    if (window.top !== window && typeof window.top.openUrlInBrowserTab === 'function') window.top.openUrlInBrowserTab(url);
+    else window.open(url, '_blank');
+    toast('Log in to Spotify in the browser tab, then come back here');
+    // Pick up the new connection automatically for a couple of minutes.
+    let tries = 0;
+    const wait = setInterval(async () => {
+      tries++;
+      const st = await refreshSpotifyStatus();
+      if (st.connected || tries > 60) {
+        clearInterval(wait);
+        if (st.connected && currentSource === 'spotify') openSpotifyView();
+      }
+    }, 2000);
+  }
+
+  async function disconnectSpotify() {
+    if (!(await mDialog.confirm('Disconnect your Spotify account from mariowOS?'))) return;
+    try { await spotifyFetch('/api/spotify/logout', { method: 'POST' }); } catch (error) { toast(error.message); }
+    setSpotifyActive(false);
+    spotify.player = null;
+    spotify.playlists = null;
+    await refreshSpotifyStatus();
+    renderSpotify();
+  }
+
+  refreshSpotifyStatus();
+
+  /* ────────────────────────── Online services ──────────────────────────
+     Free alternatives that need no Spotify Premium:
+     - Last.fm: what you listen to on any device (read-only, via your scrobbles)
+     - World Radio: radio-browser.info, a free open directory of internet radio
+     - Audius: free full-length streaming from independent artists
+     - Web players: streaming sites that run in the mariowOS browser (no DRM needed),
+       plus a remote for whatever is playing on this PC. */
+
+  const SERVICE_CONSENT = {
+    lastfm: ['lastfm', 'Last.fm (last.fm)'],
+    worldradio: ['radiobrowser', 'World Radio (radio-browser.info and the stations\' own servers)'],
+    audius: ['audius', 'Audius (audius.co)']
+  };
+  const serviceState = {
+    lastfm: { status: null, tracks: null, error: '', timer: null },
+    worldradio: { loading: false, query: '', mode: 'local', loaded: false },
+    audius: { loading: false, query: '', loaded: false },
+    pc: { session: null, timer: null }
+  };
+
+  async function openServiceView(name) {
+    clearInterval(serviceState.lastfm.timer);
+    clearInterval(serviceState.pc.timer);
+    if (SERVICE_CONSENT[name] && !(await mwExternalConsent(...SERVICE_CONSENT[name]))) { selectSource('radio'); return; }
+    if (currentSource !== name) return;
+    if (name === 'lastfm') openLastfm();
+    if (name === 'worldradio') openWorldRadio();
+    if (name === 'audius') openAudius();
+    if (name === 'webplayers') openWebPlayers();
+  }
+
+  function searchBox(placeholder, value, onSearch) {
+    const input = h('input', { placeholder, spellcheck: 'false', autocomplete: 'off' });
+    input.value = value || '';
+    let timer = null;
+    input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(() => onSearch(input.value.trim()), 450); });
+    input.addEventListener('keydown', event => { if (event.key === 'Enter') { clearTimeout(timer); onSearch(input.value.trim()); } });
+    return h('label', { class: 'svc-search' }, icon('search'), input);
+  }
+  function chip(label, on, onClick) {
+    return h('button', { class: 'svc-chip' + (on ? ' on' : ''), onclick: onClick, text: label });
+  }
+  async function getJson(url, options) {
+    const response = await fetch(url, options);
+    const data = await response.json().catch(() => null);
+    if (!response.ok) throw new Error(data?.error || `Request failed (${response.status})`);
+    return data;
+  }
+
+  /* ── Last.fm ── */
+
+  async function refreshLastfmStatus() {
+    try { serviceState.lastfm.status = await getJson('/api/lastfm/status'); }
+    catch (error) { serviceState.lastfm.status = { configured: false }; }
+    el('lastfm-dot').textContent = serviceState.lastfm.status.configured ? '●' : '';
+    el('lastfm-dot').style.color = '#e31b23';
+    return serviceState.lastfm.status;
+  }
+
+  async function loadLastfmRecent() {
+    try {
+      serviceState.lastfm.tracks = (await getJson('/api/lastfm/recent?limit=12')).tracks;
+      serviceState.lastfm.error = '';
+    } catch (error) {
+      serviceState.lastfm.error = error.message;
+      serviceState.lastfm.tracks = serviceState.lastfm.tracks || [];
+    }
+    if (currentSource === 'lastfm') renderLastfm();
+  }
+
+  async function openLastfm() {
+    renderLastfm();
+    await refreshLastfmStatus();
+    renderLastfm();
+    if (!serviceState.lastfm.status.configured) return;
+    await loadLastfmRecent();
+    serviceState.lastfm.timer = setInterval(() => {
+      if (currentSource === 'lastfm' && document.visibilityState === 'visible') loadLastfmRecent();
+    }, 15000);
+  }
+
+  // Used by the Spotify view when nothing else can see what is playing (e.g. on a phone).
+  async function readLastfmNowPlaying() {
+    if (!serviceState.lastfm.status) await refreshLastfmStatus();
+    if (!serviceState.lastfm.status?.configured) return null;
+    try {
+      const { tracks } = await getJson('/api/lastfm/recent?limit=1');
+      const now = tracks.find(t => t.nowPlaying);
+      if (!now) return null;
+      return {
+        readOnly: true, isPlaying: true, progressMs: 0, durationMs: 0,
+        device: { name: 'Another device (via Last.fm)', type: 'Smartphone', volume: null },
+        track: { title: now.title, artist: now.artist, album: now.album, image: now.image }
+      };
+    } catch (error) { return null; }
+  }
+
+  function renderLastfm() {
+    const table = el('track-table');
+    const st = serviceState.lastfm.status;
+    if (!st) { table.replaceChildren(h('div', { class: 'empty' }, icon('podcasts'), h('div', { text: 'Loading…' }))); return; }
+
+    if (!st.configured) {
+      const user = h('input', { class: 'sp-input', placeholder: 'Last.fm username', spellcheck: 'false', autocomplete: 'off' });
+      const key = h('input', { class: 'sp-input', placeholder: 'API key (32 characters)', spellcheck: 'false', autocomplete: 'off' });
+      const save = async () => {
+        try {
+          await getJson('/api/lastfm/config', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: user.value, apiKey: key.value }) });
+          toast('Last.fm connected');
+          openLastfm();
+        } catch (error) { toast(error.message); }
+      };
+      table.replaceChildren(h('div', { class: 'sp-card' },
+        h('h3', { text: 'See what you play anywhere' }),
+        h('p', { text: 'Last.fm records ("scrobbles") every song you play, on any device: Spotify Free on your phone included. mariowOS reads it to show what is playing now. It can only show, not control.' }),
+        h('ol', {},
+          h('li', {}, 'Create a free account on ', h('code', { text: 'last.fm' }), '.'),
+          h('li', { text: 'In Spotify (phone or PC): Settings → Apps / Social → connect Last.fm. Other players have Last.fm plug-ins too.' }),
+          h('li', {}, 'Get a free API key at ', h('code', { text: 'last.fm/api/account/create' }), ' (any app name; callback can be left empty).'),
+          h('li', { text: 'Enter your username and the API key below.' })
+        ),
+        h('div', { class: 'sp-row' }, user, key, h('button', { class: 'sp-btn', style: 'background:#e31b23;color:#fff', onclick: save }, icon('check'), 'Save'))
+      ));
+      return;
+    }
+
+    const tracks = serviceState.lastfm.tracks;
+    const now = tracks?.find(t => t.nowPlaying);
+    const header = h('div', { class: 'sp-account' }, icon('account_circle'),
+      h('span', {}, 'Scrobbles of ', h('strong', { text: st.username })),
+      h('button', { class: 'sp-btn ghost', onclick: async () => {
+        if (!(await mDialog.confirm('Disconnect Last.fm from mariowOS?'))) return;
+        await getJson('/api/lastfm/config', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' }).catch(() => {});
+        serviceState.lastfm.tracks = null;
+        openLastfm();
+      } }, icon('logout'), 'Disconnect'));
+
+    const art = now?.image ? h('img', { class: 'sp-now-art', src: now.image, alt: '' }) : h('div', { class: 'sp-now-art', style: 'background:linear-gradient(145deg,#e31b23,#6b0000)' }, icon('podcasts'));
+    const card = h('div', { class: 'sp-card sp-now' }, art, h('div', {},
+      h('div', { class: 'sp-now-label', style: 'color:#ff4d55', text: now ? 'Listening now' : 'Nothing playing right now' }),
+      h('div', { class: 'sp-now-title', text: now ? now.title : (tracks === null ? 'Loading…' : 'Play something on any device') }),
+      h('div', { class: 'sp-now-artist', text: now ? [now.artist, now.album].filter(Boolean).join(' · ') : 'It shows up here a few seconds after it starts.' }),
+      serviceState.lastfm.error ? h('div', { class: 'sp-device', style: 'color:#ff9f0a' }, serviceState.lastfm.error) : null));
+
+    const list = h('div', { class: 'svc-recent' });
+    (tracks || []).filter(t => !t.nowPlaying).forEach((t, index) => {
+      const thumb = h('div', { class: 'track-art', style: `background:${gradientFor(hueFor(t.title))}` },
+        t.image ? h('img', { src: t.image, alt: '', loading: 'lazy' }) : icon('music_note'));
+      const row = h('div', { class: 'track-row' }, thumb,
+        h('div', { class: 'track-text' }, h('div', { class: 'track-name', text: t.title }), h('div', { class: 'track-artist', text: t.artist })),
+        h('div', { class: 'track-meta', text: t.playedAt ? new Date(t.playedAt).toLocaleString([], { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : '' }));
+      row.style.animationDelay = `${Math.min(index, 14) * 0.025}s`;
+      list.append(row);
+    });
+    table.replaceChildren(header, card, h('div', { class: 'sp-section', text: 'Recently played' }), list);
+  }
+
+  /* ── World Radio (radio-browser.info) ── */
+
+  let radioBrowserBase = null;
+  async function radioBrowser(path) {
+    if (!radioBrowserBase) {
+      // The directory runs on several mirrors; pick one at random as its docs recommend.
+      try {
+        const servers = await getJson('https://all.api.radio-browser.info/json/servers');
+        const names = [...new Set(servers.map(s => s.name))];
+        radioBrowserBase = `https://${names[Math.floor(Math.random() * names.length)]}`;
+      } catch (error) { radioBrowserBase = 'https://de1.api.radio-browser.info'; }
+    }
+    return getJson(`${radioBrowserBase}/json/${path}`);
+  }
+
+  function renderWorldRadioTools() {
+    const st = serviceState.worldradio;
+    const country = (navigator.language.split('-')[1] || 'IT').toUpperCase();
+    el('view-tools').replaceChildren(
+      searchBox('Search stations, genres or cities', st.query, query => loadWorldRadio('search', query)),
+      chip(`Popular in ${country}`, st.mode === 'local' && !st.query, () => loadWorldRadio('local', '')),
+      chip('Top worldwide', st.mode === 'top' && !st.query, () => loadWorldRadio('top', '')));
+  }
+
+  async function loadWorldRadio(mode, query) {
+    const st = serviceState.worldradio;
+    st.mode = query ? 'search' : mode;
+    st.query = query;
+    st.loading = true;
+    if (currentSource === 'worldradio') { renderWorldRadioTools(); renderTracks(); }
+    const country = (navigator.language.split('-')[1] || 'IT').toUpperCase();
+    const common = 'hidebroken=true&limit=60&order=clickcount&reverse=true';
+    try {
+      const list = st.mode === 'search'
+        ? await radioBrowser(`stations/search?name=${encodeURIComponent(query)}&${common}`)
+        : st.mode === 'top'
+          ? await radioBrowser('stations/topclick/60')
+          : await radioBrowser(`stations/bycountrycodeexact/${encodeURIComponent(country)}?${common}`);
+      sources.worldradio = list
+        .filter(station => /^https?:\/\//.test(station.url_resolved || station.url || ''))
+        .map(station => ({
+          id: `wr-${station.stationuuid}`,
+          source: 'worldradio',
+          title: station.name.trim() || 'Unnamed station',
+          artist: [station.country, (station.tags || '').split(',').filter(Boolean).slice(0, 2).join(', ')].filter(Boolean).join(' · '),
+          url: station.url_resolved || station.url,
+          image: /^https:\/\//.test(station.favicon || '') ? station.favicon : null,
+          live: true,
+          consent: SERVICE_CONSENT.worldradio
+        }));
+    } catch (error) {
+      sources.worldradio = [];
+      toast('Could not reach the radio directory');
+    }
+    st.loading = false;
+    st.loaded = true;
+    updateCounts();
+    if (currentSource === 'worldradio') renderTracks();
+  }
+
+  function openWorldRadio() {
+    renderWorldRadioTools();
+    if (!serviceState.worldradio.loaded) loadWorldRadio('local', '');
+  }
+
+  /* ── Audius ── */
+
+  const AUDIUS_API = 'https://api.audius.co/v1';
+  const AUDIUS_APP = 'app_name=mariowOS';
+
+  function renderAudiusTools() {
+    const st = serviceState.audius;
+    el('view-tools').replaceChildren(
+      searchBox('Search artists or tracks on Audius', st.query, query => loadAudius(query)),
+      chip('Trending', !st.query, () => loadAudius('')));
+  }
+
+  async function loadAudius(query) {
+    const st = serviceState.audius;
+    st.query = query;
+    st.loading = true;
+    if (currentSource === 'audius') { renderAudiusTools(); renderTracks(); }
+    try {
+      const { data } = await getJson(query
+        ? `${AUDIUS_API}/tracks/search?query=${encodeURIComponent(query)}&limit=50&${AUDIUS_APP}`
+        : `${AUDIUS_API}/tracks/trending?limit=50&${AUDIUS_APP}`);
+      sources.audius = (data || [])
+        .filter(track => track.is_streamable !== false && track.id)
+        .map(track => ({
+          id: `au-${track.id}`,
+          source: 'audius',
+          title: track.title,
+          artist: track.user?.name || 'Unknown artist',
+          url: `${AUDIUS_API}/tracks/${encodeURIComponent(track.id)}/stream?${AUDIUS_APP}`,
+          image: track.artwork?.['150x150'] || null,
+          bigImage: track.artwork?.['480x480'] || null,
+          duration: track.duration || 0,
+          consent: SERVICE_CONSENT.audius
+        }));
+    } catch (error) {
+      sources.audius = [];
+      toast('Could not reach Audius');
+    }
+    st.loading = false;
+    st.loaded = true;
+    updateCounts();
+    if (currentSource === 'audius') renderTracks();
+  }
+
+  function openAudius() {
+    renderAudiusTools();
+    if (!serviceState.audius.loaded) loadAudius('');
+  }
+
+  /* ── Web players + "playing on this PC" ── */
+
+  // Only sites that play without DRM: Electron has no Widevine, so Apple Music, Deezer,
+  // Tidal and Amazon Music cannot play here.
+  const WEB_PLAYERS = [
+    { name: 'YouTube Music', url: 'https://music.youtube.com', color: '#ff0000', logo: '▶', sub: 'Free with ads, huge catalogue' },
+    { name: 'SoundCloud', url: 'https://soundcloud.com', color: '#ff5500', logo: 'SC', sub: 'Independent artists, mixes and remixes' },
+    { name: 'Bandcamp', url: 'https://bandcamp.com', color: '#1da0c3', logo: 'bc', sub: 'Listen to and support artists directly' },
+    { name: 'Mixcloud', url: 'https://www.mixcloud.com', color: '#5000ff', logo: 'M', sub: 'DJ sets, radio shows and podcasts' },
+    { name: 'Audiomack', url: 'https://audiomack.com', color: '#ffa200', logo: 'A', sub: 'Free hip-hop, afrobeats and more' },
+    { name: 'Jamendo', url: 'https://www.jamendo.com', color: '#ec6c2b', logo: 'J', sub: 'Free, Creative Commons music' }
+  ];
+
+  function openInBrowser(url) {
+    if (window.top !== window && typeof window.top.openUrlInBrowserTab === 'function') window.top.openUrlInBrowserTab(url);
+    else window.open(url, '_blank');
+  }
+
+  async function pollPcSession() {
+    try { serviceState.pc.session = (await getJson('/api/media/session?any=1')).session; }
+    catch (error) { serviceState.pc.session = null; }
+    if (currentSource === 'webplayers') {
+      const card = document.getElementById('pc-card');
+      if (card) card.replaceWith(buildPcCard());
+    }
+  }
+
+  async function pcCommand(action) {
+    try {
+      await getJson('/api/media/control', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action, any: true }) });
+    } catch (error) { toast(error.message); }
+    setTimeout(pollPcSession, 400);
+  }
+
+  function buildPcCard() {
+    const ses = serviceState.pc.session;
+    const app = (ses?.app || '').replace(/\.exe$/i, '').replace(/^.*[!\\]/, '');
+    const art = ses?.image ? h('img', { class: 'sp-now-art', src: ses.image, alt: '' }) : h('div', { class: 'sp-now-art', style: 'background:linear-gradient(145deg,#636366,#2c2c2e)' }, icon('computer'));
+    return h('div', { class: 'sp-card sp-now', id: 'pc-card' }, art, h('div', {},
+      h('div', { class: 'sp-now-label', style: 'color:var(--accent)', text: ses ? (ses.isPlaying ? 'Playing on this PC' : 'Paused on this PC') : 'Nothing playing on this PC' }),
+      h('div', { class: 'sp-now-title', text: ses?.title || 'Open a web player below' }),
+      h('div', { class: 'sp-now-artist', text: ses ? [ses.artist, app].filter(Boolean).join(' · ') : 'Whatever plays here, in a browser tab or another app, can be controlled from this card.' }),
+      ses ? h('div', { class: 'pc-controls' },
+        h('button', { title: 'Previous', onclick: () => pcCommand('previous') }, icon('skip_previous')),
+        h('button', { class: 'main', title: 'Play/Pause', onclick: () => pcCommand('toggle') }, icon(ses.isPlaying ? 'pause' : 'play_arrow')),
+        h('button', { title: 'Next', onclick: () => pcCommand('next') }, icon('skip_next'))) : null));
+  }
+
+  function renderWebPlayers() {
+    const grid = h('div', { class: 'web-grid' });
+    WEB_PLAYERS.forEach((site, index) => {
+      const tile = h('div', { class: 'web-tile', title: site.url, onclick: () => openInBrowser(site.url) },
+        h('div', { class: 'web-logo', style: `background:${site.color}`, text: site.logo }),
+        h('div', { class: 'web-name', text: site.name }),
+        h('div', { class: 'web-sub', text: site.sub }));
+      tile.style.animationDelay = `${index * 0.03}s`;
+      grid.append(tile);
+    });
+    el('track-table').replaceChildren(
+      buildPcCard(),
+      h('div', { class: 'sp-section', text: 'Open in the mariowOS browser' }),
+      grid,
+      h('p', { class: 'web-sub', style: 'margin-top:16px', text: 'Apple Music, Deezer, Tidal and Amazon Music use DRM protection that the mariowOS browser does not include, so they are not listed.' }));
+  }
+
+  function openWebPlayers() {
+    renderWebPlayers();
+    pollPcSession();
+    serviceState.pc.timer = setInterval(() => {
+      if (currentSource === 'webplayers' && document.visibilityState === 'visible') pollPcSession();
+    }, 3000);
+  }
+
+  refreshLastfmStatus();
 
   /* ────────────────────────── Boot ────────────────────────── */
 

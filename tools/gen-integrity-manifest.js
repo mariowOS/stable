@@ -19,7 +19,7 @@ const systemDir = path.resolve(__dirname, "..");
 // Paths (relative to systemDir) that are NOT part of stock and must be skipped.
 const SKIP_DIRS = new Set(["node_modules", "tools", "sandbox"]);
 const SKIP_FILES = new Set([
-  "config.json", "keys.json", "session.key",
+  "config.json", "keys.json", "session.key", "spotify-token.json",
   "integrity-manifest.json", "integrity-manifest.json.sig",
   "mariowos.log", "mail-error.log", ".env", "boot-mode.json",
   "sota-installed.json"

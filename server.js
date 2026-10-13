@@ -510,7 +510,8 @@ function issueSession(res) {
   const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
   const token = `${payloadB64}.${signSession(payloadB64)}`;
   res.setHeader("Set-Cookie",
-    `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}`);
+    `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}` +
+    (process.env.MARIOWOS_SECURE_COOKIE === "1" ? "; Secure" : ""));
 }
 
 function clearSession(res) {
@@ -539,6 +540,22 @@ function hasValidSession(req) {
     const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
     return typeof payload.exp === "number" && Date.now() < payload.exp;
   } catch (e) { return false; }
+}
+
+// Brute-force protection for every account-password check: after 5 consecutive
+// failures, all checks are refused for 30 s, doubling up to 15 minutes.
+const passwordGuard = { failures: 0, lockedUntil: 0 };
+function passwordLockSeconds() {
+  return Math.max(0, Math.ceil((passwordGuard.lockedUntil - Date.now()) / 1000));
+}
+async function comparePassword(candidate, hash) {
+  if (!hash || passwordLockSeconds() > 0) return false;
+  const ok = typeof candidate === "string" && await bcrypt.compare(candidate, hash);
+  if (ok) passwordGuard.failures = 0;
+  else if (++passwordGuard.failures >= 5) {
+    passwordGuard.lockedUntil = Date.now() + Math.min(15 * 60 * 1000, 30 * 1000 * 2 ** (passwordGuard.failures - 5));
+  }
+  return ok;
 }
 
 // Routes that must stay reachable WITHOUT a session: the login/recovery flow itself,
@@ -606,9 +623,20 @@ function enforceAppPermissions(req, res, next) {
 }
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.json());
+// Notes can hold pasted images, so their route gets its own larger body limit (below).
+const jsonParser = express.json();
+const OWN_BODY_PARSER = new Set(["/api/system/notes", "/api/system/files/upload", "/api/system/files/upload-raw"]);
+app.use((req, res, next) => OWN_BODY_PARSER.has(req.path) ? next() : jsonParser(req, res, next));
 app.use(requireSession);
 app.use(enforceAppPermissions);
+
+require("./spotify").registerSpotifyRoutes(app, {
+  getConfig: () => config, saveConfig, hasValidSession, port: PORT
+});
+const requireAuthJson = (req, res, next) => (!config.passwordHash || hasValidSession(req))
+  ? next() : res.status(401).json({ success: false, error: "Authentication required. Please log in again." });
+require("./media-session").registerMediaSessionRoutes(app, { requireAuth: requireAuthJson });
+require("./online-services").registerOnlineServiceRoutes(app, { getConfig: () => config, saveConfig, requireAuth: requireAuthJson });
 
 app.get('/api/system/health', (req, res) => {
   res.set('Cache-Control', 'no-store');
@@ -708,6 +736,8 @@ app.get('/desktop/assets/bootlogo.user.png', serveUploadedImage(
 
 // Static files are the actual desktop shell. The login screen, settings pages, and app folders
 // are served as normal web assets from the filesystem, which keeps the OS feel web-based and easy to tweak.
+// The notes database lives under desktop/ for historical reasons: never serve it as a static file.
+app.get("/desktop/notes-db.json", (req, res) => res.status(404).end());
 app.use("/desktop", express.static(path.join(__dirname, "desktop")));
 app.use("/loginui", express.static(path.join(__dirname, "loginui")));
 
@@ -1254,7 +1284,7 @@ app.post("/api/recovery/set-flashing", async (req, res) => {
   const { password, enabled } = req.body || {};
   if (typeof enabled !== "boolean") return res.status(400).json({ success: false, error: "`enabled` must be boolean." });
   if (!config.passwordHash) return res.status(403).json({ success: false, error: "Set an account password first." });
-  const ok = typeof password === "string" && await bcrypt.compare(password, config.passwordHash);
+  const ok = await comparePassword(password, config.passwordHash);
   if (!ok) return res.status(403).json({ success: false, error: "Incorrect password." });
   config.allowFlashing = enabled;
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -1286,7 +1316,7 @@ app.post("/api/system/frp-unlock", async (req, res) => {
   const { type, payload } = req.body;
   
   if (type === "password") {
-    const match = await bcrypt.compare(payload, config.passwordHash);
+    const match = await comparePassword(payload, config.passwordHash);
     if (match) {
       config.frpLock = false;
       config.passwordHash = null; // Cleared for fresh setup
@@ -1328,7 +1358,7 @@ app.post("/api/recovery/debug", async (req, res) => {
   if (!config.passwordHash) {
     return res.status(403).json({ error: "locked", message: "Set a password before using the debug terminal." });
   }
-  const match = await bcrypt.compare(String(req.body.password || ""), config.passwordHash);
+  const match = await comparePassword(String(req.body.password || ""), config.passwordHash);
   if (!match) {
     return res.status(403).json({ error: "unauthorized", message: "Invalid password." });
   }
@@ -1420,15 +1450,46 @@ app.post("/login", async (req, res) => {
     return res.status(400).send("Password is required.");
   }
   
-  const match = await bcrypt.compare(password, currentConfig.passwordHash);
+  if (passwordLockSeconds() > 0) {
+    return res.status(429).send(`Too many attempts. Try again in ${passwordLockSeconds()} seconds.`);
+  }
+  const match = await comparePassword(password, currentConfig.passwordHash);
   if (!match) return res.status(401).send("Incorrect password.");
   issueSession(res); // A-02: start an authenticated session for subsequent API calls.
   res.sendFile(path.join(__dirname, "desktop/com.mariowos.desktop.html"));
 });
 
+// Personalisation from Settings → Wallpaper & Style. Every field is validated so the
+// stored object stays small and can only hold the values the desktop understands.
+const DESKTOP_STYLE_SCHEMA = {
+  accent: v => /^#[0-9a-f]{6}$/i.test(v) ? v : undefined,
+  wallpaperColor: v => /^#[0-9a-f]{6}$/i.test(v) ? v : undefined,
+  wallpaperMode: v => ["image", "color", "gradient"].includes(v) ? v : undefined,
+  gradient: v => ["aurora", "sunset", "ocean", "forest", "candy", "midnight"].includes(v) ? v : undefined,
+  fit: v => ["cover", "contain", "stretch", "center", "tile"].includes(v) ? v : undefined,
+  uiFont: v => ["Poppins", "Inter", "Nunito", "Roboto Slab", "Lora", "JetBrains Mono", "system-ui"].includes(v) ? v : undefined,
+  brightness: v => clampNumber(v, 30, 130), saturation: v => clampNumber(v, 0, 200), blur: v => clampNumber(v, 0, 30),
+  radius: v => clampNumber(v, 0, 28), glass: v => clampNumber(v, 30, 100), iconScale: v => clampNumber(v, 70, 150)
+};
+function clampNumber(value, min, max) {
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.min(max, Math.max(min, Math.round(n))) : undefined;
+}
+app.post("/api/desktop-style", (req, res) => {
+  const style = {};
+  for (const [key, validate] of Object.entries(DESKTOP_STYLE_SCHEMA)) {
+    const value = validate(req.body?.[key]);
+    if (value !== undefined) style[key] = value;
+  }
+  config.desktopStyle = style;
+  saveConfig();
+  res.json({ success: true, desktopStyle: style });
+});
+
 app.get("/get-settings", (req, res) => {
   const safe = { ...config };
   delete safe.passwordHash;
+  if (safe.lastfm) safe.lastfm = { username: safe.lastfm.username }; // the API key stays server-side
   res.json(safe);
 });
 
@@ -1474,7 +1535,7 @@ app.post("/set-password", async (req, res) => {
   const { username, newPassword, currentPassword } = req.body;
   if (!newPassword || !username) return res.status(400).send("❌ Dati mancanti");
   if (config.passwordHash) {
-    const ok = typeof currentPassword === "string" && await bcrypt.compare(currentPassword, config.passwordHash);
+    const ok = await comparePassword(currentPassword, config.passwordHash);
     if (!ok) return res.status(401).send("Current password is incorrect.");
   }
   config.username = username;
@@ -1487,7 +1548,7 @@ app.post("/set-password", async (req, res) => {
 app.post("/clear-password", async (req, res) => {
   if (config.passwordHash) {
     const { currentPassword } = req.body;
-    const ok = typeof currentPassword === "string" && await bcrypt.compare(currentPassword, config.passwordHash);
+    const ok = await comparePassword(currentPassword, config.passwordHash);
     if (!ok) return res.status(401).send("Current password is incorrect.");
   }
   config.passwordHash = null;
@@ -1518,6 +1579,7 @@ app.post("/api/system/factory-reset", (req, res) => {
     try { if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true }); }
     catch (e) { errors.push(path.basename(target) + ": " + e.message); }
   };
+  removePath(path.join(__dirname, "spotify-token.json"));
 
   // Apps installed from the store (folders, downloaded icons, tiles desktop)
   (config.installedApps || []).forEach(app => {
@@ -1892,6 +1954,12 @@ const pendingRuleNotifications = [];
 // Events use "floating" local time (date YYYY-MM-DD, time HH:MM) like the system clock does.
 // .ics import/export makes them interoperable with Windows Calendar, Outlook, Google, Apple.
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+// A real calendar date (rejects 2026-02-31, 2026-13-01…).
+const isRealDate = value => {
+  if (!DATE_RE.test(value || "")) return false;
+  const d = new Date(value + "T00:00:00Z");
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+};
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
 const CAL_COLORS = ["blue", "green", "red", "orange", "purple", "pink", "teal"];
 if (!Array.isArray(config.calendarEvents)) config.calendarEvents = [];
@@ -1912,10 +1980,15 @@ function cleanEvent(input, existing = {}) {
     ev.reminder = Number.isFinite(r) && r >= 0 && r <= 10080 ? Math.round(r) : -1; // minutes before, -1 = none
   }
   if (input.repeat !== undefined) ev.repeat = ["none", "daily", "weekly", "monthly", "yearly"].includes(input.repeat) ? input.repeat : "none";
+  // Repeat every N days/weeks/months/years, optionally until a date, minus skipped occurrences.
+  if (input.interval !== undefined) { const n = Math.round(Number(input.interval)); ev.interval = n >= 1 && n <= 99 ? n : 1; }
+  if (input.until !== undefined) ev.until = input.until ? String(input.until) : "";
+  if (input.exdates !== undefined) ev.exdates = Array.isArray(input.exdates) ? [...new Set(input.exdates.map(String).filter(isRealDate))].slice(0, 500) : [];
 
   if (!ev.title) return { error: "Title is required." };
-  if (!DATE_RE.test(ev.date || "")) return { error: "Invalid date." };
-  if (ev.endDate && (!DATE_RE.test(ev.endDate) || ev.endDate < ev.date)) return { error: "End date must be after the start date." };
+  if (!isRealDate(ev.date)) return { error: "Invalid date." };
+  if (ev.endDate && (!isRealDate(ev.endDate) || ev.endDate < ev.date)) return { error: "End date must be after the start date." };
+  if (ev.until && (!isRealDate(ev.until) || ev.until < ev.date)) return { error: "The repeat end date must be after the start date." };
   if (!ev.allDay) {
     if (!TIME_RE.test(ev.start || "")) return { error: "Invalid start time." };
     if (ev.end && !TIME_RE.test(ev.end)) return { error: "Invalid end time." };
@@ -1925,6 +1998,8 @@ function cleanEvent(input, existing = {}) {
   }
   ev.color = ev.color || "blue";
   ev.repeat = ev.repeat || "none";
+  if (ev.repeat === "none") { delete ev.interval; delete ev.until; delete ev.exdates; }
+  else ev.interval = ev.interval || 1;
   if (ev.reminder === undefined) ev.reminder = ev.allDay ? -1 : 10;
   return { event: ev };
 }
@@ -1960,7 +2035,19 @@ app.delete("/api/calendar/events/:id", (req, res) => {
 });
 
 // iCalendar (RFC 5545) helpers
-const icsEscape = s => String(s || "").replace(/\\/g, "\\\\").replace(/\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+const icsEscape = s => String(s || "").replace(/\\/g, "\\\\").replace(/\r\n|\r|\n/g, "\\n").replace(/,/g, "\\,").replace(/;/g, "\\;");
+// RFC 5545 line folding at 75 octets, never splitting a UTF-8 character.
+function icsFold(line) {
+  if (Buffer.byteLength(line) <= 75) return line;
+  const out = [];
+  let chunk = "", limit = 75;
+  for (const ch of line) {
+    if (Buffer.byteLength(chunk + ch) > limit) { out.push(chunk); chunk = ""; limit = 74; }
+    chunk += ch;
+  }
+  out.push(chunk);
+  return out.join("\r\n ");
+}
 const icsUnescape = s => String(s || "").replace(/\\n/gi, "\n").replace(/\\([,;\\])/g, "$1");
 const compactDate = d => d.replace(/-/g, "");
 const addDays = (date, n) => { const d = new Date(date + "T00:00:00Z"); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
@@ -1978,14 +2065,22 @@ app.get("/api/calendar/export.ics", (req, res) => {
     }
     if (ev.location) lines.push(`LOCATION:${icsEscape(ev.location)}`);
     if (ev.notes) lines.push(`DESCRIPTION:${icsEscape(ev.notes)}`);
-    if (ev.repeat && ev.repeat !== "none") lines.push(`RRULE:FREQ=${ev.repeat.toUpperCase()}`);
+    if (ev.repeat && ev.repeat !== "none") {
+      let rule = `RRULE:FREQ=${ev.repeat.toUpperCase()}`;
+      if (ev.interval > 1) rule += `;INTERVAL=${ev.interval}`;
+      if (ev.until) rule += `;UNTIL=${compactDate(ev.until)}${ev.allDay ? "" : "T235959"}`;
+      lines.push(rule);
+      for (const ex of ev.exdates || []) {
+        lines.push(ev.allDay ? `EXDATE;VALUE=DATE:${compactDate(ex)}` : `EXDATE:${compactDate(ex)}T${ev.start.replace(":", "")}00`);
+      }
+    }
     if (ev.reminder >= 0) lines.push("BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsEscape(ev.title)}`, `TRIGGER:-PT${ev.reminder}M`, "END:VALARM");
     lines.push("END:VEVENT");
   }
   lines.push("END:VCALENDAR");
   res.set("Content-Type", "text/calendar; charset=utf-8");
   res.set("Content-Disposition", 'attachment; filename="mariowOS-calendar.ics"');
-  res.send(lines.join("\r\n"));
+  res.send(lines.map(icsFold).join("\r\n") + "\r\n");
 });
 
 app.post("/api/calendar/import", express.text({ type: "*/*", limit: "5mb" }), (req, res) => {
@@ -2004,7 +2099,8 @@ app.post("/api/calendar/import", express.text({ type: "*/*", limit: "5mb" }), (r
     return { date: `${m[1]}-${m[2]}-${m[3]}`, time: `${m[4]}:${m[5]}`, allDay: false };
   };
   let current = null, inAlarm = false, imported = 0, skipped = 0;
-  const existingUids = new Set(config.calendarEvents.map(e => e.uid).filter(Boolean));
+  // Events made here are exported as "<id>@mariowos": treat those as already present too.
+  const existingUids = new Set(config.calendarEvents.flatMap(e => [e.uid, e.id + "@mariowos"]).filter(Boolean));
   for (const line of unfolded) {
     const idx = line.indexOf(":");
     if (idx < 0) continue;
@@ -2027,11 +2123,39 @@ app.post("/api/calendar/import", express.text({ type: "*/*", limit: "5mb" }), (r
     else if (key === "UID") current.uid = value;
     else if (key === "DTSTART") current.dtstart = parseDT(value, params);
     else if (key === "DTEND") current.dtend = parseDT(value, params);
-    else if (key === "RRULE") { const f = value.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i); if (f) current.repeat = f[1].toLowerCase(); }
+    else if (key === "RRULE") {
+      const f = value.match(/FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)/i);
+      if (f) current.repeat = f[1].toLowerCase();
+      const interval = value.match(/INTERVAL=(\d+)/i);
+      if (interval) current.interval = Number(interval[1]);
+      const until = value.match(/UNTIL=(\d{4})(\d{2})(\d{2})/i);
+      if (until) current.until = `${until[1]}-${until[2]}-${until[3]}`;
+      const count = value.match(/COUNT=(\d+)/i);
+      if (count) current.count = Number(count[1]);
+    }
+    else if (key === "EXDATE") {
+      current.exdates = current.exdates || [];
+      value.split(",").forEach(v => { const m = v.match(/^(\d{4})(\d{2})(\d{2})/); if (m) current.exdates.push(`${m[1]}-${m[2]}-${m[3]}`); });
+    }
     else if (key === "END" && value === "VEVENT") {
       const c = current; current = null;
       if (!c.dtstart || (c.uid && existingUids.has(c.uid))) { skipped++; continue; }
       const input = { title: c.title || "(No title)", notes: c.notes || "", location: c.location || "", date: c.dtstart.date, allDay: c.dtstart.allDay, repeat: c.repeat || "none" };
+      if (c.repeat) {
+        input.interval = c.interval || 1;
+        if (c.until) input.until = c.until;
+        else if (c.count) {
+          // COUNT → last occurrence date.
+          const steps = (c.count - 1) * (c.interval || 1);
+          const d = new Date(c.dtstart.date + "T00:00:00Z");
+          if (c.repeat === "daily") d.setUTCDate(d.getUTCDate() + steps);
+          else if (c.repeat === "weekly") d.setUTCDate(d.getUTCDate() + steps * 7);
+          else if (c.repeat === "monthly") d.setUTCMonth(d.getUTCMonth() + steps);
+          else d.setUTCFullYear(d.getUTCFullYear() + steps);
+          input.until = d.toISOString().slice(0, 10);
+        }
+        if (c.exdates) input.exdates = c.exdates;
+      }
       if (!c.dtstart.allDay) {
         input.start = c.dtstart.time;
         if (c.dtend && !c.dtend.allDay) { input.end = c.dtend.time; if (c.dtend.date !== c.dtstart.date) input.endDate = c.dtend.date; }
@@ -2718,7 +2842,7 @@ function launchServerReplacement(stagePath, serverMode) {
 // About page reports when the system was really last changed instead of a date
 // somebody has to remember to edit by hand.
 const BUILD_ROOTS = ["server.js", "launcher.js", "preload.js", "boot.html", "desktop", "loginui", "recovery"];
-const BUILD_SKIP_NAMES = new Set(["node_modules", "config.json", "keys.json", "sota-installed.json", "mail-error.log", ".env"]);
+const BUILD_SKIP_NAMES = new Set(["node_modules", "config.json", "keys.json", "spotify-token.json", "sota-installed.json", "mail-error.log", ".env"]);
 const BUILD_CACHE_MS = 60 * 1000;
 let buildDateCache = { value: 0, computedAt: 0 };
 
@@ -3002,15 +3126,41 @@ app.get("/api/system/storage", (req, res) => {
 });
 
 const notesFile = path.join(__dirname, "desktop/notes-db.json");
-app.get("/api/system/notes", (req, res) => {
+const NOTE_FIELDS = ["id", "name", "content", "color", "pinned", "createdAt", "updatedAt", "deletedAt",
+  "sourcePath", "sourceName", "sourceFormat", "sourceTemplate"];
+app.get("/api/system/notes", requireAuthJson, (req, res) => {
   if (fs.existsSync(notesFile)) {
     try { res.json(JSON.parse(fs.readFileSync(notesFile, "utf8"))); } catch (e) { res.json([]); }
   } else { res.json([]); }
 });
 
-app.post("/api/system/notes", (req, res) => {
-  fs.writeFileSync(notesFile, JSON.stringify(req.body, null, 2));
-  res.json({ success: true, message: "Notes synced to backend" });
+app.post("/api/system/notes", requireAuthJson, express.json({ limit: "25mb" }), (req, res) => {
+  if (!Array.isArray(req.body)) return res.status(400).json({ success: false, error: "Expected a list of notes." });
+  // Keep only known fields with the expected types.
+  const clean = req.body
+    .filter(note => note && typeof note === "object" && typeof note.id === "string" && note.id.length <= 64)
+    .map(note => {
+      const out = {};
+      for (const key of NOTE_FIELDS) {
+        const value = note[key];
+        if (value === undefined || value === null) continue;
+        if (key === "pinned") out[key] = Boolean(value);
+        else if (["createdAt", "updatedAt", "deletedAt"].includes(key)) { if (Number.isFinite(value)) out[key] = value; }
+        else if (typeof value === "string") out[key] = value;
+      }
+      return out;
+    });
+  // Write to a temporary file first, so a crash never leaves a half-written database.
+  const temporary = `${notesFile}.${process.pid}.tmp`;
+  try {
+    fs.writeFileSync(temporary, JSON.stringify(clean));
+    fs.renameSync(temporary, notesFile);
+    res.json({ success: true });
+  } catch (error) {
+    try { fs.rmSync(temporary, { force: true }); } catch (e) {}
+    console.error("Could not save notes:", error);
+    res.status(500).json({ success: false, error: "Could not save notes." });
+  }
 });
 
 // --- PASSWORD VERIFICATION ---
@@ -3019,7 +3169,7 @@ app.post("/api/system/verify-password", async (req, res) => {
   const currentConfig = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, "utf8")) : {};
   if (!currentConfig.passwordHash) return res.json({ success: true });
   
-  const match = await bcrypt.compare(password, currentConfig.passwordHash);
+  const match = await comparePassword(password, currentConfig.passwordHash);
   res.json({ success: match });
 });
 
@@ -3036,8 +3186,8 @@ app.post("/api/remote/exec", (req, res) => {
   if (!currentConfig.passwordHash) {
     return res.status(403).json({ success: false, error: "Remote execution is disabled: no password is configured." });
   }
-  bcrypt.compare(password || "", currentConfig.passwordHash, (err, match) => {
-    if (err || !match) {
+  comparePassword(password || "", currentConfig.passwordHash).then(match => {
+    if (!match) {
       return res.status(403).json({ success: false, error: "Unauthorized: Invalid password" });
     }
 
@@ -3136,6 +3286,7 @@ function describeEntry(parentPath, entry) {
   try {
     const stats = fs.statSync(path.join(parentPath, entry.name));
     described.date = stats.mtime.toLocaleDateString();
+    described.mtime = stats.mtimeMs;
     if (!isDirectory) {
       described.bytes = stats.size;
       described.size = formatFileSize(stats.size);
@@ -3191,6 +3342,36 @@ app.get("/api/system/files", (req, res) => {
   }
 });
 
+// One rule for every file or folder name coming from a client: a single path segment.
+function validEntryName(value) {
+  const name = typeof value === "string" ? value.trim() : "";
+  if (!name || name === "." || name === ".." || name.length > 255) return null;
+  if (/[\\/\x00-\x1f]/.test(name)) return null;
+  if (process.platform === "win32" && /[<>:"|?*]/.test(name)) return null;
+  return name;
+}
+// Resolve "<virtual dir>/<name>" inside the writable home area, or null.
+function resolveHomeEntry(dirPath, name) {
+  const resolved = resolveVirtualPath(dirPath);
+  const clean = validEntryName(name);
+  if (!resolved || resolved.isReadOnly || resolved.isVolumeList || !clean) return null;
+  const full = path.join(resolved.realPath, clean);
+  const homeRoot = path.resolve(__dirname, "desktop", "home");
+  if (!full.startsWith(homeRoot + path.sep)) return null;
+  return { dir: resolved.realPath, full, name: clean };
+}
+// "report.txt" → "report (2).txt" until free.
+function uniqueName(dir, name) {
+  if (!fs.existsSync(path.join(dir, name))) return name;
+  const ext = path.extname(name);
+  const base = ext && ext !== name ? name.slice(0, -ext.length) : name;
+  for (let i = 2; i < 10000; i++) {
+    const candidate = `${base} (${i})${ext && ext !== name ? ext : ""}`;
+    if (!fs.existsSync(path.join(dir, candidate))) return candidate;
+  }
+  return `${base} ${Date.now()}${ext}`;
+}
+
 app.post("/api/system/files/create-folder", (req, res) => {
   const resolved = resolveVirtualPath(req.body.path);
   if (!resolved || resolved.isReadOnly) return res.status(403).json({ error: "Directory is read-only" });
@@ -3210,13 +3391,11 @@ app.post("/api/system/files/rename", (req, res) => {
   const resolved = resolveVirtualPath(req.body.path);
   if (!resolved || resolved.isReadOnly) return res.status(403).json({ success: false, error: "Directory is read-only" });
 
-  const oldName = (req.body.oldName || '').trim();
-  const newName = (req.body.newName || '').trim();
-
-  if (!oldName || !newName) return res.status(400).json({ success: false, error: "Names cannot be empty" });
-  if (newName.includes('/') || newName.includes('\\') || newName.includes('..')) {
-    return res.status(400).json({ success: false, error: "Invalid new name" });
-  }
+  // SECURITY: both names must be single path segments, otherwise "../x" could move files
+  // into or out of the home area.
+  const oldName = validEntryName(req.body.oldName);
+  const newName = validEntryName(req.body.newName);
+  if (!oldName || !newName) return res.status(400).json({ success: false, error: "Invalid name" });
 
   try {
     const oldPath = path.join(resolved.realPath, oldName);
@@ -3255,15 +3434,188 @@ app.post("/api/system/files/delete", (req, res) => {
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.post("/api/system/files/upload", (req, res) => {
-  const resolved = resolveVirtualPath(req.body.path);
-  if (!resolved || resolved.isReadOnly) return res.status(403).json({ error: "Directory is read-only" });
-  
+// Legacy JSON/base64 upload (used by the desktop). SECURITY: the name is validated, so it
+// can no longer write outside the target folder.
+app.post("/api/system/files/upload", express.json({ limit: "200mb" }), (req, res) => {
+  const target = resolveHomeEntry(req.body?.path, req.body?.name);
+  if (!target) return res.status(400).json({ success: false, error: "Invalid destination or file name" });
+  if (typeof req.body.data !== "string") return res.status(400).json({ success: false, error: "Missing file data" });
   try {
-    const buffer = Buffer.from(req.body.data, 'base64');
-    fs.writeFileSync(path.join(resolved.realPath, req.body.name), buffer);
-    res.json({ success: true });
-  } catch (e) { res.status(500).json({ error: e.message }); }
+    const base64 = req.body.data.includes(",") ? req.body.data.slice(req.body.data.indexOf(",") + 1) : req.body.data;
+    fs.writeFileSync(target.full, Buffer.from(base64, "base64"));
+    res.json({ success: true, name: target.name });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Binary upload: body is the raw file. ?path=&name=&conflict=rename|replace|fail
+app.post("/api/system/files/upload-raw", express.raw({ type: "*/*", limit: "2gb" }), (req, res) => {
+  const target = resolveHomeEntry(req.query.path, req.query.name);
+  if (!target) return res.status(400).json({ success: false, error: "Invalid destination or file name" });
+  try {
+    let name = target.name;
+    if (fs.existsSync(target.full)) {
+      if (req.query.conflict === "fail") return res.status(409).json({ success: false, error: "A file with this name already exists" });
+      if (req.query.conflict !== "replace") name = uniqueName(target.dir, target.name);
+      else if (fs.statSync(target.full).isDirectory()) return res.status(409).json({ success: false, error: "A folder with this name already exists" });
+    }
+    fs.writeFileSync(path.join(target.dir, name), Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0));
+    res.json({ success: true, name });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Copy or move items between folders of the home area. Body: { fromPath, toPath, names[], mode: 'copy'|'move' }
+app.post("/api/system/files/transfer", requireAuthJson, (req, res) => {
+  const { fromPath, toPath, names, mode } = req.body || {};
+  if (!Array.isArray(names) || !names.length || !["copy", "move"].includes(mode)) {
+    return res.status(400).json({ success: false, error: "Nothing to copy or move" });
+  }
+  const destination = resolveVirtualPath(toPath);
+  if (!destination || destination.isReadOnly || destination.isVolumeList) return res.status(403).json({ success: false, error: "The destination is read-only" });
+  const results = [];
+  for (const raw of names) {
+    const source = resolveHomeEntry(fromPath, raw);
+    if (!source || !fs.existsSync(source.full)) { results.push({ name: String(raw), error: "Not found" }); continue; }
+    // A folder cannot go inside itself.
+    if (destination.realPath === source.full || destination.realPath.startsWith(source.full + path.sep)) {
+      results.push({ name: source.name, error: "A folder cannot be placed inside itself" }); continue;
+    }
+    try {
+      const sameFolder = path.resolve(source.dir) === path.resolve(destination.realPath);
+      if (mode === "move" && sameFolder) { results.push({ name: source.name, skipped: true }); continue; }
+      const finalName = uniqueName(destination.realPath, source.name);
+      const finalPath = path.join(destination.realPath, finalName);
+      if (mode === "copy") fs.cpSync(source.full, finalPath, { recursive: true, errorOnExist: true });
+      else {
+        try { fs.renameSync(source.full, finalPath); }
+        catch (error) {
+          if (error.code !== "EXDEV") throw error;
+          fs.cpSync(source.full, finalPath, { recursive: true });
+          fs.rmSync(source.full, { recursive: true, force: true });
+        }
+      }
+      results.push({ name: source.name, newName: finalName });
+    } catch (e) { results.push({ name: source.name, error: e.message }); }
+  }
+  const failed = results.filter(r => r.error);
+  res.status(failed.length === results.length ? 500 : 200).json({ success: failed.length === 0, results, error: failed[0]?.error });
+});
+
+// Stream a file of the home area for previews and downloads. ?path=&name=&download=1
+const PREVIEW_TYPES = {
+  ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp",
+  ".svg": "text/plain; charset=utf-8", ".ico": "image/x-icon", ".avif": "image/avif",
+  ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".m4a": "audio/mp4", ".flac": "audio/flac", ".aac": "audio/aac",
+  ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".mkv": "video/x-matroska",
+  ".pdf": "application/pdf", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8", ".json": "text/plain; charset=utf-8",
+  ".csv": "text/plain; charset=utf-8", ".log": "text/plain; charset=utf-8"
+};
+app.get("/api/system/files/raw", requireAuthJson, (req, res) => {
+  const target = resolveHomeEntry(req.query.path, req.query.name);
+  if (!target || !fs.existsSync(target.full) || fs.statSync(target.full).isDirectory()) {
+    return res.status(404).json({ success: false, error: "File not found" });
+  }
+  const ext = path.extname(target.name).toLowerCase();
+  // HTML/SVG and unknown types are never rendered inline (they could run scripts on this origin).
+  const inlineType = PREVIEW_TYPES[ext];
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  // PDFs need the built-in viewer, which a sandbox CSP would block; everything else is locked down.
+  if (ext !== ".pdf") res.setHeader("Content-Security-Policy", "sandbox; default-src 'none'; img-src 'self' data:; media-src 'self'; style-src 'unsafe-inline'");
+  if (req.query.download === "1" || !inlineType) {
+    return res.download(target.full, target.name);
+  }
+  res.type(inlineType);
+  res.sendFile(target.full);
+});
+
+// Find files by name inside a home folder (recursive). ?path=&q=
+app.get("/api/system/files/search", requireAuthJson, (req, res) => {
+  const resolved = resolveVirtualPath(req.query.path || "/home");
+  const query = String(req.query.q || "").trim().toLowerCase();
+  if (!resolved || resolved.isReadOnly || resolved.isVolumeList) return res.status(403).json({ success: false, error: "Search works inside your home folders" });
+  if (query.length < 1) return res.json({ success: true, results: [] });
+  const homeRoot = path.resolve(__dirname, "desktop", "home");
+  const results = [];
+  const walk = (dir, depth) => {
+    if (results.length >= 300 || depth > 12) return;
+    let entries = [];
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { return; }
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const full = path.join(dir, entry.name);
+      if (entry.name.toLowerCase().includes(query)) {
+        const rel = path.relative(homeRoot, dir).split(path.sep).filter(Boolean).join("/");
+        results.push({ ...describeEntry(dir, entry), dir: "/home" + (rel ? "/" + rel : "") });
+        if (results.length >= 300) return;
+      }
+      if (entry.isDirectory()) walk(full, depth + 1);
+    }
+  };
+  walk(resolved.realPath, 0);
+  res.json({ success: true, results, truncated: results.length >= 300 });
+});
+
+// ── Trash: deleted items go to home/.Trash and can be restored ──
+const trashDir = path.join(__dirname, "desktop", "home", ".Trash");
+const trashIndexFile = path.join(trashDir, "index.json");
+function readTrashIndex() {
+  try { return JSON.parse(fs.readFileSync(trashIndexFile, "utf8")); } catch (e) { return []; }
+}
+function writeTrashIndex(list) {
+  fs.mkdirSync(trashDir, { recursive: true });
+  fs.writeFileSync(trashIndexFile, JSON.stringify(list));
+}
+app.post("/api/system/files/trash", requireAuthJson, (req, res) => {
+  const names = Array.isArray(req.body?.names) ? req.body.names : [req.body?.name];
+  const index = readTrashIndex();
+  const moved = [];
+  try {
+    fs.mkdirSync(trashDir, { recursive: true });
+    for (const raw of names) {
+      const target = resolveHomeEntry(req.body?.path, raw);
+      if (!target || !fs.existsSync(target.full) || target.full.startsWith(trashDir)) continue;
+      const id = crypto.randomBytes(8).toString("hex");
+      fs.renameSync(target.full, path.join(trashDir, id));
+      const virtualDir = path.posix.normalize(String(req.body.path).replace(/\\/g, "/"));
+      index.push({ id, name: target.name, from: virtualDir, deletedAt: Date.now(), isFolder: fs.statSync(path.join(trashDir, id)).isDirectory() });
+      moved.push(target.name);
+    }
+    writeTrashIndex(index);
+    res.json({ success: moved.length > 0, moved, error: moved.length ? undefined : "Nothing was moved to the trash" });
+  } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+app.get("/api/system/files/trash", requireAuthJson, (req, res) => {
+  const index = readTrashIndex().filter(item => fs.existsSync(path.join(trashDir, item.id)));
+  res.json({ success: true, items: index.sort((a, b) => b.deletedAt - a.deletedAt) });
+});
+app.post("/api/system/files/trash/restore", requireAuthJson, (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : [];
+  const index = readTrashIndex();
+  const restored = [];
+  for (const id of ids) {
+    const item = index.find(i => i.id === id);
+    if (!item || !/^[0-9a-f]{16}$/.test(id)) continue;
+    let destination = resolveVirtualPath(item.from);
+    if (!destination || destination.isReadOnly || !fs.existsSync(destination.realPath)) destination = resolveVirtualPath("/home");
+    try {
+      const finalName = uniqueName(destination.realPath, item.name);
+      fs.renameSync(path.join(trashDir, id), path.join(destination.realPath, finalName));
+      index.splice(index.indexOf(item), 1);
+      restored.push(finalName);
+    } catch (e) {}
+  }
+  writeTrashIndex(index);
+  res.json({ success: restored.length > 0, restored });
+});
+app.post("/api/system/files/trash/empty", requireAuthJson, (req, res) => {
+  const ids = Array.isArray(req.body?.ids) ? req.body.ids : null;   // null = everything
+  const index = readTrashIndex();
+  const keep = [];
+  for (const item of index) {
+    if (ids && !ids.includes(item.id)) { keep.push(item); continue; }
+    try { fs.rmSync(path.join(trashDir, item.id), { recursive: true, force: true }); } catch (e) { keep.push(item); }
+  }
+  writeTrashIndex(keep);
+  res.json({ success: true });
 });
 
 app.get("/api/system/files/content", (req, res) => {
@@ -3295,12 +3647,14 @@ app.post("/api/system/files/content", (req, res) => {
   if (!resolved || resolved.isReadOnly) return res.status(403).json({ success: false, error: "Directory is read-only" });
 
   try {
-    const fileName = (req.body.name || '').trim();
-    if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {
-      return res.status(400).json({ success: false, error: "Invalid file name" });
-    }
+    const fileName = validEntryName(req.body.name);
+    if (!fileName) return res.status(400).json({ success: false, error: "Invalid file name" });
     const filePath = path.join(resolved.realPath, fileName);
-    fs.writeFileSync(filePath, req.body.content !== undefined ? req.body.content : "", "utf8");
+    // "New file" must never empty an existing file with the same name.
+    if (req.body.createOnly && fs.existsSync(filePath)) {
+      return res.status(409).json({ success: false, error: "A file with this name already exists" });
+    }
+    fs.writeFileSync(filePath, typeof req.body.content === "string" ? req.body.content : "", "utf8");
     res.json({ success: true });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -3313,6 +3667,21 @@ app.post("/api/system/files/content", (req, res) => {
 // that genuinely needs remote access must set MARIOWOS_BIND_HOST explicitly and
 // is expected to add TLS + authentication in front of it.
 const BIND_HOST = process.env.MARIOWOS_BIND_HOST || '127.0.0.1';
+// Storage limitation (GDPR art. 5.1.e): error logs are deleted after 30 days and capped at 256 KB.
+function pruneLogs() {
+  const maxAge = 30 * 24 * 60 * 60 * 1000, maxSize = 256 * 1024;
+  for (const name of ["mail-error.log", "update-error.log"]) {
+    const file = path.join(__dirname, name);
+    try {
+      const stat = fs.statSync(file);
+      if (Date.now() - stat.mtimeMs > maxAge) fs.rmSync(file, { force: true });
+      else if (stat.size > maxSize) fs.writeFileSync(file, fs.readFileSync(file).subarray(-maxSize));
+    } catch (e) { if (e.code !== "ENOENT") console.error(`Could not prune ${name}:`, e); }
+  }
+}
+pruneLogs();
+cron.schedule("0 3 * * *", pruneLogs);
+
 httpServer = app.listen(PORT, BIND_HOST, () => console.log(`kernel booted on [${currentOS}] at http://${BIND_HOST}:${PORT}`));
 httpServer.on('error', error => {
   console.error('kernel failed to bind its HTTP server:', error);
