@@ -80,9 +80,10 @@ function exportBackup() {
 function importBackup(e) {
   const file = e.target.files[0];
   if (!file) return;
-  requirePassword(() => {
+  requirePassword((password) => {
     const fd = new FormData();
     fd.append('backupFile', file);
+    fd.append('password', password || '');
     fetch('/api/system/restore', { method: 'POST', body: fd })
       .then(r => r.json()).then(res => {
         if(res.success) {

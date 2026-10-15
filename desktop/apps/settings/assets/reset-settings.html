@@ -154,23 +154,42 @@ function goBack() {
   window.history.back();
 }
 
-document.getElementById("resetBtn").addEventListener("click", async () => {
+function withPassword(cb, onCancel) {
+  // The settings shell shows the auth dialog and hands back the verified password.
+  if (window.parent && window.parent !== window && typeof window.parent.requirePassword === "function") {
+    window.parent.requirePassword(cb, onCancel);
+  } else {
+    cb(""); // no shell gate available (e.g. no password set): backend decides
+  }
+}
+
+async function doResetSettings(password) {
+  const res = await fetch("/api/system/reset-settings", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ password: password || "" })
+  });
+  const data = await res.json();
+  if (!data.success) throw new Error(data.error || "Unknown error");
+  ["clockFont", "clockWeight", "liveWallpaper", "lab-darkMode", "lab-performance", "lab-animations", "lab-developer", "lab-allowFlashing", "systemTimeOffset", "manualTimeEnabled", "timezoneOffset"].forEach(k => {
+    try { localStorage.removeItem(k); } catch (e) {}
+  });
+  await mDialog.alert("Settings restored to default.");
+  if (window.top !== window) window.top.location.reload();
+  else goBack();
+}
+
+document.getElementById("resetBtn").addEventListener("click", () => {
   const btn = document.getElementById("resetBtn");
   btn.disabled = true;
-  try {
-    const res = await fetch("/api/system/reset-settings", { method: "POST" });
-    const data = await res.json();
-    if (!data.success) throw new Error(data.error || "Unknown error");
-    ["clockFont", "clockWeight", "liveWallpaper", "lab-darkMode", "lab-performance", "lab-animations", "lab-developer", "lab-allowFlashing", "systemTimeOffset", "manualTimeEnabled", "timezoneOffset"].forEach(k => {
-      try { localStorage.removeItem(k); } catch (e) {}
-    });
-    await mDialog.alert("Settings restored to default.");
-    if (window.top !== window) window.top.location.reload();
-    else goBack();
-  } catch (e) {
-    await mDialog.alert("Reset failed: " + e.message);
-    btn.disabled = false;
-  }
+  withPassword(async (password) => {
+    try {
+      await doResetSettings(password);
+    } catch (e) {
+      await mDialog.alert("Reset failed: " + e.message);
+      btn.disabled = false;
+    }
+  }, () => { btn.disabled = false; });
 });
 </script>
 </body>

@@ -1,6 +1,10 @@
 // Shared by every "factory reset" button in Settings.
-async function runFactoryReset() {
-  const res = await fetch('/api/system/factory-reset', { method: 'POST' });
+async function runFactoryReset(password) {
+  const res = await fetch('/api/system/factory-reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: password || '' })
+  });
   let data = null;
   try { data = await res.json(); } catch (e) {}
   if (!res.ok || !data || !data.success) {
