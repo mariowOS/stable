@@ -322,6 +322,7 @@ function getRawGithubEulaUrls(repoUrl) {
 // Everything that needs to survive a restart is written back into config.json here.
 let config = { 
   passwordHash: null,
+  updateChannel: "stable",
   quickSettings: {
     wifi: true,
     bluetooth: true,
@@ -338,6 +339,7 @@ const configFile = path.join(__dirname, "config.json");
 if (fs.existsSync(configFile)) {
   const loadedConfig = JSON.parse(fs.readFileSync(configFile, "utf8"));
   config = { ...config, ...loadedConfig };
+  if (!config.updateChannel) config.updateChannel = "stable";
   config.quickSettings = { 
     wifi: true, 
     bluetooth: true, 
@@ -1380,6 +1382,32 @@ app.post("/api/recovery/debug", async (req, res) => {
 // a welcome flow, a login, or the desktop based on whether a password is configured.
 app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, !config.passwordHash ? "desktop/welcome.html" : "loginui/com.mariowos.loginui.html"));
+});
+
+// --- GESTIONE CANALI DI AGGIORNAMENTO ---
+function getUpdateChannel() {
+  const c = (config.updateChannel || "stable").toLowerCase();
+  if (c === "beta") return "beta";
+  if (c === "insiders") return "insiders";
+  return "stable";
+}
+
+app.get('/api/system/update-channel', (req, res) => {
+  res.json({ channel: getUpdateChannel() });
+});
+
+app.post('/api/system/update-channel', (req, res) => {
+  if (!config.verified) {
+    return res.status(400).json({ success: false, error: "Verify your email in Settings first." });
+  }
+  const { channel } = req.body;
+  if (["stable", "beta", "insiders"].includes(channel)) {
+    config.updateChannel = channel;
+    saveConfig();
+    res.json({ success: true, channel });
+  } else {
+    res.status(400).json({ success: false, error: "Invalid channel" });
+  }
 });
 
 // --- EMAIL VERIFICATION ---
@@ -2699,10 +2727,16 @@ function ensureSafeUpdateParent(relativePath, createdDirectories) {
   }
 }
 
+// Local/runtime files that an update must never overwrite (they may also be locked on Windows, e.g. the open log)
+const UPDATE_PROTECTED_FILES = new Set(["config.json", "keys.json", "session.key", "spotify-token.json", ".env", "boot-mode.json"]);
+function isUpdateProtectedFile(relativePath) {
+  return /\.log$/i.test(relativePath) || UPDATE_PROTECTED_FILES.has(relativePath);
+}
+
 function applyStagedFiles(files, send, initialPercent, finalPercent) {
   const applied = [];
   const createdDirectories = [];
-  const regularFiles = files.filter(file => file.relativePath !== "server.js");
+  const regularFiles = files.filter(file => file.relativePath !== "server.js" && !isUpdateProtectedFile(file.relativePath));
 
   const rollback = () => {
     for (const file of applied.reverse()) {
@@ -2889,7 +2923,8 @@ app.get('/api/system/check-update', async (req, res) => {
       ? JSON.parse(fs.readFileSync(versionPath, 'utf8')).version 
       : "1.0.0";
       
-    const remoteUrl = `https://raw.githubusercontent.com/mariowOS/stable/main/version.json?t=${Date.now()}`; 
+    const channel = getUpdateChannel();
+    const remoteUrl = `https://raw.githubusercontent.com/mariowOS/${channel}/main/version.json?t=${Date.now()}`; 
     const response = await fetch(remoteUrl);
     
     if (!response.ok) {
@@ -2928,15 +2963,18 @@ app.get('/api/system/ota-update', (req, res) => {
   send(0, "Preparing update...");
   (async () => {
     try {
+      const channel = getUpdateChannel();
+
       // A-07: verify the release signature (when a public key is configured) BEFORE
       // downloading/applying anything. Refuse unauthenticated code.
       send(2, "Verifying update authenticity...");
       const auth = await verifyUpdateAuthenticity(
-        "https://raw.githubusercontent.com/mariowOS/stable/main/version.json");
+        `https://raw.githubusercontent.com/mariowOS/${channel}/main/version.json`
+      );
       if (!auth.ok) throw new Error("Update rejected: " + auth.reason);
 
       send(5, "Downloading complete update...");
-      await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", "https://github.com/mariowOS/stable.git", stagePath], os.tmpdir());
+      await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", `https://github.com/mariowOS/${channel}.git`, stagePath], os.tmpdir());
       send(70, "Checking every downloaded file...");
       const files = await getStagedUpdateFiles(stagePath);
       if (files.length === 0) throw new Error("The update contains no files");

@@ -204,6 +204,24 @@ Questions? https://discord.gg/YDVxw6jfbH
       transform-origin: center center;
     }
 
+    .resize-handle { position: absolute; z-index: 50; touch-action: none; }
+    .resize-handle.n, .resize-handle.s { left: 10px; right: 10px; height: 6px; cursor: ns-resize; }
+    .resize-handle.e, .resize-handle.w { top: 10px; bottom: 10px; width: 6px; cursor: ew-resize; }
+    .resize-handle.n { top: 0; } .resize-handle.s { bottom: 0; }
+    .resize-handle.e { right: 0; } .resize-handle.w { left: 0; }
+    .resize-handle.ne, .resize-handle.nw, .resize-handle.se, .resize-handle.sw { width: 14px; height: 14px; }
+    .resize-handle.ne { top: 0; right: 0; cursor: nesw-resize; } .resize-handle.sw { bottom: 0; left: 0; cursor: nesw-resize; }
+    .resize-handle.nw { top: 0; left: 0; cursor: nwse-resize; } .resize-handle.se { bottom: 0; right: 0; cursor: nwse-resize; }
+    .popup.maximized .resize-handle { display: none; }
+    .snap-preview {
+      position: fixed; z-index: 290; pointer-events: none; border-radius: 16px;
+      background: rgba(255, 255, 255, 0.12); border: 2px solid rgba(255, 255, 255, 0.35);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      opacity: 0; transform: scale(0.97);
+      transition: opacity 0.18s ease, transform 0.25s var(--spring), left 0.2s var(--spring), top 0.2s var(--spring), width 0.2s var(--spring), height 0.2s var(--spring);
+    }
+    .snap-preview.visible { opacity: 1; transform: scale(1); }
+
     .popup.active { display: block; animation: popupIn 0.3s var(--spring) forwards; }
     .popup.closing { display: block; animation: popupOut 0.2s ease-in forwards; }
     .popup.minimizing { animation: popupMinimize 0.35s var(--spring) forwards; }
@@ -279,6 +297,8 @@ Questions? https://discord.gg/YDVxw6jfbH
     .dock-icon.running:hover { transform: none !important; background: rgba(255, 255, 255, 0.08) !important; }
     .dock-icon:active { transform: scale(0.85) translateY(2px); background: rgba(255, 255, 255, 0.05) !important; }
 
+    body.window-dragging iframe, body.window-dragging webview { pointer-events: none !important; }
+    body.window-dragging { user-select: none; cursor: grabbing; }
     .dock-icon.drag-over-left { transform: translateX(8px) scale(1.1); }
     .dock-icon.drag-over-right { transform: translateX(-8px) scale(1.1); }
     .dock-icon img, .dock-icon .menu-icon-symbol { width: 26px; height: 26px; object-fit: contain; flex-shrink: 0; pointer-events: none; transition: transform 0.35s var(--spring-bounce); }
@@ -1641,44 +1661,159 @@ Questions? https://discord.gg/YDVxw6jfbH
       updateContextBar(); 
     }
 
+    function makeResizable(el, minTop) {
+      if (el.dataset.resizeSetup) return; el.dataset.resizeSetup = 'true';
+      const MIN_W = 320, MIN_H = 200;
+      ['n', 's', 'e', 'w', 'ne', 'nw', 'se', 'sw'].forEach(dir => {
+        const h = document.createElement('div'); h.className = `resize-handle ${dir}`; el.appendChild(h);
+        h.addEventListener('pointerdown', (e) => {
+          if (e.button !== 0 || el.classList.contains('maximized')) return;
+          e.preventDefault(); e.stopPropagation(); focusPopup(el);
+          const startX = e.clientX, startY = e.clientY;
+          const r = el.getBoundingClientRect();
+          const sL = r.left, sT = r.top, sW = r.width, sH = r.height;
+          const maxBottom = window.innerHeight - TASKBAR_H, maxRight = window.innerWidth;
+          let px = startX, py = startY, raf = 0;
+          el.style.transition = 'none'; document.body.classList.add('window-dragging');
+          try { h.setPointerCapture(e.pointerId); } catch (_) {}
+          const apply = () => {
+            raf = 0; const dx = px - startX, dy = py - startY;
+            let L = sL, T = sT, W = sW, H = sH;
+            if (dir.includes('e')) W = Math.min(Math.max(MIN_W, sW + dx), maxRight - sL);
+            if (dir.includes('s')) H = Math.min(Math.max(MIN_H, sH + dy), maxBottom - sT);
+            if (dir.includes('w')) { W = Math.max(MIN_W, sW - dx); L = sL + sW - W; if (L < 0) { W += L; L = 0; } }
+            if (dir.includes('n')) { H = Math.max(MIN_H, sH - dy); T = sT + sH - H; if (T < minTop) { H -= minTop - T; T = minTop; } }
+            el.style.left = L + 'px'; el.style.top = T + 'px'; el.style.width = W + 'px'; el.style.height = H + 'px';
+          };
+          const move = (ev) => { px = ev.clientX; py = ev.clientY; if (!raf) raf = requestAnimationFrame(apply); };
+          const up = () => {
+            if (raf) { cancelAnimationFrame(raf); apply(); }
+            h.removeEventListener('pointermove', move); h.removeEventListener('pointerup', up); h.removeEventListener('pointercancel', up);
+            document.body.classList.remove('window-dragging'); el.style.transition = '';
+            delete el.dataset.snapped;
+            el.dataset.prevWidth = el.style.width; el.dataset.prevHeight = el.style.height;
+          };
+          h.addEventListener('pointermove', move); h.addEventListener('pointerup', up); h.addEventListener('pointercancel', up);
+        });
+      });
+    }
+
     function makeDraggable(el, handle, minTop) {
-      let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0, isDragging = false;
+      let isDragging = false, offsetX = 0, offsetY = 0, lastX = 0, rafId = 0, pendingX = 0, pendingY = 0, pointerId = null;
       const isInteractiveHeaderTarget = target => target.closest('.action-btn, .browser-tab-btn, #browserNewTab');
       handle.addEventListener('dblclick', (e) => { if (isInteractiveHeaderTarget(e.target)) return; toggleMaximize(el.id); });
-      handle.onmousedown = dragMouseDown; handle.ontouchstart = (e) => dragMouseDown(e.touches[0]);
+      handle.style.touchAction = 'none';
+      handle.addEventListener('pointerdown', dragMouseDown);
+      makeResizable(el, minTop);
 
-      function dragMouseDown(e) { 
-        if (isInteractiveHeaderTarget(e.target)) return;
+      function dragMouseDown(e) {
+        if (e.button !== 0 || isInteractiveHeaderTarget(e.target)) return;
+        e.preventDefault();
         focusPopup(el); isDragging = true; el.style.transition = 'none';
         
-        if (el.classList.contains('maximized')) {
-           el.classList.remove('maximized'); const prevW = el.dataset.prevWidth || '1048px'; const prevH = el.dataset.prevHeight || '600px';
+        if (el.classList.contains('maximized') || el.dataset.snapped) {
+           el.classList.remove('maximized'); delete el.dataset.snapped; const prevW = el.dataset.prevWidth || '1048px'; const prevH = el.dataset.prevHeight || '600px';
            el.style.transition = 'width 0.35s var(--spring), height 0.35s var(--spring), border-radius 0.35s ease';
            el.style.width = prevW; el.style.height = prevH; el.style.borderRadius = '16px';
            let nLeft = e.clientX - (parseInt(prevW) / 2); el.style.left = nLeft + 'px'; el.style.top = Math.max(minTop, e.clientY - 18) + 'px'; 
            setTimeout(() => { if (isDragging) el.style.transition = 'none'; }, 350);
         }
 
-        pos3 = e.clientX; pos4 = e.clientY; 
-        document.onmouseup = closeDrag; document.onmousemove = drag; 
-        document.ontouchend = closeDrag; document.ontouchmove = (ev) => drag(ev.touches[0]); 
+        // Offset fisso cursore→finestra: niente accumulo di errori/arrotondamenti
+        offsetX = e.clientX - (parseFloat(el.style.left) || el.offsetLeft);
+        offsetY = e.clientY - (parseFloat(el.style.top) || el.offsetTop);
+        lastX = e.clientX;
+        // Gli iframe delle app "rubano" il mousemove: disabilitali durante il drag
+        document.body.classList.add('window-dragging');
+        pointerId = e.pointerId;
+        try { handle.setPointerCapture(pointerId); } catch (_) {}
+        handle.addEventListener('pointermove', drag);
+        handle.addEventListener('pointerup', closeDrag);
+        handle.addEventListener('pointercancel', closeDrag);
       }
-      
+
       function drag(e) {
         if(!isDragging) return;
-        pos1 = pos3 - e.clientX; pos2 = pos4 - e.clientY; pos3 = e.clientX; pos4 = e.clientY;
-        let newTop = el.offsetTop - pos2; let newLeft = el.offsetLeft - pos1;
-        const maxLeft = window.innerWidth - el.offsetWidth - 8; const maxTop = window.innerHeight - el.offsetHeight - TASKBAR_H - 8;
-        newLeft = Math.max(8, Math.min(newLeft, maxLeft)); newTop = Math.max(minTop, Math.min(newTop, maxTop));
-        let rot = Math.max(-4, Math.min(4, pos1 * 0.4)); el.style.transform = `rotate(${rot}deg)`;
-        el.style.top = newTop + "px"; el.style.left = newLeft + "px";
+        pendingX = e.clientX; pendingY = e.clientY;
+        if (!rafId) rafId = requestAnimationFrame(applyDrag);
       }
-      
-      function closeDrag() { 
-        isDragging = false; document.onmouseup = null; document.onmousemove = null; document.ontouchend = null; document.ontouchmove = null; 
+
+      function applyDrag() {
+        rafId = 0;
+        if (!isDragging) return;
+        const maxLeft = window.innerWidth - el.offsetWidth - 8; const maxTop = window.innerHeight - el.offsetHeight - TASKBAR_H - 8;
+        const newLeft = Math.max(8, Math.min(pendingX - offsetX, maxLeft)); const newTop = Math.max(minTop, Math.min(pendingY - offsetY, maxTop));
+        const dx = lastX - pendingX; lastX = pendingX;
+        const rot = Math.max(-4, Math.min(4, dx * 0.4)); el.style.transform = `rotate(${rot}deg)`;
+        el.style.top = newTop + "px"; el.style.left = newLeft + "px";
+        snapZone = getSnapZone(pendingX, pendingY);
+        showSnapPreview(snapZone);
+      }
+
+      function closeDrag() {
+        const zone = isDragging ? snapZone : null; snapZone = null; showSnapPreview(null);
+        isDragging = false;
+        if (rafId) { cancelAnimationFrame(rafId); rafId = 0; }
+        try { if (pointerId !== null) handle.releasePointerCapture(pointerId); } catch (_) {}
+        pointerId = null;
+        handle.removeEventListener('pointermove', drag);
+        handle.removeEventListener('pointerup', closeDrag);
+        handle.removeEventListener('pointercancel', closeDrag);
+        document.body.classList.remove('window-dragging');
         el.style.transition = 'transform 0.4s var(--spring)'; el.style.transform = 'rotate(0deg)'; setTimeout(() => { if (!isDragging) el.style.transition = ''; }, 400);
+        if (zone) applySnap(el, zone);
       }
     }
+
+    // ---- Partizioni schermo (snap) ----
+    let snapZone = null, snapPreviewEl = null;
+    const SNAP_EDGE = 14;
+    function getSnapZone(x, y) {
+      const W = window.innerWidth, H = window.innerHeight - TASKBAR_H;
+      const left = x <= SNAP_EDGE, right = x >= W - SNAP_EDGE, top = y <= SNAP_EDGE, bottom = y >= H - SNAP_EDGE;
+      const C = SNAP_EDGE * 5; // tolleranza angoli
+      const inTop = y <= C, inBottom = y >= H - C, inLeft = x <= C, inRight = x >= W - C;
+      if (left)  return inTop ? 'tl' : inBottom ? 'bl' : 'left';
+      if (right) return inTop ? 'tr' : inBottom ? 'br' : 'right';
+      if (top)   return inLeft ? 'tl' : inRight ? 'tr' : 'max';
+      if (bottom && inLeft) return 'bl';
+      if (bottom && inRight) return 'br';
+      return null;
+    }
+    function snapRect(zone) {
+      const W = window.innerWidth, H = window.innerHeight - TASKBAR_H, hw = W / 2, hh = H / 2;
+      return ({
+        left: [0, 0, hw, H], right: [hw, 0, hw, H], max: [0, 0, W, H],
+        tl: [0, 0, hw, hh], tr: [hw, 0, hw, hh], bl: [0, hh, hw, hh], br: [hw, hh, hw, hh]
+      })[zone];
+    }
+    function showSnapPreview(zone) {
+      if (!snapPreviewEl) {
+        snapPreviewEl = document.createElement('div'); snapPreviewEl.className = 'snap-preview';
+        document.body.appendChild(snapPreviewEl);
+      }
+      if (!zone) { snapPreviewEl.classList.remove('visible'); return; }
+      const [l, t, w, h] = snapRect(zone);
+      Object.assign(snapPreviewEl.style, { left: l + 'px', top: t + 'px', width: w + 'px', height: h + 'px' });
+      snapPreviewEl.classList.add('visible');
+    }
+    function applySnap(el, zone) {
+      if (zone === 'max') { toggleMaximize(el.id); return; }
+      // Salva la dimensione "libera" per ripristinarla quando si trascina via
+      el.dataset.prevWidth = el.style.width || getComputedStyle(el).width;
+      el.dataset.prevHeight = el.style.height || getComputedStyle(el).height;
+      el.dataset.snapped = zone;
+      const [l, t, w, h] = snapRect(zone);
+      el.style.transition = 'width 0.3s var(--spring), height 0.3s var(--spring), top 0.3s var(--spring), left 0.3s var(--spring), transform 0.4s var(--spring)';
+      el.style.left = l + 'px'; el.style.top = t + 'px'; el.style.width = w + 'px'; el.style.height = h + 'px';
+      setTimeout(() => { el.style.transition = ''; }, 400);
+    }
+    window.addEventListener('resize', () => {
+      document.querySelectorAll('.popup[data-snapped]').forEach(p => {
+        const [l, t, w, h] = snapRect(p.dataset.snapped);
+        p.style.left = l + 'px'; p.style.top = t + 'px'; p.style.width = w + 'px'; p.style.height = h + 'px';
+      });
+    });
 
     document.addEventListener('mousedown', (e) => { const popup = e.target.closest('.popup'); if (popup && e.target.closest('.popup-header')) focusPopup(popup); });
 
