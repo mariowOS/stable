@@ -40,6 +40,51 @@ const spawn = (command, args, options) => {
 // The backend owns the config file, login flow, desktop routes, and the app store.
 // If you are building on top of the OS, this is the file to understand first.
 const app = express();
+
+// SECURITY (D-01): defence-in-depth Content-Security-Policy + hardening headers.
+// The desktop and every app are served from this origin and loaded as same-origin
+// iframes, so one policy set here covers them all. This is LAYER 1: it does NOT yet
+// forbid inline scripts/handlers ('unsafe-inline' stays, because the whole UI is
+// built on inline code — removing it is a separate, larger refactor together with
+// sanitising the innerHTML sinks). What it DOES buy right now:
+//   - connect-src 'self'  -> a successful XSS cannot exfiltrate data to a remote
+//                            server or beacon out; every app already talks only to
+//                            same-origin /api/* routes (the backend proxies outward).
+//   - script-src pinned   -> no stage-2 payload can be pulled from an attacker CDN;
+//                            only self + the CDN the OS genuinely uses are allowed.
+//   - object-src 'none', base-uri 'self', frame-ancestors 'self' -> kill <object>/
+//                            <embed>, <base> hijacking and clickjacking/re-framing.
+// The in-OS browser runs in a <webview> (its own browsing context), so external
+// sites it visits are unaffected by this header.
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  // 'unsafe-eval' is required by the Monaco editor (ACode); 'unsafe-inline' by the
+  // OS's inline handlers/scripts. cdnjs serves Monaco + JSZip.
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdnjs.cloudflare.com",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com",
+  "font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' data: blob:",
+  "connect-src 'self'",
+  // External iframes the shell embeds (homepage, chat widgets) are https only; the
+  // browser app itself uses a <webview>, not an iframe, so it is not constrained here.
+  "frame-src 'self' https:",
+  // Monaco (ACode) spins up its language worker from a data: URL. 'blob:' covers the
+  // common pattern; 'data:' is needed for this Monaco build. (Hosting Monaco from the
+  // bundled local copy in desktop/assets/vendor/monaco would let this drop to 'self'.)
+  "worker-src 'self' blob: data:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "frame-ancestors 'self'"
+].join("; ");
+app.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", CONTENT_SECURITY_POLICY);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN");
+  next();
+});
+
 const PORT = Number(process.env.MARIOWOS_PORT || 3000);
 if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) {
   throw new Error('MARIOWOS_PORT must be a valid TCP port');
@@ -390,47 +435,91 @@ function isValidEmail(email) {
 const CODE_TTL_MS = 10 * 60 * 1000;
 const CODE_COOLDOWN_MS = 60 * 1000;
 const CODE_MAX_ATTEMPTS = 5;
+// SECURITY (D-06): /api/email/send-code is pre-auth and accepts an arbitrary recipient
+// (needed to verify a new address). The per-address cooldown stops repeat-spam of ONE
+// victim; this global hourly budget stops the owner's SMTP being turned into a mass
+// mailer that blasts many different addresses. Comfortably above any real single-user
+// need (a handful of verify/reset codes per hour).
+const CODE_GLOBAL_WINDOW_MS = 60 * 60 * 1000;
+const CODE_GLOBAL_MAX = 20;
+const codeSendTimes = [];
 const pendingCodes = new Map();
 const hashCode = code => crypto.createHash("sha256").update(String(code)).digest("hex");
 
 // Email-client-safe template: tables + inline styles only (Gmail/Outlook strip <style> and flexbox).
-function renderCodeEmail(purpose, code) {
+// Images travel as CID attachments (see sendCodeEmail), so nothing is fetched from third parties.
+// The blurred wallpaper is a progressive enhancement: clients that ignore CSS/attribute
+// backgrounds (Gmail web, Outlook desktop) show the solid fallback colour instead.
+const MAIL_ASSETS = {
+  logo: path.join(__dirname, "desktop", "apps", "settings", "assets", "branding.png"),
+  background: path.join(__dirname, "desktop", "assets", "mail-bg.jpg")
+};
+const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+function renderCodeEmail(purpose, code, { username, expiresAt, hasLogo = true, hasBackground = true } = {}) {
   const isReset = purpose === "reset";
-  const heading = isReset ? "Reset your password" : "Verify your email";
+  const heading = isReset ? "Reset your password" : "Confirm your email";
+  const greeting = username ? `Hi ${escapeHtml(username)}, ` : "Hi, ";
   const intro = isReset
-    ? "Someone asked to reset the password of your mariowOS account. Use this code to choose a new one:"
-    : "Welcome! Enter this code in <b>Settings &rsaquo; You</b> to confirm this email belongs to you:";
-  const digits = code.split("").map(d =>
-    `<td style="padding:0 4px;"><div style="width:44px;height:56px;line-height:56px;background:#ffffff;border:1px solid #e3e6ef;border-radius:12px;font-family:'SF Mono',Menlo,Consolas,monospace;font-size:28px;font-weight:700;color:#14161c;text-align:center;">${d}</div></td>`
-  ).join("");
+    ? `${greeting}here is the code to choose a new password for your mariowOS account.`
+    : `${greeting}here is the code to confirm that this address belongs to you.`;
+  const where = isReset
+    ? `Enter it on the <span style="font-weight:500;color:#1d1d1f;">Reset password</span> screen, together with your new password.`
+    : `Enter it in <span style="font-weight:500;color:#1d1d1f;">Settings &rsaquo; You</span> on your mariowOS device.`;
+  const ignore = isReset
+    ? "If you didn't ask for this code, you can ignore this email: your password stays the same."
+    : "If you didn't ask for this code, you can ignore this email.";
+  const until = expiresAt
+    ? `, until ${new Date(expiresAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
+    : "";
+  const font = "'Poppins','Segoe UI',Helvetica,Arial,sans-serif";
+  const logo = hasLogo
+    ? `<img src="cid:mariowos-logo" height="26" alt="mariowOS" style="display:block;height:26px;width:auto;border:0;">`
+    : `<div style="font-family:${font};font-size:22px;font-weight:600;color:#1d1d1f;">mariowOS</div>`;
   return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light"><title>${heading}</title></head>
-<body style="margin:0;padding:0;background:#eef1f7;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your mariowOS code is ${code}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#eef1f7;padding:40px 16px;font-family:'Poppins','Segoe UI',Helvetica,Arial,sans-serif;">
-    <tr><td align="center">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;background:#ffffff;border-radius:24px;overflow:hidden;box-shadow:0 12px 40px rgba(20,22,28,0.08);">
-        <tr><td style="background:linear-gradient(135deg,#0a84ff 0%,#5e5ce6 100%);background-color:#0a84ff;padding:36px 32px 32px;text-align:center;">
-          <div style="font-size:26px;font-weight:700;color:#ffffff;letter-spacing:-0.5px;">mariowOS</div>
-          <div style="margin-top:6px;font-size:13px;color:rgba(255,255,255,0.8);">${isReset ? "Account security" : "Account verification"}</div>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${heading}</title></head>
+<body style="margin:0;padding:0;background:#edefea;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your mariowOS code is ${code}. It expires in 10 minutes.</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edefea;">
+    <tr><td align="center" style="padding:48px 20px;">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;font-family:${font};">
+        <tr><td bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e4e6e1;border-radius:22px;padding:40px 40px 34px;box-shadow:0 14px 44px rgba(20,30,24,0.10);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:30px;">${logo}</td></tr></table>
+          <h1 style="margin:0;text-align:center;font-family:${font};font-size:25px;line-height:1.3;font-weight:600;letter-spacing:-0.3px;color:#1d1d1f;">${heading}</h1>
+          <p style="margin:12px 0 0;text-align:center;font-family:${font};font-size:15px;line-height:1.6;color:#6a6f68;">${intro}</p>
+          <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:30px auto 0;"><tr><td bgcolor="#f4f5f2" style="background-color:#f4f5f2;border:1px solid #e7e9e4;border-radius:14px;padding:18px 30px;text-align:center;font-family:${font};font-size:40px;line-height:1;font-weight:600;letter-spacing:12px;color:#1d1d1f;">${code}</td></tr></table>
+          <p style="margin:16px 0 0;text-align:center;font-family:${font};font-size:13px;line-height:1.5;color:#8a8f88;">Valid for 10 minutes${until}.</p>
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:30px 0 0;"><tr><td height="1" style="height:1px;line-height:1px;font-size:1px;background:#ecede9;">&nbsp;</td></tr></table>
+          <p style="margin:26px 0 0;text-align:center;font-family:${font};font-size:14px;line-height:1.65;color:#4a4d4b;">${where}</p>
+          <p style="margin:12px 0 0;text-align:center;font-family:${font};font-size:13px;line-height:1.6;color:#8a8f88;">${ignore} Don't share it with anyone: we will never ask you for it.</p>
         </td></tr>
-        <tr><td style="padding:36px 32px 8px;text-align:center;">
-          <div style="font-size:22px;font-weight:600;color:#14161c;">${heading}</div>
-          <div style="margin-top:12px;font-size:15px;line-height:1.6;color:#5b6070;">${intro}</div>
-        </td></tr>
-        <tr><td align="center" style="padding:24px 24px 8px;">
-          <table role="presentation" cellpadding="0" cellspacing="0" style="background:#f5f7fb;border-radius:18px;padding:18px 14px;"><tr>${digits}</tr></table>
-        </td></tr>
-        <tr><td style="padding:12px 32px 32px;text-align:center;">
-          <div style="display:inline-block;padding:6px 14px;background:#fff4e5;border-radius:999px;font-size:12px;font-weight:600;color:#b25e00;">&#9201; Expires in 10 minutes</div>
-        </td></tr>
-        <tr><td style="padding:0 32px;"><div style="height:1px;background:#eceef3;"></div></td></tr>
-        <tr><td style="padding:20px 32px 32px;text-align:center;font-size:12px;line-height:1.6;color:#8a8f9e;">
-          Didn't request this? You can safely ignore this email &mdash; nothing will change.<br>
-          Never share this code with anyone, not even the mariowOS team.
-        </td></tr>
+        <tr><td align="center" style="padding:22px 16px 0;"><p style="margin:0;text-align:center;font-family:${font};font-size:12px;line-height:1.6;color:#9aa096;">This is an automatic message from mariowOS. Replies to this address are not read.</p></td></tr>
       </table>
-      <div style="margin-top:20px;font-size:11px;color:#a0a5b3;font-family:'Segoe UI',Helvetica,Arial,sans-serif;">&copy; ${new Date().getFullYear()} mariowOS &middot; Sent automatically, please don't reply.</div>
+    </td></tr>
+  </table>
+</body></html>`;
+}
+
+// Shared branded shell for NON-code emails (e.g. the daily report), so every mail we
+// send uses the same new look as renderCodeEmail. Pass the card's inner HTML.
+function renderBrandedEmail(title, bodyHtml, { hasLogo = true, hasBackground = true, preheader = "" } = {}) {
+  const font = "'Poppins','Segoe UI',Helvetica,Arial,sans-serif";
+  const logo = hasLogo
+    ? `<img src="cid:mariowos-logo" height="26" alt="mariowOS" style="display:block;height:26px;width:auto;border:0;">`
+    : `<div style="font-family:${font};font-size:22px;font-weight:600;color:#1d1d1f;">mariowOS</div>`;
+  return `<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${escapeHtml(title)}</title></head>
+<body style="margin:0;padding:0;background:#edefea;">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edefea;">
+    <tr><td align="center" style="padding:48px 20px;">
+      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;font-family:${font};">
+        <tr><td bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e4e6e1;border-radius:22px;padding:40px 40px 34px;box-shadow:0 14px 44px rgba(20,30,24,0.10);">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:30px;">${logo}</td></tr></table>
+          ${bodyHtml}
+        </td></tr>
+        <tr><td align="center" style="padding:22px 16px 0;"><p style="margin:0;text-align:center;font-family:${font};font-size:12px;line-height:1.6;color:#9aa096;">This is an automatic message from mariowOS. Replies to this address are not read.</p></td></tr>
+      </table>
     </td></tr>
   </table>
 </body></html>`;
@@ -444,15 +533,30 @@ async function sendCodeEmail(purpose, email) {
     const wait = Math.ceil((CODE_COOLDOWN_MS - (Date.now() - existing.sentAt)) / 1000);
     return { ok: false, status: 429, error: `Please wait ${wait}s before requesting a new code.`, retryAfter: wait };
   }
+  // Global anti-mass-mail budget (D-06): drop timestamps older than the window, then cap.
+  const nowTs = Date.now();
+  while (codeSendTimes.length && nowTs - codeSendTimes[0] > CODE_GLOBAL_WINDOW_MS) codeSendTimes.shift();
+  if (codeSendTimes.length >= CODE_GLOBAL_MAX) {
+    return { ok: false, status: 429, error: "Too many email codes requested recently. Try again later.", retryAfter: 600 };
+  }
   const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
   const title = purpose === "reset" ? "Password reset code" : "Email verification code";
+  const expiresAt = Date.now() + CODE_TTL_MS;
+  const attachments = [];
+  if (fs.existsSync(MAIL_ASSETS.logo)) attachments.push({ filename: "mariowos.png", path: MAIL_ASSETS.logo, cid: "mariowos-logo" });
   try {
     await transporter.sendMail({
       from: { name: "mariowOS", address: process.env.MARIOWOS_SMTP_USER },
       to: email,
       subject: `mariowOS - ${title}`,
       text: `Your mariowOS code is ${code}. It expires in 10 minutes.\nIf you did not request it, you can safely ignore this email.`,
-      html: renderCodeEmail(purpose, code)
+      html: renderCodeEmail(purpose, code, {
+        username: config.username,
+        expiresAt,
+        hasLogo: attachments.some(a => a.cid === "mariowos-logo"),
+        hasBackground: attachments.some(a => a.cid === "mariowos-bg")
+      }),
+      attachments
     });
   } catch (err) {
     const detail = [err.code, err.responseCode, err.message].filter(Boolean).join(" ");
@@ -460,7 +564,8 @@ async function sendCodeEmail(purpose, email) {
     try { fs.appendFileSync(path.join(__dirname, "mail-error.log"), `${new Date().toISOString()} ${detail}\n${err.stack || ""}\n`); } catch (e) {}
     return { ok: false, status: 502, error: "Could not send the email: " + detail };
   }
-  pendingCodes.set(key, { hash: hashCode(code), expiresAt: Date.now() + CODE_TTL_MS, sentAt: Date.now(), attempts: 0 });
+  pendingCodes.set(key, { hash: hashCode(code), expiresAt, sentAt: Date.now(), attempts: 0 });
+  codeSendTimes.push(Date.now()); // count toward the global anti-mass-mail budget (D-06)
   return { ok: true };
 }
 
@@ -836,11 +941,29 @@ let dailyEmailTask = null;
 async function sendDiscordFlagsEmail() {
   if (!config.email || !config.verified || !SMTP_CONFIGURED) return;
   try {
+    const font = "'Poppins','Segoe UI',Helvetica,Arial,sans-serif";
+    const attachments = [];
+    if (fs.existsSync(MAIL_ASSETS.logo)) attachments.push({ filename: "mariowos.png", path: MAIL_ASSETS.logo, cid: "mariowos-logo" });
+    const greeting = config.username ? `Hi ${escapeHtml(config.username)}, ` : "Hi, ";
+    const body = `
+      <h1 style="margin:0;font-family:${font};font-size:26px;line-height:1.25;font-weight:600;letter-spacing:-0.4px;color:#1d1d1f;">Your daily report</h1>
+      <p style="margin:14px 0 0;font-family:${font};font-size:15px;line-height:1.65;color:#4a4d4b;">${greeting}here is today's summary of mariowOS issue flags.</p>
+      <p style="margin:14px 0 0;font-family:${font};font-size:15px;line-height:1.65;color:#4a4d4b;">The latest flags are posted on our community Discord.</p>
+      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:32px 0 0;"><tr><td align="center" bgcolor="#2e5d4a" style="border-radius:12px;background-color:#2e5d4a;">
+        <a href="https://dsc.gg/mariowOS" style="display:inline-block;padding:13px 26px;font-family:${font};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Open Discord</a>
+      </td></tr></table>
+      <p style="margin:28px 0 0;font-family:${font};font-size:13px;line-height:1.6;color:#5f6461;">You receive this because the daily report is enabled in Settings. Turn it off there at any time.</p>`;
     await transporter.sendMail({
       from: { name: "mariowOS", address: process.env.MARIOWOS_SMTP_USER },
       to: config.email,
       subject: "mariowOS Daily Issue Flags - Discord",
-      html: `<h2>mariowOS Daily Report</h2><p>Hello ${config.username}, check the latest issue flags on our Discord server.</p>`
+      text: `${config.username ? "Hi " + config.username + ", " : "Hi, "}here is today's summary of mariowOS issue flags. The latest flags are on our Discord: https://dsc.gg/mariowOS`,
+      html: renderBrandedEmail("Your daily report", body, {
+        preheader: "Today's mariowOS issue flags summary.",
+        hasLogo: attachments.some(a => a.cid === "mariowos-logo"),
+        hasBackground: attachments.some(a => a.cid === "mariowos-bg")
+      }),
+      attachments
     });
     config.lastSent = Date.now();
     fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -1211,16 +1334,22 @@ app.post("/api/system/connect-bt", (req, res) => {
     cmd = `bluetoothctl ${isConnected ? "disconnect" : "connect"} ${target}`;
   } else if (currentOS === "darwin") {
     cmd = `blueutil --${isConnected ? "disconnect" : "connect"} ${target}`;
-  } else if (currentOS === "win32") {
-    cmd = `echo Toggle Bluetooth for ${name}`;
   }
+  // SECURITY (D-04): win32 had `echo Toggle Bluetooth for ${name}` here — `name` is
+  // user-controlled and was NOT validated (only `target` is), so it was a real shell
+  // command-injection sink (e.g. name = "x & whoami"), reachable by any session WITHOUT
+  // the account password. The echo was a no-op placeholder, so it is removed entirely;
+  // only the validated-MAC branches ever touch the shell now, and never run an empty cmd.
 
-  exec(cmd, () => {
+  const applyToggle = () => {
     config.quickSettings.connectedBt = isConnected ? null : name;
     config.quickSettings.bluetooth = true;
     fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
     res.json({ success: true, connectedBt: config.quickSettings.connectedBt });
-  });
+  };
+
+  if (cmd) exec(cmd, applyToggle);
+  else applyToggle();
 });
 
 // --- BACKUP & RESTORE ---
@@ -1235,9 +1364,18 @@ app.get("/api/system/backup", (req, res) => {
   res.json(safeConfig);
 });
 
-app.post("/api/system/restore", backupUpload.single("backupFile"), (req, res) => {
+app.post("/api/system/restore", backupUpload.single("backupFile"), async (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
-  
+
+  // SECURITY (D-02): a restore overwrites the entire config (rules, calendar, account
+  // email, installed-app list...). Require the account password so a rogue same-origin
+  // app can't silently swap the user's config. No password set (first-run / welcome
+  // import) => nothing to protect, proceed.
+  if (config.passwordHash) {
+    const ok = await comparePassword(String((req.body && req.body.password) || ""), config.passwordHash);
+    if (!ok) return res.status(403).json({ success: false, error: "Incorrect password." });
+  }
+
   try {
     const importedConfig = JSON.parse(req.file.buffer.toString());
     
@@ -1591,9 +1729,16 @@ app.post("/api/system/logout", (req, res) => {
   res.json({ success: true });
 });
 
-// The desktop shell (already authenticated by the session cookie) mints a per-app
-// token when it opens an app's iframe, then injects it into that app so the app can
-// send it as `X-App-Token` on its API calls. See enforceAppPermissions.
+// SECURITY (D-03): per-app tokens are ACCOUNTABILITY, NOT ISOLATION. Apps run as
+// same-origin iframes, so any app can POST here asking for ANY appId's token (there is
+// no un-spoofable way, over same-origin HTTP, to prove which app is calling). Treat
+// `enforceAppPermissions` as "which app is *supposed* to own this endpoint" for logging
+// and least-privilege-by-convention — never as a trust boundary against a malicious
+// app. Anything that must be safe against a rogue app is instead gated by the account
+// PASSWORD at the route itself (see /api/remote/exec, /api/recovery/debug,
+// /api/system/factory-reset, /api/system/restore, /clear-password). A real boundary
+// would require serving each app from its own origin/partition and binding the token
+// to the un-spoofable Origin header — a separate, larger change.
 app.post("/api/app/token", (req, res) => {
   const appId = req.body && req.body.appId;
   if (!isValidAppId(appId)) return res.status(400).json({ success: false, error: "Invalid app ID" });
@@ -1601,7 +1746,16 @@ app.post("/api/app/token", (req, res) => {
 });
 
 
-app.post("/api/system/factory-reset", (req, res) => {
+app.post("/api/system/factory-reset", async (req, res) => {
+  // SECURITY (D-02): a factory reset is irreversible (wipes installed apps, assets and
+  // the whole config, and clears the password). A valid session alone is not enough —
+  // a hijacked session or a rogue same-origin app must not be able to trigger it. Re-
+  // confirm the account password. When no password is configured there is nothing to
+  // protect, so the fresh-install / post-reset path still works with no password.
+  if (config.passwordHash) {
+    const ok = await comparePassword(String((req.body && req.body.password) || ""), config.passwordHash);
+    if (!ok) return res.status(403).json({ success: false, error: "Incorrect password." });
+  }
   const errors = [];
   const removePath = target => {
     try { if (fs.existsSync(target)) fs.rmSync(target, { recursive: true, force: true }); }
@@ -3136,14 +3290,14 @@ function readMusicLibrary() {
   return tracks.sort((a, b) => a.name.localeCompare(b.name));
 }
 
-app.get("/api/music/library", (req, res) => {
+app.get("/api/music/library", requireAuthJson, (req, res) => {
   res.set("Cache-Control", "no-store");
   res.json({ success: true, tracks: readMusicLibrary() });
 });
 
 // Streams one file out of Home/Music. The name is matched against the directory
 // listing rather than joined blindly, so no traversal can reach another folder.
-app.get("/api/music/file", (req, res) => {
+app.get("/api/music/file", requireAuthJson, (req, res) => {
   const requested = typeof req.query.name === "string" ? req.query.name : "";
   const directory = path.join(__dirname, "desktop", "home", "Music");
   const match = readMusicLibrary().find(track => track.name === requested);
@@ -3335,7 +3489,7 @@ function describeEntry(parentPath, entry) {
   return described;
 }
 
-app.get("/api/system/files", (req, res) => {
+app.get("/api/system/files", requireAuthJson, (req, res) => {
   const targetPath = req.query.path || '/home';
   const resolved = resolveVirtualPath(targetPath);
 
@@ -3656,7 +3810,7 @@ app.post("/api/system/files/trash/empty", requireAuthJson, (req, res) => {
   res.json({ success: true });
 });
 
-app.get("/api/system/files/content", (req, res) => {
+app.get("/api/system/files/content", requireAuthJson, (req, res) => {
   const resolved = resolveVirtualPath(req.query.path);
   if (!resolved || !resolved.realPath) return res.status(403).json({ success: false, error: "Access denied" });
   // SECURITY (A-03): the /device tree mirrors the entire host filesystem. Listing it

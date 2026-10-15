@@ -1,5 +1,5 @@
 {
-  "version": "1.3.3",
-  "changelog": "enables channel switching",
+  "version": "1.3.4",
+  "changelog": "Security hardening (CSP, password-gated destructive actions, authenticated file APIs, fixed a Bluetooth command injection) and a refreshed email design.",
   "_comment": "obb."
 }
