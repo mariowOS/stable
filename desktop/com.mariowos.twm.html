@@ -824,6 +824,12 @@ body.power-saver .qs-subpanel-header {
           <a onclick="openPopup('popup9')">
             <div class="dropdown-item" data-popup="popup9"><img src="assets/icons/calculator.png" class="menu-icon"> <span>Calculator</span></div>
           </a>
+          <a onclick="openPopup('popup12')">
+            <div class="dropdown-item" data-popup="popup12"><img src="assets/icons/pictures.svg" class="menu-icon"> <span>Pictures</span></div>
+          </a>
+          <a onclick="openPopup('popup13')">
+            <div class="dropdown-item" data-popup="popup13"><img src="assets/icons/video.svg" class="menu-icon"> <span>Video Player</span></div>
+          </a>
         </div>
       </div>
 
@@ -1051,13 +1057,78 @@ body.power-saver .qs-subpanel-header {
     <iframe src="apps/calculator/index.html" class="popup-frame"></iframe>
   </div>
 
+  <div id="popup12" class="popup">
+    <div class="popup-header"><span>Pictures</span><span class="altf4" onclick="closePopup('popup12')">✖</span></div>
+    <iframe src="apps/pictures/index.html" class="popup-frame"></iframe>
+  </div>
+
+  <div id="popup13" class="popup">
+    <div class="popup-header"><span>Video Player</span><span class="altf4" onclick="closePopup('popup13')">✖</span></div>
+    <iframe src="apps/videoplayer/index.html" class="popup-frame"></iframe>
+  </div>
+
   <script>
+    // SECURITY (layer-2 XSS): app icons/urls come from installed store apps and from
+    // postMessage, both untrusted. renderIcon returns a DOM node (no HTML string);
+    // safeAppUrl blocks javascript:/data:/vbscript: before a URL reaches iframe src.
     const renderIcon = (iconStr) => {
-      if (!iconStr) return '<span class="menu-icon-symbol">📦</span>';
+      const symbol = (text) => {
+        const s = document.createElement('span');
+        s.className = 'menu-icon-symbol';
+        s.textContent = text;
+        return s;
+      };
+      if (!iconStr) return symbol('📦');
       if (iconStr.includes('/') || iconStr.includes('.')) {
-        return `<img src="${iconStr}" class="menu-icon" style="border-radius: 4px; object-fit: cover;">`;
+        const safe = /^(https?:\/\/|\/)/i.test(String(iconStr).trim()) ? String(iconStr).trim() : '';
+        if (!safe) return symbol('📦');
+        const img = document.createElement('img');
+        img.className = 'menu-icon';
+        img.style.borderRadius = '4px';
+        img.style.objectFit = 'cover';
+        img.src = safe;
+        return img;
       }
-      return `<span class="menu-icon-symbol">${iconStr}</span>`;
+      return symbol(String(iconStr));
+    };
+
+    const safeAppUrl = (url) => {
+      const u = String(url == null ? '' : url).trim();
+      if (!u || /^(javascript|data|vbscript):/i.test(u)) return 'about:blank';
+      return u;
+    };
+
+    // Builds the dropdown entry + popup window for one installed app, using DOM APIs
+    // so untrusted app fields (title, icon, url, appId) are never parsed as HTML.
+    const buildInstalledAppEntry = (app, dropdown) => {
+      const btn = document.createElement('a');
+      btn.onclick = () => openPopup(app.appId);
+      const item = document.createElement('div');
+      item.className = 'dropdown-item';
+      item.setAttribute('data-popup', app.appId == null ? '' : String(app.appId));
+      const label = document.createElement('span');
+      label.textContent = app.title == null ? '' : String(app.title);
+      item.append(renderIcon(app.icon), document.createTextNode(' '), label);
+      btn.appendChild(item);
+      dropdown.appendChild(btn);
+
+      const popupDiv = document.createElement('div');
+      popupDiv.id = app.appId;
+      popupDiv.className = 'popup';
+      const header = document.createElement('div');
+      header.className = 'popup-header';
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = app.title == null ? '' : String(app.title);
+      const close = document.createElement('span');
+      close.className = 'altf4';
+      close.textContent = '✖';
+      close.addEventListener('click', () => closePopup(app.appId));
+      header.append(titleSpan, close);
+      const frame = document.createElement('iframe');
+      frame.className = 'popup-frame';
+      frame.src = safeAppUrl(app.url);
+      popupDiv.append(header, frame);
+      return popupDiv;
     };
 
     let popupCounter = 0;
@@ -1204,15 +1275,27 @@ function cyclePowerMode() {
             return;
           }
 
-          listContainer.innerHTML = data.networks.map(net => `
-            <div class="qs-list-item ${net.connected ? 'connected' : ''}" onclick="connectWifi('${net.ssid}')">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="material-symbols-outlined" style="font-size:18px;">${net.secured ? 'lock' : 'wifi'}</span>
-                <span>${net.ssid}</span>
-              </div>
-              <span style="font-size:11px;">${net.connected ? 'Connected' : net.signal + '%'}</span>
-            </div>
-          `).join('');
+          // SECURITY (layer-2 XSS): Wi-Fi SSIDs are attacker-controllable; build via DOM.
+          listContainer.replaceChildren();
+          data.networks.forEach(net => {
+            const item = document.createElement('div');
+            item.className = 'qs-list-item' + (net.connected ? ' connected' : '');
+            item.addEventListener('click', () => connectWifi(net.ssid));
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:8px;';
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.fontSize = '18px';
+            icon.textContent = net.secured ? 'lock' : 'wifi';
+            const name = document.createElement('span');
+            name.textContent = net.ssid == null ? '' : String(net.ssid);
+            left.append(icon, name);
+            const sig = document.createElement('span');
+            sig.style.fontSize = '11px';
+            sig.textContent = net.connected ? 'Connected' : (net.signal + '%');
+            item.append(left, sig);
+            listContainer.appendChild(item);
+          });
         }
       } catch (err) {
         listContainer.innerHTML = `<div style="font-size:11px; color:#ff6b6b; text-align:center;">Failed to scan Wi-Fi</div>`;
@@ -1253,15 +1336,27 @@ function cyclePowerMode() {
           }
 
           const iconMap = { headset: 'headphones', smartphone: 'smartphone', mouse: 'mouse', keyboard: 'keyboard' };
-          listContainer.innerHTML = data.devices.map(dev => `
-            <div class="qs-list-item ${dev.connected ? 'connected' : ''}" onclick="connectBt('${dev.mac || dev.name}', '${dev.name}')">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <span class="material-symbols-outlined" style="font-size:18px;">${iconMap[dev.type] || 'bluetooth'}</span>
-                <span>${dev.name}</span>
-              </div>
-              <span style="font-size:11px;">${dev.connected ? 'Connected' : 'Saved'}</span>
-            </div>
-          `).join('');
+          // SECURITY (layer-2 XSS): Bluetooth device names are attacker-controllable; build via DOM.
+          listContainer.replaceChildren();
+          data.devices.forEach(dev => {
+            const item = document.createElement('div');
+            item.className = 'qs-list-item' + (dev.connected ? ' connected' : '');
+            item.addEventListener('click', () => connectBt(dev.mac || dev.name, dev.name));
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:8px;';
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.fontSize = '18px';
+            icon.textContent = iconMap[dev.type] || 'bluetooth';
+            const name = document.createElement('span');
+            name.textContent = dev.name == null ? '' : String(dev.name);
+            left.append(icon, name);
+            const status = document.createElement('span');
+            status.style.fontSize = '11px';
+            status.textContent = dev.connected ? 'Connected' : 'Saved';
+            item.append(left, status);
+            listContainer.appendChild(item);
+          });
         }
       } catch (err) {
         listContainer.innerHTML = `<div style="font-size:11px; color:#ff6b6b; text-align:center;">Failed to find Bluetooth devices</div>`;
@@ -1290,7 +1385,12 @@ function cyclePowerMode() {
       const container = document.getElementById('toast-container');
       const toast = document.createElement('div');
       toast.className = 'toast';
-      toast.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+      // SECURITY (layer-2 XSS): title/msg may carry untrusted text (SSID, BT/app name); use DOM.
+      const tIcon = document.createElement('div'); tIcon.className = 'toast-icon'; tIcon.textContent = icon == null ? '' : String(icon);
+      const tContent = document.createElement('div'); tContent.className = 'toast-content';
+      const tTitle = document.createElement('div'); tTitle.className = 'toast-title'; tTitle.textContent = title == null ? '' : String(title);
+      const tMsg = document.createElement('div'); tMsg.className = 'toast-msg'; tMsg.textContent = msg == null ? '' : String(msg);
+      tContent.append(tTitle, tMsg); toast.append(tIcon, tContent);
       container.appendChild(toast);
 
       setTimeout(() => {
@@ -1327,13 +1427,19 @@ function cyclePowerMode() {
         const item = document.createElement('div');
         item.className = 'dropdown-item';
         item.style.cssText = "flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; border-bottom: 1px solid rgba(255,255,255,0.03); white-space: normal;";
-        item.innerHTML = `
-          <div style="display:flex; width:100%; justify-content:space-between; font-weight:600; font-size:12px;">
-            <span>${n.icon} ${n.title}</span>
-            <span style="color:#666; font-size:10px;">${n.time}</span>
-          </div>
-          <div style="font-size:11px; color:#aaa; line-height:1.3; margin-top:2px;">${n.msg}</div>
-        `;
+        // SECURITY (layer-2 XSS): notification fields may carry untrusted text; use DOM + textContent.
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex; width:100%; justify-content:space-between; font-weight:600; font-size:12px;';
+        const head = document.createElement('span');
+        head.textContent = `${n.icon == null ? '' : n.icon} ${n.title == null ? '' : n.title}`;
+        const time = document.createElement('span');
+        time.style.cssText = 'color:#666; font-size:10px;';
+        time.textContent = n.time == null ? '' : String(n.time);
+        row.append(head, time);
+        const body = document.createElement('div');
+        body.style.cssText = 'font-size:11px; color:#aaa; line-height:1.3; margin-top:2px;';
+        body.textContent = n.msg == null ? '' : String(n.msg);
+        item.append(row, body);
         list.appendChild(item);
       });
     }
@@ -1384,13 +1490,18 @@ function cyclePowerMode() {
         const appName = topPopup.querySelector('.popup-header span').innerText;
         contextBtn.innerText = appName;
 
-        let html = `<a onclick="closePopup('${topPopup.id}')"><div class="dropdown-item" style="color:#ff6b6b"><span>Quit ${appName}</span></div></a>`;
-
-        const iframe = topPopup.querySelector('iframe');
-        if (iframe) {
-          html += `<a onclick="reloadPopupIframe('${topPopup.id}')"><div class="dropdown-item"><span>Reload App</span></div></a>`;
-        }
-        contextDropdown.innerHTML = html;
+        // SECURITY (layer-2 XSS): appName is an app window title (may be untrusted); build via DOM.
+        const mkLink = (labelText, handler, color) => {
+          const a = document.createElement('a');
+          a.addEventListener('click', handler);
+          const d = document.createElement('div'); d.className = 'dropdown-item'; if (color) d.style.color = color;
+          const s = document.createElement('span'); s.textContent = labelText;
+          d.appendChild(s); a.appendChild(d);
+          return a;
+        };
+        contextDropdown.replaceChildren();
+        contextDropdown.appendChild(mkLink(`Quit ${appName == null ? '' : appName}`, () => closePopup(topPopup.id), '#ff6b6b'));
+        if (topPopup.querySelector('iframe')) contextDropdown.appendChild(mkLink('Reload App', () => reloadPopupIframe(topPopup.id)));
       } else {
         contextBtn.innerText = "···";
         contextDropdown.innerHTML = `<a href="com.mariowos.desktop.html"><div class="dropdown-item"><span>Refresh desktop</span></div></a>`;
@@ -1652,26 +1763,8 @@ function cyclePowerMode() {
         const app = e.data.app;
         const dropdown = document.getElementById("actionsDropdown");
 
-        if (!document.querySelector(`[data-popup="${app.appId}"]`)) {
-          const btn = document.createElement("a");
-          btn.onclick = () => openPopup(app.appId);
-          btn.innerHTML = `
-            <div class="dropdown-item" data-popup="${app.appId}">
-              ${renderIcon(app.icon)} <span>${app.title}</span>
-            </div>
-          `;
-          dropdown.appendChild(btn);
-
-          const popupDiv = document.createElement("div");
-          popupDiv.id = app.appId;
-          popupDiv.className = "popup";
-          popupDiv.innerHTML = `
-            <div class="popup-header">
-              <span>${app.title}</span>
-              <span class="altf4" onclick="closePopup('${app.appId}')">✖</span>
-            </div>
-            <iframe src="${app.url}" class="popup-frame"></iframe>
-          `;
+        if (!document.querySelector(`[data-popup="${CSS.escape(String(app.appId == null ? '' : app.appId))}"]`)) {
+          const popupDiv = buildInstalledAppEntry(app, dropdown);
           document.body.appendChild(popupDiv);
 
           showNotification("App Installata", `${app.title} è pronta all'uso!`, app.icon);
@@ -1798,25 +1891,7 @@ function cyclePowerMode() {
           const dropdown = document.getElementById("actionsDropdown");
 
           config.installedApps.forEach(app => {
-            const btn = document.createElement("a");
-            btn.onclick = () => openPopup(app.appId);
-            btn.innerHTML = `
-              <div class="dropdown-item" data-popup="${app.appId}">
-                ${renderIcon(app.icon)} <span>${app.title}</span>
-              </div>
-            `;
-            dropdown.appendChild(btn);
-
-            const popupDiv = document.createElement("div");
-            popupDiv.id = app.appId;
-            popupDiv.className = "popup";
-            popupDiv.innerHTML = `
-              <div class="popup-header">
-                <span>${app.title}</span>
-                <span class="altf4" onclick="closePopup('${app.appId}')">✖</span>
-              </div>
-              <iframe src="${app.url}" class="popup-frame"></iframe>
-            `;
+            const popupDiv = buildInstalledAppEntry(app, dropdown);
             document.body.appendChild(popupDiv);
           });
         }

@@ -569,6 +569,8 @@ Questions? https://discord.gg/YDVxw6jfbH
           <a onclick="launchAppFromMenu('popup8')"><div class="dropdown-item" data-popup="popup8"><img src="/desktop/assets/icons/terminal.png" class="menu-icon"> <span>Terminal</span></div></a>
           <a onclick="launchAppFromMenu('popup9')"><div class="dropdown-item" data-popup="popup9"><img src="/desktop/assets/icons/calculator.png" class="menu-icon"> <span>Calculator</span></div></a>
           <a onclick="launchAppFromMenu('popup11')"><div class="dropdown-item" data-popup="popup11"><img src="/desktop/assets/icons/calendar.png" class="menu-icon"> <span>Calendar</span></div></a>
+          <a onclick="launchAppFromMenu('popup12')"><div class="dropdown-item" data-popup="popup12"><img src="/desktop/assets/icons/pictures.svg" class="menu-icon"> <span>Pictures</span></div></a>
+          <a onclick="launchAppFromMenu('popup13')"><div class="dropdown-item" data-popup="popup13"><img src="/desktop/assets/icons/video.svg" class="menu-icon"> <span>Video Player</span></div></a>
         </div>
       </div>
       
@@ -857,6 +859,16 @@ Questions? https://discord.gg/YDVxw6jfbH
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/calendar/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
+  <div id="popup12" class="popup">
+    <div class="popup-header"><span>Pictures</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup12')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup12')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup12')">close</span></div></div>
+    <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/pictures/index.html" src="about:blank" class="popup-frame"></iframe>
+  </div>
+
+  <div id="popup13" class="popup">
+    <div class="popup-header"><span>Video Player</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup13')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup13')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup13')">close</span></div></div>
+    <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/videoplayer/index.html" src="about:blank" class="popup-frame"></iframe>
+  </div>
+
   <script>
     function getHighestZIndex(elems) { 
       let hi = 300; 
@@ -1027,10 +1039,82 @@ Questions? https://discord.gg/YDVxw6jfbH
     }
     requestAnimationFrame(checkPerformance);
 
+    // SECURITY (layer-2 XSS): app icons can come from installed store apps / postMessage,
+    // so escape every value and allow only http(s)/relative image URLs (no javascript:/data:).
+    const osEscapeHtml = (value) => {
+      const d = document.createElement('div');
+      d.textContent = value == null ? '' : String(value);
+      return d.innerHTML;
+    };
     function renderOsIcon(iconStr, context) {
       if (!iconStr) return '<span class="menu-icon-symbol">📦</span>';
-      if (iconStr.includes('/') || iconStr.includes('.')) { return context === 'dock' ? `<img src="${iconStr}">` : `<img src="${iconStr}" class="menu-icon">`; }
-      return `<span class="menu-icon-symbol">${iconStr}</span>`;
+      if (iconStr.includes('/') || iconStr.includes('.')) {
+        const safe = /^(https?:\/\/|\/)/i.test(String(iconStr).trim()) ? String(iconStr).trim() : '';
+        if (!safe) return '<span class="menu-icon-symbol">📦</span>';
+        return context === 'dock'
+          ? `<img src="${osEscapeHtml(safe)}">`
+          : `<img src="${osEscapeHtml(safe)}" class="menu-icon">`;
+      }
+      return `<span class="menu-icon-symbol">${osEscapeHtml(iconStr)}</span>`;
+    }
+    const osSafeAppUrl = (url) => {
+      const u = String(url == null ? '' : url).trim();
+      if (!u || /^(javascript|data|vbscript):/i.test(u)) return 'about:blank';
+      return u;
+    };
+
+    // Builds the menu entry + window for one installed app with DOM APIs, so untrusted
+    // app fields (title, icon, url, appId) are never parsed as HTML or injected into
+    // inline handlers. renderOsIcon output is already sanitized above.
+    function buildOsInstalledApp(app, dropdown) {
+      const btn = document.createElement('a');
+      btn.onclick = () => launchAppFromMenu(app.appId);
+      const item = document.createElement('div');
+      item.className = 'dropdown-item';
+      item.setAttribute('data-popup', app.appId == null ? '' : String(app.appId));
+      const iconTpl = document.createElement('template');
+      iconTpl.innerHTML = renderOsIcon(app.icon, 'dropdown');
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = app.title == null ? '' : String(app.title);
+      item.append(iconTpl.content, document.createTextNode(' '), titleSpan);
+      btn.appendChild(item);
+      if (dropdown) dropdown.appendChild(btn);
+
+      const popupDiv = document.createElement('div');
+      popupDiv.id = app.appId;
+      popupDiv.className = 'popup';
+
+      const header = document.createElement('div');
+      header.className = 'popup-header';
+      const hTitle = document.createElement('span');
+      hTitle.textContent = app.title == null ? '' : String(app.title);
+      const actions = document.createElement('div');
+      actions.className = 'window-actions';
+      const mkAction = (iconName, cls, handler) => {
+        const s = document.createElement('span');
+        s.className = 'material-symbols-outlined action-btn ' + cls;
+        s.textContent = iconName;
+        s.addEventListener('click', handler);
+        return s;
+      };
+      actions.append(
+        mkAction('remove', 'min-btn', () => minimizePopup(app.appId)),
+        mkAction('crop_square', 'max-btn', () => toggleMaximize(app.appId)),
+        mkAction('close', 'close-btn', () => closePopup(app.appId))
+      );
+      header.append(hTitle, actions);
+
+      const glass = document.createElement('div');
+      glass.className = 'popup-glass';
+      glass.addEventListener('click', () => focusPopup(popupDiv));
+
+      const frame = document.createElement('iframe');
+      frame.className = 'popup-frame';
+      frame.setAttribute('data-default-src', osSafeAppUrl(app.url));
+      frame.src = 'about:blank';
+
+      popupDiv.append(header, glass, frame);
+      return popupDiv;
     }
 
     let popupCounter = 0;
@@ -1057,7 +1141,9 @@ Questions? https://discord.gg/YDVxw6jfbH
       { id: 'popup7', title: 'Store', icon: '/desktop/assets/icons/store.png' },
       { id: 'popup8', title: 'Terminal', icon: '/desktop/assets/icons/terminal.png' },
       { id: 'popup9', title: 'Calculator', icon: '/desktop/assets/icons/calculator.png' },
-      { id: 'popup11', title: 'Calendar', icon: '/desktop/assets/icons/calendar.png' }
+      { id: 'popup11', title: 'Calendar', icon: '/desktop/assets/icons/calendar.png' },
+      { id: 'popup12', title: 'Pictures', icon: '/desktop/assets/icons/pictures.svg' },
+      { id: 'popup13', title: 'Video Player', icon: '/desktop/assets/icons/video.svg' }
     ];
     
     function getAllApps() { return [...builtInApps, ...dynamicInstalledApps]; }
@@ -1442,7 +1528,27 @@ Questions? https://discord.gg/YDVxw6jfbH
         if (data.networks) {
           const activeNet = data.networks.find(net => net.connected); qsState.connectedWifi = activeNet ? activeNet.ssid : null; renderQuickSettings();
           if (data.networks.length === 0) { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No Wi-Fi networks found</div>`; return; }
-          listContainer.innerHTML = data.networks.map(net => `<div class="qs-list-item ${net.connected ? 'connected' : ''}" onclick="connectWifi('${net.ssid}')"><div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">${net.secured ? 'lock' : 'wifi'}</span><span>${net.ssid}</span></div><span style="font-size:11px;">${net.connected ? 'Connected' : net.signal + '%'}</span></div>`).join('');
+          // SECURITY (layer-2 XSS): Wi-Fi SSIDs are attacker-controllable; build via DOM.
+          listContainer.replaceChildren();
+          data.networks.forEach(net => {
+            const item = document.createElement('div');
+            item.className = 'qs-list-item' + (net.connected ? ' connected' : '');
+            item.addEventListener('click', () => connectWifi(net.ssid));
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:8px;';
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.fontSize = '18px';
+            icon.textContent = net.secured ? 'lock' : 'wifi';
+            const name = document.createElement('span');
+            name.textContent = net.ssid == null ? '' : String(net.ssid);
+            left.append(icon, name);
+            const sig = document.createElement('span');
+            sig.style.fontSize = '11px';
+            sig.textContent = net.connected ? 'Connected' : (net.signal + '%');
+            item.append(left, sig);
+            listContainer.appendChild(item);
+          });
         }
       } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">Failed to scan Wi-Fi</div>`; }
     }
@@ -1460,7 +1566,27 @@ Questions? https://discord.gg/YDVxw6jfbH
           const activeDev = data.devices.find(dev => dev.connected); qsState.connectedBt = activeDev ? activeDev.name : null; renderQuickSettings();
           if (data.devices.length === 0) { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No devices found</div>`; return; }
           const iconMap = { headset: 'headphones', smartphone: 'smartphone', mouse: 'mouse', keyboard: 'keyboard' };
-          listContainer.innerHTML = data.devices.map(dev => `<div class="qs-list-item ${dev.connected ? 'connected' : ''}" onclick="connectBt('${dev.mac || dev.name}', '${dev.name}')"><div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">${iconMap[dev.type] || 'bluetooth'}</span><span>${dev.name}</span></div><span style="font-size:11px;">${dev.connected ? 'Connected' : 'Saved'}</span></div>`).join('');
+          // SECURITY (layer-2 XSS): Bluetooth device names are attacker-controllable; build via DOM.
+          listContainer.replaceChildren();
+          data.devices.forEach(dev => {
+            const item = document.createElement('div');
+            item.className = 'qs-list-item' + (dev.connected ? ' connected' : '');
+            item.addEventListener('click', () => connectBt(dev.mac || dev.name, dev.name));
+            const left = document.createElement('div');
+            left.style.cssText = 'display:flex; align-items:center; gap:8px;';
+            const icon = document.createElement('span');
+            icon.className = 'material-symbols-outlined';
+            icon.style.fontSize = '18px';
+            icon.textContent = iconMap[dev.type] || 'bluetooth';
+            const name = document.createElement('span');
+            name.textContent = dev.name == null ? '' : String(dev.name);
+            left.append(icon, name);
+            const status = document.createElement('span');
+            status.style.fontSize = '11px';
+            status.textContent = dev.connected ? 'Connected' : 'Saved';
+            item.append(left, status);
+            listContainer.appendChild(item);
+          });
         }
       } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">Failed to find Bluetooth devices</div>`; }
     }
@@ -1476,7 +1602,12 @@ Questions? https://discord.gg/YDVxw6jfbH
       notificationsHistory.unshift({ title, msg, icon, time }); if (notificationsHistory.length > 10) notificationsHistory.pop(); updateNotificationCenter();
       if (qsState.dnd) return;
       const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast';
-      toast.innerHTML = `<div class="toast-icon">${icon}</div><div class="toast-content"><div class="toast-title">${title}</div><div class="toast-msg">${msg}</div></div>`;
+      // SECURITY (layer-2 XSS): title/msg may carry untrusted text (SSID, BT/app name); use DOM.
+      const tIcon = document.createElement('div'); tIcon.className = 'toast-icon'; tIcon.textContent = icon == null ? '' : String(icon);
+      const tContent = document.createElement('div'); tContent.className = 'toast-content';
+      const tTitle = document.createElement('div'); tTitle.className = 'toast-title'; tTitle.textContent = title == null ? '' : String(title);
+      const tMsg = document.createElement('div'); tMsg.className = 'toast-msg'; tMsg.textContent = msg == null ? '' : String(msg);
+      tContent.append(tTitle, tMsg); toast.append(tIcon, tContent);
       container.prepend(toast); setTimeout(() => { toast.classList.add('hide'); setTimeout(() => toast.remove(), 350); }, 4000);
     }
 
@@ -1523,7 +1654,13 @@ Questions? https://discord.gg/YDVxw6jfbH
       list.innerHTML = '';
       notificationsHistory.forEach(n => {
         const item = document.createElement('div'); item.className = 'dropdown-item'; item.style.cssText = "flex-direction: column; align-items: flex-start; gap: 2px; padding: 10px 14px; white-space: normal;";
-        item.innerHTML = `<div style="display:flex; width:100%; justify-content:space-between; font-weight:600; font-size:12px;"><span>${n.icon} ${n.title}</span><span style="color:#666; font-size:10px;">${n.time}</span></div><div style="font-size:11px; color:#aaa; line-height:1.3; margin-top:2px;">${n.msg}</div>`;
+        // SECURITY (layer-2 XSS): notification fields may carry untrusted text; use DOM.
+        const row = document.createElement('div'); row.style.cssText = 'display:flex; width:100%; justify-content:space-between; font-weight:600; font-size:12px;';
+        const head = document.createElement('span'); head.textContent = `${n.icon == null ? '' : n.icon} ${n.title == null ? '' : n.title}`;
+        const time = document.createElement('span'); time.style.cssText = 'color:#666; font-size:10px;'; time.textContent = n.time == null ? '' : String(n.time);
+        row.append(head, time);
+        const body = document.createElement('div'); body.style.cssText = 'font-size:11px; color:#aaa; line-height:1.3; margin-top:2px;'; body.textContent = n.msg == null ? '' : String(n.msg);
+        item.append(row, body);
         list.appendChild(item);
       });
     }
@@ -1548,10 +1685,19 @@ Questions? https://discord.gg/YDVxw6jfbH
       const topPopup = getTopmostPopup(); const contextDropdown = document.getElementById('contextDropdown');
       if (topPopup && !topPopup.id.startsWith('dialog_')) { // Don't show quit for dialogs
         const span = topPopup.querySelector('.popup-header span'); const appName = span ? span.innerText : "App";
-        let html = `<a onclick="closePopup('${topPopup.id}')"><div class="dropdown-item" style="color:#ff453a"><span>Quit ${appName}</span></div></a>`;
-        if (topPopup.querySelector('iframe')) html += `<a onclick="document.querySelector('#${topPopup.id} iframe').contentWindow.location.reload()"><div class="dropdown-item"><span>Reload App</span></div></a>`;
-        if (topPopup.querySelector('webview')) html += `<a onclick="browserNav('reload')"><div class="dropdown-item"><span>Reload Page</span></div></a>`;
-        contextDropdown.innerHTML = html;
+        // SECURITY (layer-2 XSS): appName is an app window title (may be untrusted); build via DOM.
+        const mkLink = (labelText, handler, color) => {
+          const a = document.createElement('a');
+          a.addEventListener('click', handler);
+          const d = document.createElement('div'); d.className = 'dropdown-item'; if (color) d.style.color = color;
+          const s = document.createElement('span'); s.textContent = labelText;
+          d.appendChild(s); a.appendChild(d);
+          return a;
+        };
+        contextDropdown.replaceChildren();
+        contextDropdown.appendChild(mkLink(`Quit ${appName}`, () => closePopup(topPopup.id), '#ff453a'));
+        if (topPopup.querySelector('iframe')) contextDropdown.appendChild(mkLink('Reload App', () => { const f = document.querySelector(`#${CSS.escape(topPopup.id)} iframe`); if (f && f.contentWindow) f.contentWindow.location.reload(); }));
+        if (topPopup.querySelector('webview')) contextDropdown.appendChild(mkLink('Reload Page', () => browserNav('reload')));
       } else { contextDropdown.innerHTML = `<a href="/desktop/com.mariowos.desktop.html"><div class="dropdown-item"><span>Refresh desktop</span></div></a>`; }
     }
 
@@ -1642,7 +1788,9 @@ Questions? https://discord.gg/YDVxw6jfbH
         if (popupId === 'popup2') closeBrowserTabs();
         if (popupId === 'popup8') terminalFrameReady = false;
         if (popupId === 'popup5') notesFrameReady = false;
-        runningApps.delete(popupId); updateDock(); popup.removeEventListener("animationend", onAnimationEnd); 
+        if (popupId === 'popup12') pictureFrameReady = false;
+        if (popupId === 'popup13') videoFrameReady = false;
+        runningApps.delete(popupId); updateDock(); popup.removeEventListener("animationend", onAnimationEnd);
       };
       popup.addEventListener("animationend", onAnimationEnd);
     }
@@ -1892,13 +2040,28 @@ Questions? https://discord.gg/YDVxw6jfbH
       if (matchedApps.length > 0) {
         matchedApps.forEach((app, index) => {
           const item = document.createElement('div'); item.className = 'spotlight-result-item' + (index === 0 ? ' selected' : ''); item.onclick = () => { openPopup(app.id || app.appId); closeSpotlight(); };
-          item.innerHTML = `${app.icon && app.icon.includes('/') ? `<img src="${app.icon}" class="spotlight-item-icon">` : `<span class="material-symbols-outlined spotlight-item-icon" style="font-size:22px; color:var(--m3-accent-active);">${app.icon || 'apps'}</span>`} <span style="font-weight: 500;">${app.title}</span> <span style="margin-left: auto; font-size: 11px; opacity: 0.5;">Application</span>`;
+          // SECURITY (layer-2 XSS): app icon/title may be untrusted (installed apps); build via DOM.
+          let iconEl;
+          if (app.icon && app.icon.includes('/')) {
+            const safe = /^(https?:\/\/|\/)/i.test(String(app.icon).trim()) ? String(app.icon).trim() : '';
+            if (safe) { iconEl = document.createElement('img'); iconEl.className = 'spotlight-item-icon'; iconEl.src = safe; }
+          }
+          if (!iconEl) { iconEl = document.createElement('span'); iconEl.className = 'material-symbols-outlined spotlight-item-icon'; iconEl.style.cssText = 'font-size:22px; color:var(--m3-accent-active);'; iconEl.textContent = (app.icon && !app.icon.includes('/')) ? app.icon : 'apps'; }
+          const nameEl = document.createElement('span'); nameEl.style.fontWeight = '500'; nameEl.textContent = app.title == null ? '' : String(app.title);
+          const tag = document.createElement('span'); tag.style.cssText = 'margin-left: auto; font-size: 11px; opacity: 0.5;'; tag.textContent = 'Application';
+          item.append(iconEl, document.createTextNode(' '), nameEl, document.createTextNode(' '), tag);
           resultsDiv.appendChild(item);
         });
       }
       
       const webItem = document.createElement('div'); webItem.className = 'spotlight-result-item' + (matchedApps.length === 0 ? ' selected' : ''); webItem.onclick = () => performSpotlightWebSearch(query);
-      webItem.innerHTML = `<span class="material-symbols-outlined spotlight-item-icon" style="font-size:22px; color:#64c8ff;">search</span> <span>Search Google for "<b>${query}</b>"</span> <span style="margin-left: auto; font-size: 11px; opacity: 0.5;">Web</span>`; 
+      // SECURITY (layer-2 XSS): query is user input reflected into the row; build via DOM.
+      const wIcon = document.createElement('span'); wIcon.className = 'material-symbols-outlined spotlight-item-icon'; wIcon.style.cssText = 'font-size:22px; color:#64c8ff;'; wIcon.textContent = 'search';
+      const wText = document.createElement('span');
+      const wq = document.createElement('b'); wq.textContent = query == null ? '' : String(query);
+      wText.append(document.createTextNode('Search Google for "'), wq, document.createTextNode('"'));
+      const wTag = document.createElement('span'); wTag.style.cssText = 'margin-left: auto; font-size: 11px; opacity: 0.5;'; wTag.textContent = 'Web';
+      webItem.append(wIcon, document.createTextNode(' '), wText, document.createTextNode(' '), wTag);
       resultsDiv.appendChild(webItem);
     }
 
@@ -2625,18 +2788,13 @@ Questions? https://discord.gg/YDVxw6jfbH
       
       if (e.data.type === 'app-installed-live') {
         const app = e.data.app;
-        if (!document.querySelector(`[data-popup="${app.appId}"]`)) {
+        if (!document.querySelector(`[data-popup="${CSS.escape(String(app.appId == null ? '' : app.appId))}"]`)) {
           dynamicInstalledApps.push({ id: app.appId, title: app.title, icon: app.icon });
-          
+
           const dropdown = document.getElementById("actionsDropdown");
-          const btn = document.createElement("a"); btn.onclick = () => launchAppFromMenu(app.appId); 
-          btn.innerHTML = `<div class="dropdown-item" data-popup="${app.appId}">${renderOsIcon(app.icon, 'dropdown')} <span>${app.title}</span></div>`; 
-          if(dropdown) dropdown.appendChild(btn);
-          
-          const popupDiv = document.createElement("div"); popupDiv.id = app.appId; popupDiv.className = "popup"; 
-          popupDiv.innerHTML = `<div class="popup-header"><span>${app.title}</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('${app.appId}')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('${app.appId}')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('${app.appId}')">close</span></div></div><div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="${app.url}" src="about:blank" class="popup-frame"></iframe>`; 
+          const popupDiv = buildOsInstalledApp(app, dropdown);
           document.body.appendChild(popupDiv);
-          
+
           updateDock();
           const notifIcon = (app.icon && (app.icon.includes('/') || app.icon.includes('.'))) ? "📦" : (app.icon || "📦");
           showNotification("App is installed", `${app.title} is ready to use!`, notifIcon);
@@ -2664,6 +2822,27 @@ Questions? https://discord.gg/YDVxw6jfbH
         const explorerIframe = document.querySelector('#popup10 iframe');
         if (explorerIframe && e.source === explorerIframe.contentWindow) {
           openFileInNotes(e.data.path, e.data.name);
+        }
+      }
+
+      if (e.data.type === 'picture-ready') {
+        const pf = document.querySelector('#popup12 iframe');
+        if (pf && e.source === pf.contentWindow) { pictureFrameReady = true; flushPictureFileRequests(); }
+      }
+      if (e.data.type === 'video-ready') {
+        const vf = document.querySelector('#popup13 iframe');
+        if (vf && e.source === vf.contentWindow) { videoFrameReady = true; flushVideoFileRequests(); }
+      }
+      if (e.data.type === 'open-file-in-picture') {
+        const explorerIframe = document.querySelector('#popup10 iframe');
+        if (e.origin === window.location.origin && explorerIframe && e.source === explorerIframe.contentWindow && typeof e.data.path === 'string' && typeof e.data.name === 'string') {
+          openFileInPicture(e.data.path, e.data.name);
+        }
+      }
+      if (e.data.type === 'open-file-in-video') {
+        const explorerIframe = document.querySelector('#popup10 iframe');
+        if (e.origin === window.location.origin && explorerIframe && e.source === explorerIframe.contentWindow && typeof e.data.path === 'string' && typeof e.data.name === 'string') {
+          openFileInVideo(e.data.path, e.data.name);
         }
       }
 
@@ -2746,13 +2925,7 @@ Questions? https://discord.gg/YDVxw6jfbH
           const dropdown = document.getElementById("actionsDropdown");
           config.installedApps.forEach(app => {
             dynamicInstalledApps.push({ id: app.appId, title: app.title, icon: app.icon });
-            
-            const btn = document.createElement("a"); btn.onclick = () => launchAppFromMenu(app.appId); 
-            btn.innerHTML = `<div class="dropdown-item" data-popup="${app.appId}">${renderOsIcon(app.icon, 'dropdown')} <span>${app.title}</span></div>`; 
-            if(dropdown) dropdown.appendChild(btn);
-            
-            const popupDiv = document.createElement("div"); popupDiv.id = app.appId; popupDiv.className = "popup"; 
-            popupDiv.innerHTML = `<div class="popup-header"><span>${app.title}</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('${app.appId}')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('${app.appId}')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('${app.appId}')">close</span></div></div><div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="${app.url}" src="about:blank" class="popup-frame"></iframe>`; 
+            const popupDiv = buildOsInstalledApp(app, dropdown);
             document.body.appendChild(popupDiv);
           });
         }
@@ -2879,6 +3052,40 @@ Questions? https://discord.gg/YDVxw6jfbH
       openPopup('popup5');
       pendingNotesFileRequests.push({ path, name });
       flushNotesFileRequests();
+    }
+
+    // Picture Preview (popup12) and Video Player (popup13): forward a file from the Files
+    // app to the app iframe, using the same ready-handshake as Notes (the iframe is lazy-loaded).
+    let pictureFrameReady = false;
+    const pendingPictureFileRequests = [];
+    function flushPictureFileRequests() {
+      if (!pictureFrameReady) return;
+      const f = document.querySelector('#popup12 iframe');
+      if (!f?.contentWindow) return;
+      pendingPictureFileRequests.splice(0).forEach(request => {
+        f.contentWindow.postMessage({ type: 'open-file-in-picture', ...request }, window.location.origin);
+      });
+    }
+    function openFileInPicture(path, name) {
+      openPopup('popup12');
+      pendingPictureFileRequests.push({ path, name });
+      flushPictureFileRequests();
+    }
+
+    let videoFrameReady = false;
+    const pendingVideoFileRequests = [];
+    function flushVideoFileRequests() {
+      if (!videoFrameReady) return;
+      const f = document.querySelector('#popup13 iframe');
+      if (!f?.contentWindow) return;
+      pendingVideoFileRequests.splice(0).forEach(request => {
+        f.contentWindow.postMessage({ type: 'open-file-in-video', ...request }, window.location.origin);
+      });
+    }
+    function openFileInVideo(path, name) {
+      openPopup('popup13');
+      pendingVideoFileRequests.push({ path, name });
+      flushVideoFileRequests();
     }
 
     function deselectDesktopItems() {
