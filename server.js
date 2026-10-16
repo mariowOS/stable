@@ -102,99 +102,23 @@ const SOTA_COMPONENTS = new Set([
   "store", "terminal", "desktop"
 ]);
 
-// Semantic version comparison. The updater must only ever offer a NEWER build:
-// comparing versions as plain strings made 1.0.0 look like an "update" for 1.1.0,
-// which offered the user a silent downgrade.
-const SEMVER_PATTERN = /^(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?(?:\+[0-9A-Za-z.-]+)?$/;
-
-function parseVersion(version) {
-  const match = SEMVER_PATTERN.exec(String(version || "").trim());
-  if (!match) return null;
-  return {
-    release: [Number(match[1]), Number(match[2]), Number(match[3])],
-    prerelease: match[4] ? match[4].split(".") : []
-  };
-}
-
-function comparePrerelease(left, right) {
-  // A build with no prerelease tag outranks the same release with one (1.2.0 > 1.2.0-beta).
-  if (!left.length && !right.length) return 0;
-  if (!left.length) return 1;
-  if (!right.length) return -1;
-
-  for (let index = 0; index < Math.max(left.length, right.length); index++) {
-    const leftPart = left[index];
-    const rightPart = right[index];
-    if (leftPart === undefined) return -1;
-    if (rightPart === undefined) return 1;
-
-    const leftNumeric = /^\d+$/.test(leftPart);
-    const rightNumeric = /^\d+$/.test(rightPart);
-    if (leftNumeric && rightNumeric) {
-      if (Number(leftPart) !== Number(rightPart)) return Number(leftPart) < Number(rightPart) ? -1 : 1;
-    } else if (leftNumeric !== rightNumeric) {
-      return leftNumeric ? -1 : 1;
-    } else if (leftPart !== rightPart) {
-      return leftPart < rightPart ? -1 : 1;
-    }
-  }
-  return 0;
-}
-
-// Returns -1, 0 or 1, or null when either side is not a version we understand.
-function compareVersions(left, right) {
-  const parsedLeft = parseVersion(left);
-  const parsedRight = parseVersion(right);
-  if (!parsedLeft || !parsedRight) return null;
-
-  for (let index = 0; index < 3; index++) {
-    if (parsedLeft.release[index] !== parsedRight.release[index]) {
-      return parsedLeft.release[index] < parsedRight.release[index] ? -1 : 1;
-    }
-  }
-  return comparePrerelease(parsedLeft.prerelease, parsedRight.prerelease);
-}
-
-// The only question the updater should ever ask: is `candidate` strictly newer than
-// `installed`? Unparseable versions fall back to "different means newer" so a custom
-// build string still gets offered, but equal strings never do.
-function isNewerVersion(candidate, installed) {
-  const order = compareVersions(candidate, installed);
-  return order === null ? String(candidate) !== String(installed) : order > 0;
-}
-
-function getRawGithubUrl(repoUrl) {
-  // Store apps live on GitHub, and this helper turns a repo URL into a default icon URL.
-  // It helps the app catalog show something meaningful even before a custom icon is uploaded.
-  if (!repoUrl) return null;
-  const cleanUrl = repoUrl.replace(/\.git$/, '');
-  const match = cleanUrl.match(/github\.com\/([^/]+\/[^/]+)/);
-  return match ? `https://raw.githubusercontent.com/${match[1]}/main/icon.png` : null;
-}
-
-// SECURITY (A-07 adjacent): store apps are installed from, and updated against, their
-// source repository. Accept ONLY https github.com repo URLs so that:
-//  - `git clone`/`git pull` can't be pointed at a local path, a non-https transport,
-//    or an "ext::"/option-injection URL, and
-//  - update checks fetch version metadata only from the repo the app came from.
-function isAllowedRepoUrl(repoUrl) {
-  if (typeof repoUrl !== "string") return false;
-  try {
-    const u = new URL(repoUrl);
-    return u.protocol === "https:" &&
-      (u.hostname === "github.com" || u.hostname === "raw.githubusercontent.com") &&
-      /^\/[^/]+\/[^/]+/.test(u.pathname);
-  } catch (e) { return false; }
-}
-
-// Raw URLs for a file in the repo, trying main then master.
-function getRepoRawUrls(repoUrl, file) {
-  if (!repoUrl) return [];
-  const cleanUrl = repoUrl.replace(/\.git$/, "");
-  const match = cleanUrl.match(/github\.com\/([^/]+\/[^/]+)/);
-  if (!match) return [];
-  return ["main", "master"].map(b => `https://raw.githubusercontent.com/${match[1]}/${b}/${file}`);
-}
+// Pure version & URL-validation helpers live in ./lib/validation.js so they can be
+// unit-tested without booting the server (see system/test/validation.test.js).
+// Semantics unchanged:
+//  - isNewerVersion: the updater only ever offers a strictly NEWER build (no silent
+//    downgrade); unparseable versions fall back to "different means newer".
+//  - isAllowedRepoUrl (SECURITY A-07 adjacent): store apps clone/pull/update ONLY from
+//    https github.com / raw.githubusercontent.com repo URLs — never a local path, a
+//    non-https transport, or an "ext::"/option-injection URL.
+const {
+  parseVersion,
+  comparePrerelease,
+  compareVersions,
+  isNewerVersion,
+  getRawGithubUrl,
+  isAllowedRepoUrl,
+  getRepoRawUrls
+} = require("./lib/validation");
 
 // Read a repo's declared version from its version.json (the app author's own file).
 async function fetchRepoVersion(repoUrl) {
@@ -3695,9 +3619,9 @@ app.post("/api/system/files/transfer", requireAuthJson, (req, res) => {
 // Stream a file of the home area for previews and downloads. ?path=&name=&download=1
 const PREVIEW_TYPES = {
   ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".gif": "image/gif", ".webp": "image/webp", ".bmp": "image/bmp",
-  ".svg": "text/plain; charset=utf-8", ".ico": "image/x-icon", ".avif": "image/avif",
+  ".svg": "image/svg+xml", ".ico": "image/x-icon", ".avif": "image/avif", ".tif": "image/tiff", ".tiff": "image/tiff", ".heic": "image/heic", ".heif": "image/heif",
   ".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg", ".m4a": "audio/mp4", ".flac": "audio/flac", ".aac": "audio/aac",
-  ".mp4": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".mkv": "video/x-matroska",
+  ".mp4": "video/mp4", ".m4v": "video/mp4", ".webm": "video/webm", ".mov": "video/quicktime", ".mkv": "video/x-matroska", ".avi": "video/x-msvideo", ".ogv": "video/ogg", ".3gp": "video/3gpp",
   ".pdf": "application/pdf", ".txt": "text/plain; charset=utf-8", ".md": "text/plain; charset=utf-8", ".json": "text/plain; charset=utf-8",
   ".csv": "text/plain; charset=utf-8", ".log": "text/plain; charset=utf-8"
 };
@@ -3707,7 +3631,9 @@ app.get("/api/system/files/raw", requireAuthJson, (req, res) => {
     return res.status(404).json({ success: false, error: "File not found" });
   }
   const ext = path.extname(target.name).toLowerCase();
-  // HTML/SVG and unknown types are never rendered inline (they could run scripts on this origin).
+  // Only known media types render inline; HTML and unknown types are forced to download.
+  // SVG is served inline as an image, but the sandbox CSP below disables any scripts it
+  // carries (and the Pictures app loads it via <img>, where SVG scripts never run anyway).
   const inlineType = PREVIEW_TYPES[ext];
   res.setHeader("X-Content-Type-Options", "nosniff");
   // PDFs need the built-in viewer, which a sandbox CSP would block; everything else is locked down.
