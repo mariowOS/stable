@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
+  "version": "1.3.0",
   "changelog": "New preinstalled Picture Preview and Video Player apps (open images/videos straight from Files), colored gradient icons across the file manager, broader file-type support (SVG/PNG/JPG and all videos open in the viewer; text and code files open in Notes), and a round of XSS security hardening across the desktop and apps.",
   "_comment": "obb."
 }
