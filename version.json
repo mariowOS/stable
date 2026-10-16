@@ -1,0 +1,5 @@
+{
+  "version": "1.3.4.1",
+  "changelog": "Updated store framework with support for other channels and an integrated button for updating the local repository.",
+  "_comment": "obb."
+}
