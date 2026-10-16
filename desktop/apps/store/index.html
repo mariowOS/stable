@@ -101,8 +101,6 @@
       border-radius: 6px;
       color: #fff;
       box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-      /* Before the icon font loads the glyph name renders as text; keep it from
-         spilling across the sidebar. */
       overflow: hidden;
     }
     .icon-bg .material-symbols-outlined { font-size: 15px; font-weight: 400; }
@@ -440,6 +438,13 @@
       <span class="title">Submit an app</span>
     </div>
 
+    <!-- Nuova Sezione Settings -->
+    <div class="sidebar-heading">System</div>
+    <div class="nav-item" id="nav-settings" onclick="switchView('settings')">
+      <div class="icon-bg" style="background: linear-gradient(180deg, #8e8e93, #636366);"><span class="material-symbols-outlined">settings</span></div>
+      <span class="title">Settings</span>
+    </div>
+
     <div class="sidebar-note">Apps are installed from their public source repository.</div>
   </aside>
 
@@ -526,6 +531,38 @@
           <div id="publishStatus" class="publish-status"></div>
         </div>
       </div>
+
+      <!-- Settings View -->
+      <div id="view-settings" class="view">
+        <h2 class="section-title">Store Settings</h2>
+        
+        <div class="pub-card" style="margin-bottom: 24px;">
+          <h3 class="lp-desc-title">Update Channel</h3>
+          <p class="lp-desc" style="margin-bottom: 12px;">Choose your preferred mariowOS update channel. <strong>Requires a verified email.</strong></p>
+          <select id="updateChannelSelect" class="pub-input" onchange="changeUpdateChannel()" style="cursor: pointer;">
+            <option value="stable">Stable (Recommended)</option>
+            <option value="beta">Beta (Early Access)</option>
+            <option value="insiders">Insiders (Experimental)</option>
+          </select>
+          <div id="channelStatus" class="lp-error" style="margin-top: 8px;"></div>
+        </div>
+
+        <div class="pub-card">
+          <h3 class="lp-desc-title">Repository Catalog</h3>
+          <p class="lp-desc" style="margin-bottom: 14px;">Manually fetch the latest apps and updates from the remote GitHub catalog.</p>
+          <button class="btn-action primary" onclick="updateCatalog()" id="btnUpdateCatalog">Update Catalog</button>
+          <div id="catalogStatus" class="publish-status"></div>
+        </div>
+        
+        <!-- About Footer -->
+        <div style="margin-top: 40px; text-align: center; color: var(--text-dim); font-size: 11.5px; line-height: 1.6;">
+          <img src="/desktop/assets/icons/stars.png" style="width: 32px; height: 32px; opacity: 0.5; margin-bottom: 8px; border-radius: 8px;"><br>
+          <strong>mariowOS Store</strong><br>
+          Version 1.0.0<br>
+          &copy; 2026 mariowstech and contributors.
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -591,6 +628,10 @@
         document.getElementById('view-publish').classList.add('active');
         document.getElementById('nav-publish').classList.add('active');
         document.getElementById('publishStatus').textContent = '';
+      } else if (viewName === 'settings') {
+        document.getElementById('view-settings').classList.add('active');
+        document.getElementById('nav-settings').classList.add('active');
+        fetchUpdateChannel(); // Fetch the current channel when opening settings
       } else if (viewName === 'landpage') {
         document.getElementById('view-landpage').classList.add('active');
       }
@@ -846,6 +887,80 @@
       } catch (err) {
         status.style.color = '#FF453A';
         status.textContent = 'Error: ' + err.message;
+      }
+    }
+
+    // --- LOGICHE SETTINGS STORE ---
+    async function fetchUpdateChannel() {
+      try {
+        const res = await fetch('/api/system/update-channel');
+        const data = await res.json();
+        if (data.channel) {
+          document.getElementById('updateChannelSelect').value = data.channel;
+        }
+      } catch (e) {
+        console.warn('Failed to fetch update channel:', e);
+      }
+    }
+
+    async function changeUpdateChannel() {
+      const select = document.getElementById('updateChannelSelect');
+      const status = document.getElementById('channelStatus');
+      const channel = select.value;
+      
+      status.textContent = 'Saving...';
+      status.style.color = 'var(--text-secondary)';
+      
+      try {
+        const res = await fetch('/api/system/update-channel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ channel })
+        });
+        const data = await res.json();
+        
+        if (data.success) {
+          status.textContent = 'Update channel changed successfully.';
+          status.style.color = '#32d74b'; // Verde successo
+          setTimeout(() => status.textContent = '', 2500);
+        } else {
+          status.textContent = data.error || 'Failed to change channel.';
+          status.style.color = '#ff453a'; // Rosso errore
+          fetchUpdateChannel(); // Ripristina il valore vecchio in caso di errore (es: no mail verificata)
+        }
+      } catch (e) {
+        status.textContent = 'Network error.';
+        status.style.color = '#ff453a';
+        fetchUpdateChannel();
+      }
+    }
+
+    async function updateCatalog() {
+      const btn = document.getElementById('btnUpdateCatalog');
+      const status = document.getElementById('catalogStatus');
+      
+      btn.disabled = true;
+      btn.textContent = 'Updating...';
+      status.textContent = '';
+      status.style.color = 'var(--text-secondary)';
+      
+      try {
+        const res = await fetch('/api/store/update');
+        const data = await res.json();
+        if (data.success) {
+          status.style.color = '#32d74b';
+          status.textContent = `Catalog updated! Added ${data.addedCount} new apps.`;
+          initStore(); // Ricarica la griglia con i nuovi dati per mostrare le nuove app
+        } else {
+          status.style.color = '#ff453a';
+          status.textContent = data.error || 'Failed to update catalog.';
+        }
+      } catch (e) {
+        status.style.color = '#ff453a';
+        status.textContent = 'Network error while updating catalog.';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Update Catalog';
       }
     }
 

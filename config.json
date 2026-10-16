@@ -1,7 +1,7 @@
 {
   "passwordHash": null,
-  "rules": [],
-  "rulesEnabled": true,
+  "frpLock": false,
+  "allowFlashing": false,
   "quickSettings": {
     "wifi": true,
     "bluetooth": true,
