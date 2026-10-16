@@ -38,6 +38,20 @@ Licensed under the Apache License, Version 2.0
   .side-item .ms { font-size: 19px; width: 20px; color: var(--accent); }
   .side-item.trash .ms { color: rgba(255,255,255,.7); }
   .side-item .badge { margin-left: auto; font-size: 11px; color: var(--dim); }
+  /* Colored gradient icon tiles — mariowOS "language", matching Settings. */
+  .side-item .icon-bg { width: 24px; height: 24px; flex: 0 0 24px; border-radius: 6px; display: flex;
+    align-items: center; justify-content: center; box-shadow: 0 1px 2px rgba(0,0,0,.28); }
+  .side-item .icon-bg .ms { font-size: 15px; width: auto; color: #fff; }
+  .ic-home { background: linear-gradient(180deg, #0a84ff, #007aff); }
+  .ic-desktop { background: linear-gradient(180deg, #8e8e93, #636366); }
+  .ic-documents { background: linear-gradient(180deg, #30b0ff, #0099ff); }
+  .ic-downloads { background: linear-gradient(180deg, #34c759, #28cd41); }
+  .ic-pictures { background: linear-gradient(180deg, #4cd964, #28cd41); }
+  .ic-music { background: linear-gradient(180deg, #ff6b9d, #ff2d78); }
+  .ic-videos { background: linear-gradient(180deg, #bf5af2, #af52de); }
+  .ic-trash { background: linear-gradient(180deg, #98989d, #6c6c70); }
+  .ic-system { background: linear-gradient(180deg, #5e5ce6, #5856d6); }
+  .ic-drive { background: linear-gradient(180deg, #64d2ff, #2bc0ff); }
   .storage { margin: auto 8px 4px; padding: 10px; border-radius: 10px; background: rgba(255,255,255,.04); font-size: 11px; color: var(--muted); }
   .storage-bar { height: 5px; margin-top: 6px; border-radius: 3px; background: rgba(255,255,255,.1); overflow: hidden; }
   .storage-bar span { display: block; height: 100%; background: var(--accent); border-radius: 3px; }
@@ -105,9 +119,15 @@ Licensed under the Apache License, Version 2.0
   .status { display: flex; align-items: center; gap: 14px; padding: 5px 14px; border-top: 1px solid var(--border); font-size: 11px; color: var(--dim); }
   .status .grow { flex: 1; }
 
-  /* Icons by type */
-  .c-folder { color: #64b5ff; } .c-image { color: #4cd964; } .c-audio { color: #ff6b9d; } .c-video { color: #bf5af2; }
-  .c-doc { color: #5e9cff; } .c-code { color: #ffd60a; } .c-archive { color: #ff9f0a; } .c-pdf { color: #ff453a; } .c-exe { color: #a1a1a6; } .c-file { color: rgba(255,255,255,.6); } .c-drive { color: #8e8e93; }
+  /* Icons by type — colored gradient chips (Settings/mariowOS icon language) */
+  .fchip { display: flex; align-items: center; justify-content: center; border-radius: 7px; color: #fff; box-shadow: 0 1px 3px rgba(0,0,0,.25); }
+  .fchip .ms { color: #fff; }
+  .row .fchip { width: 30px; height: 30px; flex: 0 0 30px; }
+  .row .fchip .ms { font-size: 18px; }
+  .tile .thumb .fchip { width: 100%; height: 100%; border-radius: 12px; }
+  .tile .thumb .fchip .ms { font-size: 34px; }
+  .c-folder { background: linear-gradient(180deg,#6cc0ff,#3a9bff); } .c-image { background: linear-gradient(180deg,#5de37a,#28c24a); } .c-audio { background: linear-gradient(180deg,#ff8ab3,#ff2d78); } .c-video { background: linear-gradient(180deg,#c877f5,#a64be0); }
+  .c-doc { background: linear-gradient(180deg,#7aacff,#3a86ff); } .c-code { background: linear-gradient(180deg,#f7cf3a,#e5a800); } .c-archive { background: linear-gradient(180deg,#ffb84d,#ff9500); } .c-pdf { background: linear-gradient(180deg,#ff6a61,#ff2d20); } .c-exe { background: linear-gradient(180deg,#b8b8bd,#8e8e93); } .c-file { background: linear-gradient(180deg,#9a9aa0,#78787e); } .c-drive { background: linear-gradient(180deg,#a0a0a5,#6c6c70); }
 
   /* Menus, toasts, preview */
   .menu { position: fixed; z-index: 1000; min-width: 210px; padding: 6px; border-radius: 13px; background: var(--menu); border: 1px solid rgba(255,255,255,.1); box-shadow: 0 18px 50px rgba(0,0,0,.5); display: none; flex-direction: column; animation: pop .16s var(--spring); }
@@ -210,13 +230,13 @@ const $ = id => document.getElementById(id);
 const IS_EMBEDDED = window.parent !== window;
 const TRASH = 'trash:';
 const HOME_FOLDERS = [
-  { name: 'Home', path: '/home', icon: 'home' },
-  { name: 'Desktop', path: '/home/Desktop', icon: 'desktop_windows' },
-  { name: 'Documents', path: '/home/Documents', icon: 'description' },
-  { name: 'Downloads', path: '/home/Downloads', icon: 'download' },
-  { name: 'Pictures', path: '/home/Pictures', icon: 'image' },
-  { name: 'Music', path: '/home/Music', icon: 'music_note' },
-  { name: 'Videos', path: '/home/Videos', icon: 'movie' }
+  { name: 'Home', path: '/home', icon: 'home', color: 'home' },
+  { name: 'Desktop', path: '/home/Desktop', icon: 'desktop_windows', color: 'desktop' },
+  { name: 'Documents', path: '/home/Documents', icon: 'description', color: 'documents' },
+  { name: 'Downloads', path: '/home/Downloads', icon: 'download', color: 'downloads' },
+  { name: 'Pictures', path: '/home/Pictures', icon: 'image', color: 'pictures' },
+  { name: 'Music', path: '/home/Music', icon: 'music_note', color: 'music' },
+  { name: 'Videos', path: '/home/Videos', icon: 'movie', color: 'videos' }
 ];
 const TYPES = {
   image: ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg', '.ico', '.avif'],
@@ -230,7 +250,7 @@ const TYPES = {
 };
 const TYPE_ICON = { folder: 'folder', image: 'image', audio: 'music_note', video: 'movie', pdf: 'picture_as_pdf', code: 'code', doc: 'description', archive: 'folder_zip', exe: 'terminal', file: 'draft', drive: 'hard_drive' };
 const TYPE_LABEL = { folder: 'Folder', image: 'Image', audio: 'Audio', video: 'Video', pdf: 'PDF document', code: 'Code', doc: 'Document', archive: 'Archive', exe: 'Program', file: 'File', drive: 'Drive' };
-const TEXT_EXT = new Set([...TYPES.code, '.txt', '.md', '.csv', '.log', '.ini', '.cfg']);
+const TEXT_EXT = new Set([...TYPES.code, '.txt', '.md', '.markdown', '.text', '.csv', '.tsv', '.log', '.ini', '.cfg', '.conf', '.env', '.toml', '.properties']);
 
 function kindOf(item) {
   if (item.isVolume) return 'drive';
@@ -265,6 +285,8 @@ let loadToken = 0;
 /* ───────────────────────── Helpers ───────────────────────── */
 function el(tag, cls, text) { const n = document.createElement(tag); if (cls) n.className = cls; if (text != null) n.textContent = text; return n; }
 function icon(name, cls = '') { return el('span', 'ms ' + cls, name); }
+// Colored gradient chip for a file/folder type — matches the mariowOS Settings/sidebar icon language.
+function fileIconChip(kind) { const chip = el('div', 'icon-bg fchip c-' + kind); chip.append(icon(TYPE_ICON[kind])); return chip; }
 function joinPath(dir, name) { return (dir === '/' ? '' : dir.replace(/\/$/, '')) + '/' + name; }
 function parentOf(p) {
   if (p === '/' || p === TRASH) return null;
@@ -316,10 +338,12 @@ function notifyDesktop() {
 }
 
 /* ───────────────────────── Sidebar ───────────────────────── */
-function sideItem(label, iconName, pathValue, extra = '') {
+function sideItem(label, iconName, pathValue, extra = '', color = '') {
   const item = el('div', 'side-item ' + extra);
   item.dataset.path = pathValue;
-  item.append(icon(iconName), el('span', 'txt', label));
+  const tile = el('div', 'icon-bg' + (color ? ' ic-' + color : ''));
+  tile.append(icon(iconName));
+  item.append(tile, el('span', 'txt', label));
   item.title = label;
   item.onclick = () => navigate(pathValue);
   if (pathValue !== TRASH && isHome(pathValue)) makeDropTarget(item, () => pathValue);
@@ -333,14 +357,14 @@ function sideItem(label, iconName, pathValue, extra = '') {
 async function renderSidebar() {
   const side = $('sidebar');
   side.replaceChildren(el('div', 'side-label', 'Quick access'));
-  HOME_FOLDERS.forEach(f => side.append(sideItem(f.name, f.icon, f.path)));
-  side.append(sideItem('Trash', 'delete', TRASH, 'trash'));
+  HOME_FOLDERS.forEach(f => side.append(sideItem(f.name, f.icon, f.path, '', f.color)));
+  side.append(sideItem('Trash', 'delete', TRASH, 'trash', 'trash'));
   side.append(el('div', 'side-label', 'Locations'));
-  side.append(sideItem('System', 'dns', '/'));
+  side.append(sideItem('System', 'dns', '/', '', 'system'));
   try {
     const data = await api('/api/system/files?path=/device');
-    (data.contents || []).forEach(v => side.append(sideItem(v.name, 'hard_drive', '/device/' + v.name)));
-  } catch (e) { side.append(sideItem('This PC', 'computer', '/device')); }
+    (data.contents || []).forEach(v => side.append(sideItem(v.name, 'hard_drive', '/device/' + v.name, '', 'drive')));
+  } catch (e) { side.append(sideItem('This PC', 'computer', '/device', '', 'drive')); }
   const storage = el('div', 'storage');
   storage.id = 'storage';
   side.append(storage);
@@ -516,7 +540,7 @@ function render() {
     node.dataset.key = itemKey(item);
     if (selection.has(itemKey(item))) node.classList.add('selected');
     if (cutSet?.has(item.name)) node.classList.add('cut');
-    const iconEl = icon(TYPE_ICON[kind], 'ficon c-' + kind);
+    const iconEl = fileIconChip(kind);
     if (viewMode === 'grid') {
       const thumb = el('div', 'thumb');
       if (kind === 'image' && isHome(item.dir || currentPath) && item.ext !== '.svg' && !item.trashId) {
@@ -524,9 +548,9 @@ function render() {
         img.loading = 'lazy';
         img.alt = '';
         img.src = `/api/system/files/raw?path=${encodeURIComponent(item.dir || currentPath)}&name=${encodeURIComponent(item.name)}`;
-        img.onerror = () => img.replaceWith(icon(TYPE_ICON[kind], 'c-' + kind));
+        img.onerror = () => img.replaceWith(fileIconChip(kind));
         thumb.append(img);
-      } else thumb.append(icon(TYPE_ICON[kind], 'c-' + kind));
+      } else thumb.append(fileIconChip(kind));
       node.append(thumb, el('div', 'label', item.name));
       node.title = `${item.name}\n${TYPE_LABEL[kind]}${item.bytes >= 0 ? ' · ' + formatSize(item.bytes) : ''}`;
     } else {
@@ -638,6 +662,12 @@ function openItem(item) {
   const dir = item.dir || currentPath;
   if (item.type === 'folder') { navigate(item.isVolume ? '/device/' + item.name : joinPath(dir, item.name)); return; }
   const kind = kindOf(item);
+  // Images and videos open in the dedicated Pictures / Video Player apps (not the inline
+  // preview). Only within Home, where /api/system/files/raw can serve the file.
+  if (IS_EMBEDDED && isHome(dir) && !item.trashId) {
+    if (kind === 'image') { window.parent.postMessage({ type: 'open-file-in-picture', path: dir, name: item.name }, location.origin); return; }
+    if (kind === 'video') { window.parent.postMessage({ type: 'open-file-in-video', path: dir, name: item.name }, location.origin); return; }
+  }
   if (['image', 'audio', 'video', 'pdf'].includes(kind)) { openPreview(item); return; }
   if (TEXT_EXT.has(item.ext) || !item.ext) {
     if (!isHome(dir)) { toast('Files outside Home can only be listed, not opened', { error: true }); return; }
