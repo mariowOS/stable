@@ -1,0 +1,237 @@
+<!--
+mariowOS Video Player - (C) 2026 mariowstech and the mariowOS team
+Licensed under the Apache License, Version 2.0
+-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Player</title>
+<link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
+<style>
+  :root {
+    --accent: #bf5af2;
+    --text: #ffffff;
+    --muted: rgba(255,255,255,.55);
+    --dim: rgba(255,255,255,.35);
+    --border: rgba(255,255,255,.1);
+    --bar: rgba(18,19,24,.82);
+    --btn-hover: rgba(255,255,255,.18);
+    --spring: cubic-bezier(0.16,1,0.3,1);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100vh; overflow: hidden; }
+  body { font-family: 'Poppins', sans-serif; color: var(--text); background: #000;
+    -webkit-font-smoothing: antialiased; user-select: none; display: flex; flex-direction: column; }
+  .material-symbols-outlined { font-variation-settings: 'wght' 400; }
+
+  .topbar { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--bar);
+    backdrop-filter: blur(30px); border-bottom: 1px solid var(--border); flex: 0 0 auto; }
+  .title { flex: 1; min-width: 0; font-size: 13px; font-weight: 500; white-space: nowrap;
+    overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
+  .title b { color: var(--text); font-weight: 600; }
+  .ib { width: 34px; height: 34px; border: 0; border-radius: 9px; background: transparent; color: rgba(255,255,255,.8);
+    cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background .15s, color .15s; }
+  .ib:hover { background: var(--btn-hover); color: #fff; }
+  .ib .material-symbols-outlined { font-size: 20px; }
+
+  .stage { flex: 1; min-height: 0; position: relative; display: flex; align-items: center; justify-content: center; background: #000; }
+  video { max-width: 100%; max-height: 100%; outline: none; background: #000; }
+
+  .empty { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center;
+    justify-content: center; gap: 14px; color: var(--dim); text-align: center; padding: 24px; }
+  .empty .material-symbols-outlined { font-size: 72px; color: rgba(191,90,242,.5); }
+  .empty h2 { font-size: 16px; font-weight: 600; color: var(--muted); }
+  .empty p { font-size: 13px; max-width: 340px; line-height: 1.5; }
+  .open-btn { margin-top: 4px; display: inline-flex; align-items: center; gap: 8px; padding: 10px 18px; border: 0;
+    border-radius: 11px; background: var(--accent); color: #1c0a2b; font: 600 13px 'Poppins', sans-serif; cursor: pointer; }
+  .open-btn:hover { filter: brightness(1.08); }
+
+  .center-play { position: absolute; width: 76px; height: 76px; border: 0; border-radius: 50%;
+    background: rgba(0,0,0,.5); backdrop-filter: blur(10px); color: #fff; cursor: pointer; display: none;
+    align-items: center; justify-content: center; z-index: 2; }
+  .center-play.show { display: flex; }
+  .center-play .material-symbols-outlined { font-size: 42px; }
+
+  .controls { flex: 0 0 auto; display: none; flex-direction: column; gap: 6px; padding: 8px 14px 10px;
+    background: var(--bar); backdrop-filter: blur(30px); border-top: 1px solid var(--border); }
+  .controls.show { display: flex; }
+  .seek { width: 100%; }
+  .seek input[type=range], .vol input[type=range] { -webkit-appearance: none; appearance: none; height: 4px;
+    border-radius: 3px; background: rgba(255,255,255,.2); outline: none; cursor: pointer; }
+  input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 13px; height: 13px; border-radius: 50%;
+    background: var(--accent); cursor: pointer; box-shadow: 0 1px 3px rgba(0,0,0,.4); }
+  .seek input { width: 100%; }
+  .row { display: flex; align-items: center; gap: 6px; }
+  .time { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; min-width: 92px; }
+  .spring { flex: 1; }
+  .vol { display: flex; align-items: center; gap: 6px; width: 110px; }
+  .vol input { flex: 1; }
+  .rate { background: var(--btn-hover); border: 0; color: #fff; font: 600 12px 'Poppins', sans-serif;
+    border-radius: 8px; padding: 5px 8px; cursor: pointer; }
+
+  .drophint { position: absolute; inset: 10px; border: 2px dashed var(--accent); border-radius: 16px;
+    display: none; align-items: center; justify-content: center; font-size: 15px; font-weight: 600;
+    color: var(--accent); background: rgba(191,90,242,.08); z-index: 5; pointer-events: none; }
+  body.dragging .drophint { display: flex; }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <span class="title" id="title">Video Player</span>
+    <button class="ib" id="btnPrev" title="Previous"><span class="material-symbols-outlined">skip_previous</span></button>
+    <button class="ib" id="btnNext" title="Next"><span class="material-symbols-outlined">skip_next</span></button>
+    <button class="ib" id="btnOpen" title="Open video(s)"><span class="material-symbols-outlined">folder_open</span></button>
+  </div>
+
+  <div class="stage" id="stage">
+    <video id="video" playsinline></video>
+    <button class="center-play" id="centerPlay"><span class="material-symbols-outlined">play_arrow</span></button>
+    <div class="empty" id="empty">
+      <span class="material-symbols-outlined">movie</span>
+      <h2>No video open</h2>
+      <p>Open a video to play it, or drag a video file anywhere into this window.</p>
+      <button class="open-btn" id="emptyOpen"><span class="material-symbols-outlined" style="font-size:18px;">folder_open</span> Open video</button>
+    </div>
+    <div class="drophint">Drop to play</div>
+  </div>
+
+  <div class="controls" id="controls">
+    <div class="seek"><input type="range" id="seek" min="0" max="1000" value="0" step="1"></div>
+    <div class="row">
+      <button class="ib" id="btnPlay" title="Play/Pause (Space)"><span class="material-symbols-outlined">play_arrow</span></button>
+      <span class="time" id="time">0:00 / 0:00</span>
+      <div class="vol">
+        <button class="ib" id="btnMute" title="Mute (M)"><span class="material-symbols-outlined">volume_up</span></button>
+        <input type="range" id="vol" min="0" max="1" step="0.01" value="1">
+      </div>
+      <span class="spring"></span>
+      <button class="rate" id="btnRate" title="Playback speed">1x</button>
+      <button class="ib" id="btnPip" title="Picture in picture"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>
+      <button class="ib" id="btnFull" title="Fullscreen (F)"><span class="material-symbols-outlined">fullscreen</span></button>
+    </div>
+  </div>
+
+  <input type="file" id="fileInput" accept="video/*" multiple hidden>
+
+<script>
+  "use strict";
+  const $ = id => document.getElementById(id);
+  const video = $('video'), stage = $('stage'), empty = $('empty'), controls = $('controls'),
+        centerPlay = $('centerPlay'), fileInput = $('fileInput');
+  let items = [];     // { url, name }
+  let index = -1;
+  const RATES = [0.5, 1, 1.25, 1.5, 2];
+  let rateIdx = 1;
+
+  const fmt = s => {
+    if (!isFinite(s)) return '0:00';
+    s = Math.floor(s); const m = Math.floor(s / 60), sec = s % 60;
+    const h = Math.floor(m / 60);
+    return (h > 0 ? h + ':' + String(m % 60).padStart(2, '0') : m) + ':' + String(sec).padStart(2, '0');
+  };
+
+  function revokeAll() { items.forEach(it => { try { URL.revokeObjectURL(it.url); } catch (e) {} }); }
+
+  function loadFiles(fileList) {
+    const files = [...fileList].filter(f => f.type.startsWith('video/'));
+    if (!files.length) return;
+    revokeAll();
+    items = files.map(f => ({ url: URL.createObjectURL(f), name: f.name }));
+    play(0);
+  }
+
+  function play(i) {
+    if (i < 0 || i >= items.length) return;
+    index = i;
+    empty.style.display = 'none';
+    controls.classList.add('show');
+    video.src = items[i].url;
+    video.playbackRate = RATES[rateIdx];
+    video.play().catch(() => {});
+    const it = items[i];
+    $('title').textContent = '';
+    const b = document.createElement('b'); b.textContent = it.name;
+    $('title').append(b, document.createTextNode(items.length > 1 ? `  ·  ${i + 1} of ${items.length}` : ''));
+    $('btnPrev').style.display = items.length > 1 ? '' : 'none';
+    $('btnNext').style.display = items.length > 1 ? '' : 'none';
+  }
+
+  function togglePlay() { if (!video.src) return; if (video.paused) video.play().catch(() => {}); else video.pause(); }
+
+  // Video events
+  video.addEventListener('play', () => { setIcon('btnPlay', 'pause'); centerPlay.classList.remove('show'); });
+  video.addEventListener('pause', () => { setIcon('btnPlay', 'play_arrow'); if (video.src) { centerPlay.firstElementChild.textContent = 'play_arrow'; centerPlay.classList.add('show'); } });
+  video.addEventListener('timeupdate', () => {
+    if (!video.duration) return;
+    $('seek').value = String(Math.round(video.currentTime / video.duration * 1000));
+    $('time').textContent = fmt(video.currentTime) + ' / ' + fmt(video.duration);
+  });
+  video.addEventListener('loadedmetadata', () => { $('time').textContent = fmt(0) + ' / ' + fmt(video.duration); });
+  video.addEventListener('ended', () => { if (items.length > 1 && index < items.length - 1) play(index + 1); });
+
+  function setIcon(btnId, name) { $(btnId).firstElementChild.textContent = name; }
+
+  // Controls
+  $('btnPlay').addEventListener('click', togglePlay);
+  centerPlay.addEventListener('click', togglePlay);
+  stage.addEventListener('click', e => { if (e.target === video) togglePlay(); });
+  $('seek').addEventListener('input', e => { if (video.duration) video.currentTime = e.target.value / 1000 * video.duration; });
+  $('vol').addEventListener('input', e => { video.volume = parseFloat(e.target.value); video.muted = video.volume === 0; updateVolIcon(); });
+  $('btnMute').addEventListener('click', () => { video.muted = !video.muted; updateVolIcon(); });
+  function updateVolIcon() { setIcon('btnMute', (video.muted || video.volume === 0) ? 'volume_off' : (video.volume < 0.5 ? 'volume_down' : 'volume_up')); }
+  $('btnRate').addEventListener('click', () => { rateIdx = (rateIdx + 1) % RATES.length; video.playbackRate = RATES[rateIdx]; $('btnRate').textContent = RATES[rateIdx] + 'x'; });
+  $('btnFull').addEventListener('click', () => { if (document.fullscreenElement) document.exitFullscreen(); else stage.requestFullscreen().catch(() => {}); });
+  $('btnPip').addEventListener('click', async () => { try { if (document.pictureInPictureElement) await document.exitPictureInPicture(); else await video.requestPictureInPicture(); } catch (e) {} });
+  $('btnOpen').addEventListener('click', () => fileInput.click());
+  $('emptyOpen').addEventListener('click', () => fileInput.click());
+  $('btnPrev').addEventListener('click', () => play((index - 1 + items.length) % items.length));
+  $('btnNext').addEventListener('click', () => play((index + 1) % items.length));
+  fileInput.addEventListener('change', e => { loadFiles(e.target.files); fileInput.value = ''; });
+
+  // Keyboard
+  window.addEventListener('keydown', e => {
+    if (!video.src) return;
+    if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+    else if (e.key === 'ArrowRight') video.currentTime = Math.min(video.duration || 0, video.currentTime + 5);
+    else if (e.key === 'ArrowLeft') video.currentTime = Math.max(0, video.currentTime - 5);
+    else if (e.key === 'ArrowUp') { e.preventDefault(); video.volume = Math.min(1, video.volume + 0.1); video.muted = false; $('vol').value = video.volume; updateVolIcon(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); video.volume = Math.max(0, video.volume - 0.1); $('vol').value = video.volume; updateVolIcon(); }
+    else if (e.key === 'f' || e.key === 'F') $('btnFull').click();
+    else if (e.key === 'm' || e.key === 'M') $('btnMute').click();
+  });
+
+  // Drag & drop
+  let dragDepth = 0;
+  window.addEventListener('dragenter', e => { e.preventDefault(); dragDepth++; document.body.classList.add('dragging'); });
+  window.addEventListener('dragover', e => e.preventDefault());
+  window.addEventListener('dragleave', e => { e.preventDefault(); if (--dragDepth <= 0) document.body.classList.remove('dragging'); });
+  window.addEventListener('drop', e => {
+    e.preventDefault(); dragDepth = 0; document.body.classList.remove('dragging');
+    if (e.dataTransfer && e.dataTransfer.files.length) loadFiles(e.dataTransfer.files);
+  });
+
+  window.addEventListener('beforeunload', revokeAll);
+
+  // Open a file handed over by the desktop shell (from the Files app), streamed from the
+  // backend via /api/system/files/raw (range requests → seeking works). Same-origin only.
+  function loadFromBackend(path, name) {
+    revokeAll();
+    const url = `/api/system/files/raw?path=${encodeURIComponent(path)}&name=${encodeURIComponent(name)}`;
+    items = [{ url, name }];
+    play(0);
+  }
+  window.addEventListener('message', (e) => {
+    if (e.origin !== location.origin) return;
+    const d = e.data || {};
+    if (d.type === 'open-file-in-video' && typeof d.path === 'string' && typeof d.name === 'string') {
+      loadFromBackend(d.path, d.name);
+    }
+  });
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ type: 'video-ready' }, location.origin);
+  }
+</script>
+</body>
+</html>
