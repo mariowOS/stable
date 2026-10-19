@@ -13,7 +13,6 @@ const os = require("os");
 const crypto = require("crypto");
 const multer = require("multer");
 const cron = require('node-cron');
-const nodemailer = require("nodemailer");
 const childProcess = require('child_process');
 // Never flash a console window on Windows for helper commands (netsh, git, powershell...).
 const exec = (command, options, callback) => {
@@ -25,7 +24,7 @@ const spawn = (command, args, options) => {
   return childProcess.spawn(command, args, { windowsHide: true, ...(options || {}) });
 };
 
-// Load secrets (e.g. SMTP credentials) from system/.env without overriding real env vars.
+// Load local overrides (e.g. MARIOWOS_MAIL_RELAY_URL) from system/.env without overriding real env vars.
 (function loadEnvFile() {
   const envPath = path.join(__dirname, ".env");
   if (!fs.existsSync(envPath)) return;
@@ -321,18 +320,16 @@ if (fs.existsSync(configFile)) {
   };
 }
 
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
-  auth: {
-    user: process.env.MARIOWOS_SMTP_USER,
-    pass: process.env.MARIOWOS_SMTP_PASSWORD
-  },
-  // Trust the OS certificate store too, so antivirus/proxy HTTPS inspection
-  // (which re-signs TLS with a locally trusted root) doesn't break SMTP.
-  tls: { ca: getTrustedCAs() }
-});
+// Emails (verification codes, password reset, daily report) are sent by the mariowOS
+// mail relay (mail-relay/worker.js, a Cloudflare Worker). The relay holds the mail
+// provider's key and generates/checks the codes, so no install ever ships a mail
+// password and editing a local install cannot bypass email verification.
+const MAIL_RELAY_URL = (process.env.MARIOWOS_MAIL_RELAY_URL ||
+  "https://mariowos-mail.mariowos.workers.dev").replace(/\/+$/, "");
+// Plain http is only allowed for a relay on this machine (`wrangler dev`).
+const MAIL_RELAY_IS_LOCAL = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(MAIL_RELAY_URL);
+const MAIL_CONFIGURED = (/^https:\/\//.test(MAIL_RELAY_URL) || MAIL_RELAY_IS_LOCAL) && !MAIL_RELAY_URL.includes("CHANGE-ME");
+if (!MAIL_CONFIGURED) console.warn("[mail] mail relay URL not configured: emails cannot be sent.");
 
 function getTrustedCAs() {
   const tls = require("tls");
@@ -343,8 +340,36 @@ function getTrustedCAs() {
     return undefined;
   }
 }
-const SMTP_CONFIGURED = Boolean(process.env.MARIOWOS_SMTP_USER && process.env.MARIOWOS_SMTP_PASSWORD);
-if (!SMTP_CONFIGURED) console.warn("[mail] MARIOWOS_SMTP_USER / MARIOWOS_SMTP_PASSWORD not set: emails cannot be sent.");
+
+// POST JSON to the relay. Uses https with the OS certificate store too, so antivirus/proxy
+// HTTPS inspection (which re-signs TLS with a locally trusted root) doesn't break mail.
+function relayPost(route, payload) {
+  return new Promise(resolve => {
+    const body = JSON.stringify(payload);
+    const request = require(MAIL_RELAY_IS_LOCAL ? "http" : "https").request(MAIL_RELAY_URL + route, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
+      ca: getTrustedCAs(),
+      timeout: 15000
+    }, response => {
+      let text = "";
+      response.setEncoding("utf8");
+      response.on("data", chunk => { if (text.length < 65536) text += chunk; });
+      response.on("end", () => {
+        let data = {};
+        try { data = JSON.parse(text); } catch (e) {}
+        resolve({ status: response.statusCode, data });
+      });
+    });
+    request.on("timeout", () => request.destroy(new Error("mail relay timed out")));
+    request.on("error", error => {
+      console.error("[mail] relay request failed:", error.message);
+      try { fs.appendFileSync(path.join(__dirname, "mail-error.log"), `${new Date().toISOString()} ${route} ${error.message}\n`); } catch (e) {}
+      resolve({ status: 0, data: {} });
+    });
+    request.end(body);
+  });
+}
 
 function saveConfig() {
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -355,157 +380,25 @@ function isValidEmail(email) {
   return typeof email === "string" && email.length <= 254 && EMAIL_RE.test(email.trim());
 }
 
-// One-time codes kept in memory, keyed by purpose + email. Codes are stored hashed.
-const CODE_TTL_MS = 10 * 60 * 1000;
-const CODE_COOLDOWN_MS = 60 * 1000;
-const CODE_MAX_ATTEMPTS = 5;
-// SECURITY (D-06): /api/email/send-code is pre-auth and accepts an arbitrary recipient
-// (needed to verify a new address). The per-address cooldown stops repeat-spam of ONE
-// victim; this global hourly budget stops the owner's SMTP being turned into a mass
-// mailer that blasts many different addresses. Comfortably above any real single-user
-// need (a handful of verify/reset codes per hour).
-const CODE_GLOBAL_WINDOW_MS = 60 * 60 * 1000;
-const CODE_GLOBAL_MAX = 20;
-const codeSendTimes = [];
-const pendingCodes = new Map();
-const hashCode = code => crypto.createHash("sha256").update(String(code)).digest("hex");
-
-// Email-client-safe template: tables + inline styles only (Gmail/Outlook strip <style> and flexbox).
-// Images travel as CID attachments (see sendCodeEmail), so nothing is fetched from third parties.
-// The blurred wallpaper is a progressive enhancement: clients that ignore CSS/attribute
-// backgrounds (Gmail web, Outlook desktop) show the solid fallback colour instead.
-const MAIL_ASSETS = {
-  logo: path.join(__dirname, "desktop", "apps", "settings", "assets", "branding.png"),
-  background: path.join(__dirname, "desktop", "assets", "mail-bg.jpg")
-};
-const escapeHtml = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-
-function renderCodeEmail(purpose, code, { username, expiresAt, hasLogo = true, hasBackground = true } = {}) {
-  const isReset = purpose === "reset";
-  const heading = isReset ? "Reset your password" : "Confirm your email";
-  const greeting = username ? `Hi ${escapeHtml(username)}, ` : "Hi, ";
-  const intro = isReset
-    ? `${greeting}here is the code to choose a new password for your mariowOS account.`
-    : `${greeting}here is the code to confirm that this address belongs to you.`;
-  const where = isReset
-    ? `Enter it on the <span style="font-weight:500;color:#1d1d1f;">Reset password</span> screen, together with your new password.`
-    : `Enter it in <span style="font-weight:500;color:#1d1d1f;">Settings &rsaquo; You</span> on your mariowOS device.`;
-  const ignore = isReset
-    ? "If you didn't ask for this code, you can ignore this email: your password stays the same."
-    : "If you didn't ask for this code, you can ignore this email.";
-  const until = expiresAt
-    ? `, until ${new Date(expiresAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}`
-    : "";
-  const font = "'Poppins','Segoe UI',Helvetica,Arial,sans-serif";
-  const logo = hasLogo
-    ? `<img src="cid:mariowos-logo" height="26" alt="mariowOS" style="display:block;height:26px;width:auto;border:0;">`
-    : `<div style="font-family:${font};font-size:22px;font-weight:600;color:#1d1d1f;">mariowOS</div>`;
-  return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${heading}</title></head>
-<body style="margin:0;padding:0;background:#edefea;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">Your mariowOS code is ${code}. It expires in 10 minutes.</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edefea;">
-    <tr><td align="center" style="padding:48px 20px;">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;font-family:${font};">
-        <tr><td bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e4e6e1;border-radius:22px;padding:40px 40px 34px;box-shadow:0 14px 44px rgba(20,30,24,0.10);">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:30px;">${logo}</td></tr></table>
-          <h1 style="margin:0;text-align:center;font-family:${font};font-size:25px;line-height:1.3;font-weight:600;letter-spacing:-0.3px;color:#1d1d1f;">${heading}</h1>
-          <p style="margin:12px 0 0;text-align:center;font-family:${font};font-size:15px;line-height:1.6;color:#6a6f68;">${intro}</p>
-          <table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:30px auto 0;"><tr><td bgcolor="#f4f5f2" style="background-color:#f4f5f2;border:1px solid #e7e9e4;border-radius:14px;padding:18px 30px;text-align:center;font-family:${font};font-size:40px;line-height:1;font-weight:600;letter-spacing:12px;color:#1d1d1f;">${code}</td></tr></table>
-          <p style="margin:16px 0 0;text-align:center;font-family:${font};font-size:13px;line-height:1.5;color:#8a8f88;">Valid for 10 minutes${until}.</p>
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:30px 0 0;"><tr><td height="1" style="height:1px;line-height:1px;font-size:1px;background:#ecede9;">&nbsp;</td></tr></table>
-          <p style="margin:26px 0 0;text-align:center;font-family:${font};font-size:14px;line-height:1.65;color:#4a4d4b;">${where}</p>
-          <p style="margin:12px 0 0;text-align:center;font-family:${font};font-size:13px;line-height:1.6;color:#8a8f88;">${ignore} Don't share it with anyone: we will never ask you for it.</p>
-        </td></tr>
-        <tr><td align="center" style="padding:22px 16px 0;"><p style="margin:0;text-align:center;font-family:${font};font-size:12px;line-height:1.6;color:#9aa096;">This is an automatic message from mariowOS. Replies to this address are not read.</p></td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-}
-
-// Shared branded shell for NON-code emails (e.g. the daily report), so every mail we
-// send uses the same new look as renderCodeEmail. Pass the card's inner HTML.
-function renderBrandedEmail(title, bodyHtml, { hasLogo = true, hasBackground = true, preheader = "" } = {}) {
-  const font = "'Poppins','Segoe UI',Helvetica,Arial,sans-serif";
-  const logo = hasLogo
-    ? `<img src="cid:mariowos-logo" height="26" alt="mariowOS" style="display:block;height:26px;width:auto;border:0;">`
-    : `<div style="font-family:${font};font-size:22px;font-weight:600;color:#1d1d1f;">mariowOS</div>`;
-  return `<!DOCTYPE html>
-<html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="light only"><meta name="supported-color-schemes" content="light"><title>${escapeHtml(title)}</title></head>
-<body style="margin:0;padding:0;background:#edefea;">
-  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">${escapeHtml(preheader)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#edefea;">
-    <tr><td align="center" style="padding:48px 20px;">
-      <table role="presentation" width="480" cellpadding="0" cellspacing="0" style="width:100%;max-width:480px;font-family:${font};">
-        <tr><td bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e4e6e1;border-radius:22px;padding:40px 40px 34px;box-shadow:0 14px 44px rgba(20,30,24,0.10);">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr><td align="center" style="padding-bottom:30px;">${logo}</td></tr></table>
-          ${bodyHtml}
-        </td></tr>
-        <tr><td align="center" style="padding:22px 16px 0;"><p style="margin:0;text-align:center;font-family:${font};font-size:12px;line-height:1.6;color:#9aa096;">This is an automatic message from mariowOS. Replies to this address are not read.</p></td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body></html>`;
-}
-
+// One-time codes are generated, stored and checked by the mail relay, which also
+// enforces the per-address cooldown, attempt limit and the anti-mass-mail budget (D-06).
 async function sendCodeEmail(purpose, email) {
-  if (!SMTP_CONFIGURED) return { ok: false, status: 503, error: "Email service not configured on this system." };
-  const key = purpose + ":" + email.toLowerCase();
-  const existing = pendingCodes.get(key);
-  if (existing && Date.now() - existing.sentAt < CODE_COOLDOWN_MS) {
-    const wait = Math.ceil((CODE_COOLDOWN_MS - (Date.now() - existing.sentAt)) / 1000);
-    return { ok: false, status: 429, error: `Please wait ${wait}s before requesting a new code.`, retryAfter: wait };
-  }
-  // Global anti-mass-mail budget (D-06): drop timestamps older than the window, then cap.
-  const nowTs = Date.now();
-  while (codeSendTimes.length && nowTs - codeSendTimes[0] > CODE_GLOBAL_WINDOW_MS) codeSendTimes.shift();
-  if (codeSendTimes.length >= CODE_GLOBAL_MAX) {
-    return { ok: false, status: 429, error: "Too many email codes requested recently. Try again later.", retryAfter: 600 };
-  }
-  const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
-  const title = purpose === "reset" ? "Password reset code" : "Email verification code";
-  const expiresAt = Date.now() + CODE_TTL_MS;
-  const attachments = [];
-  if (fs.existsSync(MAIL_ASSETS.logo)) attachments.push({ filename: "mariowos.png", path: MAIL_ASSETS.logo, cid: "mariowos-logo" });
-  try {
-    await transporter.sendMail({
-      from: { name: "mariowOS", address: process.env.MARIOWOS_SMTP_USER },
-      to: email,
-      subject: `mariowOS - ${title}`,
-      text: `Your mariowOS code is ${code}. It expires in 10 minutes.\nIf you did not request it, you can safely ignore this email.`,
-      html: renderCodeEmail(purpose, code, {
-        username: config.username,
-        expiresAt,
-        hasLogo: attachments.some(a => a.cid === "mariowos-logo"),
-        hasBackground: attachments.some(a => a.cid === "mariowos-bg")
-      }),
-      attachments
-    });
-  } catch (err) {
-    const detail = [err.code, err.responseCode, err.message].filter(Boolean).join(" ");
-    console.error("[mail] Failed to send code:", detail);
-    try { fs.appendFileSync(path.join(__dirname, "mail-error.log"), `${new Date().toISOString()} ${detail}\n${err.stack || ""}\n`); } catch (e) {}
-    return { ok: false, status: 502, error: "Could not send the email: " + detail };
-  }
-  pendingCodes.set(key, { hash: hashCode(code), expiresAt, sentAt: Date.now(), attempts: 0 });
-  codeSendTimes.push(Date.now()); // count toward the global anti-mass-mail budget (D-06)
-  return { ok: true };
+  if (!MAIL_CONFIGURED) return { ok: false, status: 503, error: "Email service not configured on this system." };
+  const { status, data } = await relayPost("/send-code", { purpose, email, username: config.username || "" });
+  if (status === 200 && data.ok) return { ok: true };
+  if (!status) return { ok: false, status: 502, error: "Could not reach the mariowOS mail service. Check your connection." };
+  return { ok: false, status: status >= 400 && status < 600 ? status : 502,
+    error: data.error || "Could not send the email.", retryAfter: data.retryAfter };
 }
 
-function checkCode(purpose, email, code) {
-  const key = purpose + ":" + String(email || "").trim().toLowerCase();
-  const entry = pendingCodes.get(key);
-  if (!entry) return { ok: false, error: "No code requested for this email. Request a new one." };
-  if (Date.now() > entry.expiresAt) { pendingCodes.delete(key); return { ok: false, error: "Code expired. Request a new one." }; }
-  if (entry.attempts >= CODE_MAX_ATTEMPTS) { pendingCodes.delete(key); return { ok: false, error: "Too many attempts. Request a new code." }; }
-  entry.attempts++;
-  const given = Buffer.from(hashCode(String(code || "").trim()));
-  if (!crypto.timingSafeEqual(given, Buffer.from(entry.hash))) {
-    return { ok: false, error: `Wrong code. ${CODE_MAX_ATTEMPTS - entry.attempts} attempts left.` };
-  }
-  pendingCodes.delete(key);
-  return { ok: true };
+async function checkCode(purpose, email, code) {
+  if (!MAIL_CONFIGURED) return { ok: false, error: "Email service not configured on this system." };
+  const { status, data } = await relayPost("/verify-code", {
+    purpose, email: String(email || "").trim(), code: String(code || "").trim()
+  });
+  if (status === 200 && data.ok) return { ok: true, token: data.token };
+  if (!status) return { ok: false, error: "Could not reach the mariowOS mail service. Check your connection." };
+  return { ok: false, error: data.error || "Could not check the code." };
 }
 
 // --- SESSION AUTHENTICATION (A-02) ---
@@ -863,35 +756,20 @@ app.get("/api/system/desktops", (req, res) => {
 
 let dailyEmailTask = null;
 async function sendDiscordFlagsEmail() {
-  if (!config.email || !config.verified || !SMTP_CONFIGURED) return;
-  try {
-    const font = "'Poppins','Segoe UI',Helvetica,Arial,sans-serif";
-    const attachments = [];
-    if (fs.existsSync(MAIL_ASSETS.logo)) attachments.push({ filename: "mariowos.png", path: MAIL_ASSETS.logo, cid: "mariowos-logo" });
-    const greeting = config.username ? `Hi ${escapeHtml(config.username)}, ` : "Hi, ";
-    const body = `
-      <h1 style="margin:0;font-family:${font};font-size:26px;line-height:1.25;font-weight:600;letter-spacing:-0.4px;color:#1d1d1f;">Your daily report</h1>
-      <p style="margin:14px 0 0;font-family:${font};font-size:15px;line-height:1.65;color:#4a4d4b;">${greeting}here is today's summary of mariowOS issue flags.</p>
-      <p style="margin:14px 0 0;font-family:${font};font-size:15px;line-height:1.65;color:#4a4d4b;">The latest flags are posted on our community Discord.</p>
-      <table role="presentation" cellpadding="0" cellspacing="0" style="margin:32px 0 0;"><tr><td align="center" bgcolor="#2e5d4a" style="border-radius:12px;background-color:#2e5d4a;">
-        <a href="https://dsc.gg/mariowOS" style="display:inline-block;padding:13px 26px;font-family:${font};font-size:15px;font-weight:600;color:#ffffff;text-decoration:none;">Open Discord</a>
-      </td></tr></table>
-      <p style="margin:28px 0 0;font-family:${font};font-size:13px;line-height:1.6;color:#5f6461;">You receive this because the daily report is enabled in Settings. Turn it off there at any time.</p>`;
-    await transporter.sendMail({
-      from: { name: "mariowOS", address: process.env.MARIOWOS_SMTP_USER },
-      to: config.email,
-      subject: "mariowOS Daily Issue Flags - Discord",
-      text: `${config.username ? "Hi " + config.username + ", " : "Hi, "}here is today's summary of mariowOS issue flags. The latest flags are on our Discord: https://dsc.gg/mariowOS`,
-      html: renderBrandedEmail("Your daily report", body, {
-        preheader: "Today's mariowOS issue flags summary.",
-        hasLogo: attachments.some(a => a.cid === "mariowos-logo"),
-        hasBackground: attachments.some(a => a.cid === "mariowos-bg")
-      }),
-      attachments
-    });
+  if (!config.email || !config.verified || !MAIL_CONFIGURED) return;
+  if (!config.mailToken) {
+    console.warn("[mail] daily report skipped: verify your email again in Settings to enable it.");
+    return;
+  }
+  const { status, data } = await relayPost("/daily-report", {
+    email: config.email, token: config.mailToken, username: config.username || ""
+  });
+  if (status === 200 && data.ok) {
     config.lastSent = Date.now();
-    fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
-  } catch (err) { console.error('Failed to send daily email:', err); }
+    saveConfig();
+  } else {
+    console.error("Failed to send daily email:", data.error || `relay status ${status}`);
+  }
 }
 
 function scheduleDailyEmail() {
@@ -1481,13 +1359,14 @@ app.post("/api/email/send-code", async (req, res) => {
   res.json({ success: true, message: "Code sent to " + email });
 });
 
-app.post("/api/email/verify-code", (req, res) => {
+app.post("/api/email/verify-code", async (req, res) => {
   const email = String(req.body.email || "").trim();
   if (!isValidEmail(email)) return res.status(400).json({ success: false, error: "Invalid email address." });
-  const result = checkCode("verify", email, req.body.code);
+  const result = await checkCode("verify", email, req.body.code);
   if (!result.ok) return res.status(400).json({ success: false, error: result.error });
   config.email = email;
   config.verified = true;
+  config.mailToken = result.token || null;
   saveConfig();
   res.json({ success: true, message: "Email verified!" });
 });
@@ -1509,7 +1388,7 @@ app.post("/reset-password", async (req, res) => {
   if (typeof newPassword !== "string" || newPassword.length < 4) {
     return res.status(400).json({ success: false, error: "Password must be at least 4 characters." });
   }
-  const result = checkCode("reset", email, code);
+  const result = await checkCode("reset", email, code);
   if (!result.ok) return res.status(400).json({ success: false, error: result.error });
   config.passwordHash = await bcrypt.hash(newPassword, 10);
   saveConfig();
@@ -1711,7 +1590,6 @@ app.post("/api/system/factory-reset", async (req, res) => {
   Object.keys(batteryRuleState).forEach(id => delete batteryRuleState[id]);
   startupRulesRun.clear();
   pendingRuleNotifications.length = 0;
-  pendingCodes.clear();
   scheduleDailyEmail();
 
   if (errors.length) console.error("Factory reset warnings:", errors);
