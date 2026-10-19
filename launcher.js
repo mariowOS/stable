@@ -194,8 +194,58 @@ async function restartAfterUpdate(markerPath) {
     if (!shuttingDown && !backendProcess) startBackend();
 }
 
+// A missing package (fresh clone, cleaned node_modules, an update that added a dependency)
+// makes the kernel die on its first require and crash-loop forever. Repair it once per
+// session with `npm install` before spawning the kernel instead.
+let dependencyRepairAttempted = false;
+let dependencyRepairRunning = false;
+
+function findMissingKernelDependencies() {
+    try {
+        const manifest = JSON.parse(fs.readFileSync(path.join(__dirname, 'package.json'), 'utf8'));
+        return Object.keys(manifest.dependencies || {})
+            .filter(name => !fs.existsSync(path.join(__dirname, 'node_modules', ...name.split('/'), 'package.json')));
+    } catch (error) {
+        console.error('[sniffer]: could not read kernel dependencies:', error.message);
+        return [];
+    }
+}
+
+function installKernelDependencies() {
+    return new Promise(resolve => {
+        // Fixed command string: npm is a .cmd shim on Windows, so it needs a shell.
+        const child = spawn('npm install --omit=dev --no-audit --no-fund', {
+            cwd: __dirname,
+            shell: true,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            windowsHide: true
+        });
+        child.stdout.on('data', data => console.log(`[npm]: ${data.toString().trim()}`));
+        child.stderr.on('data', data => console.error(`[npm]: ${data.toString().trim()}`));
+        child.on('error', error => {
+            console.error('[sniffer]: could not run npm:', error.message);
+            resolve(false);
+        });
+        child.on('exit', code => resolve(code === 0));
+    });
+}
+
 function startBackend() {
-    if (backendProcess || shuttingDown) return;
+    if (backendProcess || shuttingDown || dependencyRepairRunning) return;
+    if (!dependencyRepairAttempted) {
+        const missing = findMissingKernelDependencies();
+        if (missing.length) {
+            dependencyRepairAttempted = true;
+            dependencyRepairRunning = true;
+            console.warn(`[sniffer]: kernel dependencies missing (${missing.join(', ')}); installing...`);
+            void installKernelDependencies().then(ok => {
+                dependencyRepairRunning = false;
+                console.log(ok ? '[sniffer]: kernel dependencies installed.' : '[sniffer]: dependency install failed; booting anyway.');
+                startBackend();
+            });
+            return;
+        }
+    }
     const instanceId = crypto.randomBytes(16).toString('hex');
     const updateMarker = path.join(os.tmpdir(), `mariowos-update-${process.pid}-${instanceId}.json`);
     const child = spawn(process.env.MARIOWOS_NODE_EXECUTABLE || 'node', ['server.js'], {

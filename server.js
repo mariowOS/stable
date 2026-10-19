@@ -2593,6 +2593,51 @@ function validateStagedServer(filePath) {
   });
 }
 
+// `node --check` only proves the staged server parses. A release that requires a file or
+// package it forgot to ship still passes it and then crash-loops every machine on boot.
+// Walk the kernel's require graph from server.js and refuse the update if anything the
+// new code needs is neither in the release nor already installed here.
+const BUILTIN_MODULES = new Set(require("module").builtinModules);
+function validateStagedRuntime(stagePath, files) {
+  const staged = new Set(files.map(file => file.relativePath));
+  const existsInRelease = relativePath => staged.has(relativePath) ||
+    fs.existsSync(path.join(__dirname, ...relativePath.split("/")));
+  const readSource = relativePath => {
+    const stagedFile = path.join(stagePath, ...relativePath.split("/"));
+    return fs.readFileSync(fs.existsSync(stagedFile) ? stagedFile : path.join(__dirname, ...relativePath.split("/")), "utf8");
+  };
+  const resolveLocal = (fromFile, request) => {
+    const base = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), request));
+    return [base, `${base}.js`, `${base}.json`, `${base}/index.js`].find(existsInRelease) || null;
+  };
+  const hasPackage = name => existsInRelease(`node_modules/${name}/package.json`);
+
+  const problems = [];
+  const visited = new Set();
+  const queue = ["server.js"];
+  while (queue.length) {
+    const file = queue.shift();
+    if (visited.has(file)) continue;
+    visited.add(file);
+    const source = readSource(file);
+    for (const match of source.matchAll(/require\(\s*(["'])([^"']+)\1\s*\)/g)) {
+      const request = match[2];
+      if (request.startsWith(".")) {
+        const resolved = resolveLocal(file, request);
+        if (!resolved) problems.push(`${file} requires missing file ${request}`);
+        else if (resolved.endsWith(".js")) queue.push(resolved);
+        continue;
+      }
+      if (request.startsWith("node:") || BUILTIN_MODULES.has(request) || request === "electron") continue;
+      const name = request.startsWith("@") ? request.split("/").slice(0, 2).join("/") : request.split("/")[0];
+      if (!hasPackage(name)) problems.push(`${file} requires missing package ${name}`);
+    }
+  }
+  if (problems.length) {
+    throw new Error(`The update is incomplete and would not boot: ${[...new Set(problems)].join("; ")}`);
+  }
+}
+
 function matchesGitBlob(contents, expectedHash) {
   const hashBuffer = buffer => crypto.createHash("sha1")
     .update(`blob ${buffer.length}\0`)
@@ -3058,6 +3103,7 @@ app.get('/api/system/ota-update', (req, res) => {
       if (files.length === 0) throw new Error("The update contains no files");
       const serverUpdate = files.find(file => file.relativePath === "server.js");
       if (serverUpdate) await validateStagedServer(serverUpdate.stagedFile);
+      validateStagedRuntime(stagePath, files);
       send(75, `Verified ${files.length} files. Applying update...`);
       const transaction = applyStagedFiles(files, send, 75, 98);
 
