@@ -104,6 +104,11 @@
     .bg-reset { background: linear-gradient(180deg, #8e8e93, #636366); }
     .bg-danger { background: linear-gradient(180deg, #ff3b30, #ff453a); }
     .bg-gray { background: linear-gradient(180deg, #8e8e93, #636366); }
+    .bg-lang { background: linear-gradient(180deg, #30b0c7, #32ade6); }
+    .language-item { cursor: default; }
+    .language-select { background: rgba(255, 255, 255, 0.08); color: inherit; border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; }
+    .language-select option { background: #1c1c1e; }
 
     .item-title { font-size: 14px; font-weight: 500; }
     .item-subtitle { font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
@@ -126,8 +131,8 @@
         <div class="item-left">
           <div class="icon-badge bg-rules"><span class="material-symbols-outlined">rule_folder</span></div>
           <div>
-            <div class="item-title">Rules</div>
-            <div class="item-subtitle">Create actions for specific events</div>
+            <div class="item-title" data-i18n="general.rules">Rules</div>
+            <div class="item-subtitle" data-i18n="general.rules.subtitle">Create actions for specific events</div>
           </div>
         </div>
         <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
@@ -137,19 +142,34 @@
         <div class="item-left">
           <div class="icon-badge bg-time"><span class="material-symbols-outlined">schedule</span></div>
           <div>
-            <div class="item-title">Time & Date</div>
-            <div class="item-subtitle">Clock and date settings</div>
+            <div class="item-title" data-i18n="general.time">Time & Date</div>
+            <div class="item-subtitle" data-i18n="general.time.subtitle">Clock and date settings</div>
           </div>
         </div>
         <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
+      </div>
+
+      <div class="list-item language-item">
+        <div class="item-left">
+          <div class="icon-badge bg-lang"><span class="material-symbols-outlined">translate</span></div>
+          <div>
+            <div class="item-title" data-i18n="general.language">Language</div>
+            <div class="item-subtitle" data-i18n="general.language.subtitle">Language of the system apps</div>
+          </div>
+        </div>
+        <select id="languageSelect" class="language-select" aria-label="Language" data-i18n-title="general.language">
+          <option value="auto" data-i18n="general.language.auto">Automatic</option>
+          <option value="en">English</option>
+          <option value="it">Italiano</option>
+        </select>
       </div>
 
       <div class="list-item" onclick="navigateToPage('reset')">
         <div class="item-left">
           <div class="icon-badge bg-reset"><span class="material-symbols-outlined">settings_backup_restore</span></div>
           <div>
-            <div class="item-title">Reset Options</div>
-            <div class="item-subtitle">Data reset, desktop reset, factory reset</div>
+            <div class="item-title" data-i18n="general.reset">Reset Options</div>
+            <div class="item-subtitle" data-i18n="general.reset.subtitle">Data reset, desktop reset, factory reset</div>
           </div>
         </div>
         <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
@@ -168,7 +188,7 @@
   <div class="page hidden" id="resetPage" style="transform: translateX(40%);">
     <div class="sub-header" onclick="goBackToMain('reset')">
       <span class="material-symbols-outlined">arrow_back_ios_new</span>
-      <h2>Reset Options</h2>
+      <h2 data-i18n="general.reset">Reset Options</h2>
     </div>
     
     <div class="panel">
@@ -210,8 +230,8 @@
         <div class="item-left">
           <div class="icon-badge bg-gray"><span class="material-symbols-outlined">build</span></div>
           <div>
-            <div class="item-title">Enter Recovery Mode</div>
-            <div class="item-subtitle">Reboot to advanced recovery options</div>
+            <div class="item-title" data-i18n="general.recovery">Enter Recovery Mode</div>
+            <div class="item-subtitle" data-i18n="general.recovery.subtitle">Reboot to advanced recovery options</div>
           </div>
         </div>
         <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
@@ -221,7 +241,24 @@
 
 </div>
 
+<script src="/desktop/assets/i18n.js"></script>
 <script>
+// Language: saved in the system settings, then Settings reloads in the new language.
+const languageSelect = document.getElementById('languageSelect');
+fetch('/get-settings').then(r => r.json()).then(settings => { languageSelect.value = settings.language || 'auto'; }).catch(() => {});
+languageSelect.addEventListener('change', async () => {
+  try {
+    const response = await fetch('/save-settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ language: languageSelect.value })
+    });
+    if (!response.ok) throw new Error(response.status);
+    (window.parent || window).location.reload();
+  } catch (e) {
+    languageSelect.value = mariowOSI18n.language;
+  }
+});
+
 function requirePassword(onSuccess, onCancel) {
   if (window.parent && window.parent.requirePassword) {
     window.parent.requirePassword(onSuccess, onCancel);

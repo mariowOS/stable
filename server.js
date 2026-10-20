@@ -55,6 +55,12 @@ const app = express();
 //                            <embed>, <base> hijacking and clickjacking/re-framing.
 // The in-OS browser runs in a <webview> (its own browsing context), so external
 // sites it visits are unaffected by this header.
+//
+// Third-party Store apps are the exception: they are served from a SEPARATE origin
+// (APPS_ORIGIN, see "THIRD-PARTY APP ISOLATION" below) so they cannot reach this one.
+const APPS_HOST = process.env.MARIOWOS_BIND_HOST || "127.0.0.1";
+const APPS_PORT = Number(process.env.MARIOWOS_APPS_PORT || Number(process.env.MARIOWOS_PORT || 3000) + 1);
+const APPS_ORIGIN = `http://${APPS_HOST}:${APPS_PORT}`;
 const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
   // 'unsafe-eval' is required by the Monaco editor (ACode); 'unsafe-inline' by the
@@ -67,7 +73,7 @@ const CONTENT_SECURITY_POLICY = [
   "connect-src 'self'",
   // External iframes the shell embeds (homepage, chat widgets) are https only; the
   // browser app itself uses a <webview>, not an iframe, so it is not constrained here.
-  "frame-src 'self' https:",
+  `frame-src 'self' https: ${APPS_ORIGIN}`,
   // Monaco (ACode) spins up its language worker from a data: URL. 'blob:' covers the
   // common pattern; 'data:' is needed for this Monaco build. (Hosting Monaco from the
   // bundled local copy in desktop/assets/vendor/monaco would let this drop to 'self'.)
@@ -119,6 +125,15 @@ const {
   getRepoRawUrls
 } = require("./lib/validation");
 
+const { createRollbackPoint, readRollbackPoint } = require("./lib/rollback");
+const { createMailClient } = require("./lib/mail");
+const { createSessions, createPasswordGuard } = require("./lib/session");
+
+function readStagedVersion(stagePath) {
+  try { return JSON.parse(fs.readFileSync(path.join(stagePath, "version.json"), "utf8")).version || null; }
+  catch (e) { return null; }
+}
+
 // Read a repo's declared version from its version.json (the app author's own file).
 async function fetchRepoVersion(repoUrl) {
   for (const url of getRepoRawUrls(repoUrl, "version.json")) {
@@ -143,41 +158,17 @@ function readInstalledAppVersion(appId) {
 
 // --- UPDATE AUTHENTICITY (A-07) ---
 // The system updater clones the official repo over HTTPS. That protects the download in
-// transit but not against a compromised/malicious source: whoever controls the source
-// controls both the code and any plain hash manifest. Real authenticity needs a
-// signature verified against a key that ships with the client.
+// transit but not against a compromised source: whoever controls the repository controls
+// both the code and any plain hash list. Real authenticity needs a signature checked
+// against a key that ships with the device.
 //
-// This is opt-in by presence of a public key: drop an Ed25519/RSA public key at
-// update-pubkey.pem and publish a detached base64 signature of version.json at
-// <repo>/version.json.sig. When the key is present, the updater REFUSES any
-// release whose version.json is missing a valid signature. When it is absent, behavior
-// is unchanged (updates proceed unsigned) and a warning is logged — so nothing breaks
-// before signing is set up, and everything is authenticated the moment it is.
+// Opt-in by presence of update-pubkey.pem (created by tools/release-keys.js). When it is
+// present, the updater REFUSES any release whose release-manifest.json is not signed by
+// the matching private key or whose files do not match it (lib/update-checks.js).
+// When it is absent, updates proceed unsigned and a warning is logged.
 const updatePubKeyFile = path.join(__dirname, "update-pubkey.pem");
 function getUpdatePublicKey() {
   try { return fs.readFileSync(updatePubKeyFile, "utf8"); } catch (e) { return null; }
-}
-
-// Verifies the detached signature of `versionUrl` using the configured public key.
-// Returns { ok, unsigned?, reason? }. ok=true with unsigned=true means "no key set".
-async function verifyUpdateAuthenticity(versionUrl) {
-  const pubKey = getUpdatePublicKey();
-  if (!pubKey) {
-    console.warn("[update] No update-pubkey.pem configured: updates are NOT signature-verified.");
-    return { ok: true, unsigned: true };
-  }
-  try {
-    const verRes = await fetch(versionUrl);
-    if (!verRes.ok) return { ok: false, reason: "version.json unreachable" };
-    const versionBytes = Buffer.from(await verRes.arrayBuffer());
-    const sigRes = await fetch(versionUrl + ".sig");
-    if (!sigRes.ok) return { ok: false, reason: "release is not signed (version.json.sig missing)" };
-    const signature = Buffer.from((await sigRes.text()).trim(), "base64");
-    const valid = crypto.verify(null, versionBytes, pubKey, signature);
-    return valid ? { ok: true } : { ok: false, reason: "invalid update signature" };
-  } catch (e) {
-    return { ok: false, reason: "signature check error: " + e.message };
-  }
 }
 
 // --- FILESYSTEM INTEGRITY / VERIFIED BOOT (tamper detection) ---
@@ -320,56 +311,11 @@ if (fs.existsSync(configFile)) {
   };
 }
 
-// Emails (verification codes, password reset, daily report) are sent by the mariowOS
-// mail relay (mail-relay/worker.js, a Cloudflare Worker). The relay holds the mail
-// provider's key and generates/checks the codes, so no install ever ships a mail
-// password and editing a local install cannot bypass email verification.
-const MAIL_RELAY_URL = (process.env.MARIOWOS_MAIL_RELAY_URL ||
-  "https://mariowos-mail.mariowos.workers.dev").replace(/\/+$/, "");
-// Plain http is only allowed for a relay on this machine (`wrangler dev`).
-const MAIL_RELAY_IS_LOCAL = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(MAIL_RELAY_URL);
-const MAIL_CONFIGURED = (/^https:\/\//.test(MAIL_RELAY_URL) || MAIL_RELAY_IS_LOCAL) && !MAIL_RELAY_URL.includes("CHANGE-ME");
-if (!MAIL_CONFIGURED) console.warn("[mail] mail relay URL not configured: emails cannot be sent.");
-
-function getTrustedCAs() {
-  const tls = require("tls");
-  if (typeof tls.getCACertificates !== "function") return undefined;
-  try {
-    return [...new Set([...tls.getCACertificates("default"), ...tls.getCACertificates("system")])];
-  } catch (e) {
-    return undefined;
-  }
-}
-
-// POST JSON to the relay. Uses https with the OS certificate store too, so antivirus/proxy
-// HTTPS inspection (which re-signs TLS with a locally trusted root) doesn't break mail.
-function relayPost(route, payload) {
-  return new Promise(resolve => {
-    const body = JSON.stringify(payload);
-    const request = require(MAIL_RELAY_IS_LOCAL ? "http" : "https").request(MAIL_RELAY_URL + route, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Content-Length": Buffer.byteLength(body) },
-      ca: getTrustedCAs(),
-      timeout: 15000
-    }, response => {
-      let text = "";
-      response.setEncoding("utf8");
-      response.on("data", chunk => { if (text.length < 65536) text += chunk; });
-      response.on("end", () => {
-        let data = {};
-        try { data = JSON.parse(text); } catch (e) {}
-        resolve({ status: response.statusCode, data });
-      });
-    });
-    request.on("timeout", () => request.destroy(new Error("mail relay timed out")));
-    request.on("error", error => {
-      console.error("[mail] relay request failed:", error.message);
-      try { fs.appendFileSync(path.join(__dirname, "mail-error.log"), `${new Date().toISOString()} ${route} ${error.message}\n`); } catch (e) {}
-      resolve({ status: 0, data: {} });
-    });
-    request.end(body);
-  });
-}
+// Emails go through the mariowOS mail relay (lib/mail.js): no mail password on the device.
+const mail = createMailClient({
+  relayUrl: process.env.MARIOWOS_MAIL_RELAY_URL || "https://mariowos-mail.mariowos.workers.dev",
+  errorLogFile: path.join(__dirname, "mail-error.log")
+});
 
 function saveConfig() {
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -380,107 +326,23 @@ function isValidEmail(email) {
   return typeof email === "string" && email.length <= 254 && EMAIL_RE.test(email.trim());
 }
 
-// One-time codes are generated, stored and checked by the mail relay, which also
-// enforces the per-address cooldown, attempt limit and the anti-mass-mail budget (D-06).
-async function sendCodeEmail(purpose, email) {
-  if (!MAIL_CONFIGURED) return { ok: false, status: 503, error: "Email service not configured on this system." };
-  const { status, data } = await relayPost("/send-code", { purpose, email, username: config.username || "" });
-  if (status === 200 && data.ok) return { ok: true };
-  if (!status) return { ok: false, status: 502, error: "Could not reach the mariowOS mail service. Check your connection." };
-  return { ok: false, status: status >= 400 && status < 600 ? status : 502,
-    error: data.error || "Could not send the email.", retryAfter: data.retryAfter };
-}
+// One-time codes are generated, stored and checked by the mail relay.
+const sendCodeEmail = (purpose, email) => mail.sendCode(purpose, email, config.username);
+const checkCode = (purpose, email, code) => mail.checkCode(purpose, email, code);
 
-async function checkCode(purpose, email, code) {
-  if (!MAIL_CONFIGURED) return { ok: false, error: "Email service not configured on this system." };
-  const { status, data } = await relayPost("/verify-code", {
-    purpose, email: String(email || "").trim(), code: String(code || "").trim()
-  });
-  if (status === 200 && data.ok) return { ok: true, token: data.token };
-  if (!status) return { ok: false, error: "Could not reach the mariowOS mail service. Check your connection." };
-  return { ok: false, error: data.error || "Could not check the code." };
-}
-
-// --- SESSION AUTHENTICATION (A-02) ---
-// The backend used to trust every caller: any page (or any process able to reach the
-// port) could hit the mutating API with no proof of being the logged-in user. We now
-// issue a signed, HttpOnly, SameSite=Strict session cookie on successful login and
-// require it for every state-changing request. SameSite=Strict also means a malicious
-// web page the user happens to visit cannot drive these routes via the browser (CSRF,
-// which also closes the unauthenticated factory-reset/restore vector, C-05 / M-05).
-const SESSION_COOKIE = "mw_session";
-const SESSION_TTL_MS = 12 * 60 * 60 * 1000; // 12h
-
-// The signing secret is persisted so sessions survive the frequent backend respawns
-// (updates, reboots). It is kept in its own file, never in config.json (which is sent
-// to the frontend), and is gitignored.
-const sessionKeyFile = path.join(__dirname, "session.key");
-let SESSION_SECRET;
-try {
-  SESSION_SECRET = fs.readFileSync(sessionKeyFile, "utf8").trim();
-  if (!SESSION_SECRET) throw new Error("empty");
-} catch (e) {
-  SESSION_SECRET = crypto.randomBytes(32).toString("hex");
-  try { fs.writeFileSync(sessionKeyFile, SESSION_SECRET, { mode: 0o600 }); }
-  catch (writeErr) { console.warn("[auth] Could not persist session key:", writeErr.message); }
-}
-
-function signSession(payloadB64) {
-  return crypto.createHmac("sha256", SESSION_SECRET).update(payloadB64).digest("base64url");
-}
-
-function issueSession(res) {
-  const payload = { exp: Date.now() + SESSION_TTL_MS, nonce: crypto.randomBytes(8).toString("hex") };
-  const payloadB64 = Buffer.from(JSON.stringify(payload)).toString("base64url");
-  const token = `${payloadB64}.${signSession(payloadB64)}`;
-  res.setHeader("Set-Cookie",
-    `${SESSION_COOKIE}=${token}; HttpOnly; SameSite=Strict; Path=/; Max-Age=${Math.floor(SESSION_TTL_MS / 1000)}` +
-    (process.env.MARIOWOS_SECURE_COOKIE === "1" ? "; Secure" : ""));
-}
-
-function clearSession(res) {
-  res.setHeader("Set-Cookie", `${SESSION_COOKIE}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`);
-}
-
-function parseCookies(req) {
-  const header = req.headers.cookie || "";
-  const out = {};
-  header.split(";").forEach(part => {
-    const i = part.indexOf("=");
-    if (i > -1) out[part.slice(0, i).trim()] = part.slice(i + 1).trim();
-  });
-  return out;
-}
-
-function hasValidSession(req) {
-  const token = parseCookies(req)[SESSION_COOKIE];
-  if (!token || token.indexOf(".") < 0) return false;
-  const [payloadB64, sig] = token.split(".");
-  const expected = signSession(payloadB64);
-  const a = Buffer.from(sig || "");
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return false;
-  try {
-    const payload = JSON.parse(Buffer.from(payloadB64, "base64url").toString());
-    return typeof payload.exp === "number" && Date.now() < payload.exp;
-  } catch (e) { return false; }
-}
-
-// Brute-force protection for every account-password check: after 5 consecutive
-// failures, all checks are refused for 30 s, doubling up to 15 minutes.
-const passwordGuard = { failures: 0, lockedUntil: 0 };
-function passwordLockSeconds() {
-  return Math.max(0, Math.ceil((passwordGuard.lockedUntil - Date.now()) / 1000));
-}
-async function comparePassword(candidate, hash) {
-  if (!hash || passwordLockSeconds() > 0) return false;
-  const ok = typeof candidate === "string" && await bcrypt.compare(candidate, hash);
-  if (ok) passwordGuard.failures = 0;
-  else if (++passwordGuard.failures >= 5) {
-    passwordGuard.lockedUntil = Date.now() + Math.min(15 * 60 * 1000, 30 * 1000 * 2 ** (passwordGuard.failures - 5));
-  }
-  return ok;
-}
+// --- SESSION AUTHENTICATION (A-02) --- see lib/session.js
+// SHA-256 of session keys that were once published in the GitHub repositories. Anyone
+// could sign a session with them, so a device still using one gets a fresh key (its
+// user simply logs in again).
+const LEAKED_SESSION_KEY_HASHES = new Set([
+  "2feed71c3d843835e71c2a9963de5c671cd0ed0ab4da984466210bf7e2f0b9b2"
+]);
+const { issueSession, clearSession, hasValidSession, signAppToken, verifyAppToken } = createSessions({
+  keyFile: path.join(__dirname, "session.key"),
+  leakedKeyHashes: LEAKED_SESSION_KEY_HASHES,
+  secureCookie: process.env.MARIOWOS_SECURE_COOKIE === "1"
+});
+const { comparePassword, lockSeconds: passwordLockSeconds } = createPasswordGuard((candidate, hash) => bcrypt.compare(candidate, hash));
 
 // Routes that must stay reachable WITHOUT a session: the login/recovery flow itself,
 // health checks, and the Electron shell's own token-authenticated power controls.
@@ -521,19 +383,6 @@ function loadAppPermissions() {
   } catch (e) { return { enforced: false, rules: [] }; }
 }
 
-function signAppToken(appId) {
-  const payloadB64 = Buffer.from(JSON.stringify({ appId, iat: Date.now() })).toString("base64url");
-  return `${payloadB64}.${crypto.createHmac("sha256", SESSION_SECRET).update("app:" + payloadB64).digest("base64url")}`;
-}
-function verifyAppToken(token) {
-  if (typeof token !== "string" || token.indexOf(".") < 0) return null;
-  const [payloadB64, sig] = token.split(".");
-  const expected = crypto.createHmac("sha256", SESSION_SECRET).update("app:" + payloadB64).digest("base64url");
-  const a = Buffer.from(sig || ""); const b = Buffer.from(expected);
-  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return null;
-  try { return JSON.parse(Buffer.from(payloadB64, "base64url").toString()); } catch (e) { return null; }
-}
-
 function enforceAppPermissions(req, res, next) {
   const perms = loadAppPermissions();
   if (!perms.enforced) return next();
@@ -545,6 +394,35 @@ function enforceAppPermissions(req, res, next) {
   }
   next();
 }
+
+// --- THIRD-PARTY APP ISOLATION ---
+// Store apps from developers other than the mariowOS team run on their own origin
+// (APPS_ORIGIN, a second port), not as same-origin iframes of the shell. The browser
+// then keeps them away from the shell's DOM, cookies and storage, and:
+//  - they cannot READ this API: no CORS headers are ever sent to them;
+//  - they cannot WRITE to it: every state-changing request carrying a foreign Origin
+//    is refused below (this also stops any other web page from posting here);
+//  - they cannot sneak back onto this origin: their files are not served here.
+const TRUSTED_APP_OWNERS = new Set(["mariowos", "mariowstech"]);
+function isThirdPartyApp(installed) {
+  if (!installed || !installed.repoUrl) return false; // built into the OS
+  const owner = String(installed.repoUrl).match(/^https:\/\/(?:raw\.githubusercontent\.com|github\.com)\/([^/]+)\//i);
+  return !owner || !TRUSTED_APP_OWNERS.has(owner[1].toLowerCase());
+}
+const thirdPartyAppIds = () => new Set((config.installedApps || []).filter(isThirdPartyApp).map(installed => installed.appId));
+
+const SHELL_ORIGINS = new Set([`http://127.0.0.1:${PORT}`, `http://localhost:${PORT}`, `http://${APPS_HOST}:${PORT}`]);
+function rejectForeignWrites(req, res, next) {
+  if (req.method === "GET" || req.method === "HEAD" || req.method === "OPTIONS") return next();
+  const origin = req.get("origin");
+  // No Origin: a non-browser client on this machine (the launcher, curl). Same origin: the shell.
+  if (!origin || SHELL_ORIGINS.has(origin)) return next();
+  return res.status(403).json({ success: false, error: "Requests from other origins are not allowed." });
+}
+app.use(rejectForeignWrites);
+
+app.use("/desktop/apps/:appId", (req, res, next) => thirdPartyAppIds().has(req.params.appId)
+  ? res.status(403).send("This app runs in its own sandbox.") : next());
 
 app.use(bodyParser.urlencoded({ extended: true }));
 // Notes can hold pasted images, so their route gets its own larger body limit (below).
@@ -756,19 +634,17 @@ app.get("/api/system/desktops", (req, res) => {
 
 let dailyEmailTask = null;
 async function sendDiscordFlagsEmail() {
-  if (!config.email || !config.verified || !MAIL_CONFIGURED) return;
+  if (!config.email || !config.verified || !mail.configured) return;
   if (!config.mailToken) {
     console.warn("[mail] daily report skipped: verify your email again in Settings to enable it.");
     return;
   }
-  const { status, data } = await relayPost("/daily-report", {
-    email: config.email, token: config.mailToken, username: config.username || ""
-  });
-  if (status === 200 && data.ok) {
+  const result = await mail.sendDailyReport({ email: config.email, token: config.mailToken, username: config.username });
+  if (result.ok) {
     config.lastSent = Date.now();
     saveConfig();
   } else {
-    console.error("Failed to send daily email:", data.error || `relay status ${status}`);
+    console.error("Failed to send daily email:", result.error);
   }
 }
 
@@ -1457,6 +1333,14 @@ app.post("/api/desktop-style", (req, res) => {
 
 app.get("/get-settings", (req, res) => {
   const safe = { ...config };
+  safe.hasPassword = !!config.passwordHash; // lets Settings ask for it before destructive actions
+  // Third-party Store apps open from their own origin (see THIRD-PARTY APP ISOLATION).
+  safe.appsOrigin = APPS_ORIGIN;
+  if (Array.isArray(safe.installedApps)) {
+    safe.installedApps = safe.installedApps.map(installed => isThirdPartyApp(installed)
+      ? { ...installed, isolated: true, url: `${APPS_ORIGIN}/apps/${encodeURIComponent(installed.appId)}/index.html` }
+      : installed);
+  }
   delete safe.passwordHash;
   if (safe.lastfm) safe.lastfm = { username: safe.lastfm.username }; // the API key stays server-side
   res.json(safe);
@@ -1487,6 +1371,7 @@ app.post("/save-settings", (req, res) => {
     config.email = cleanEmail;
   }
   Object.keys(extra).forEach(key => {
+    if (key === "language" && !["auto", "en", "it"].includes(extra[key])) return;
     if (SAVE_SETTINGS_ALLOWED.has(key)) config[key] = extra[key];
   });
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -1556,8 +1441,18 @@ app.post("/api/system/factory-reset", async (req, res) => {
   // confirm the account password. When no password is configured there is nothing to
   // protect, so the fresh-install / post-reset path still works with no password.
   if (config.passwordHash) {
-    const ok = await comparePassword(String((req.body && req.body.password) || ""), config.passwordHash);
-    if (!ok) return res.status(403).json({ success: false, error: "Incorrect password." });
+    const password = String((req.body && req.body.password) || "");
+    if (!password) {
+      return res.status(403).json({ success: false, code: "PASSWORD_REQUIRED",
+        error: "Enter your account password to confirm the factory reset." });
+    }
+    if (passwordLockSeconds() > 0) {
+      return res.status(429).json({ success: false, code: "PASSWORD_LOCKED",
+        error: `Too many wrong password attempts. Try again in ${passwordLockSeconds()} seconds.` });
+    }
+    const ok = await comparePassword(password, config.passwordHash);
+    if (!ok) return res.status(403).json({ success: false, code: "WRONG_PASSWORD",
+      error: "Incorrect password. Nothing was erased." });
   }
   const errors = [];
   const removePath = target => {
@@ -2471,62 +2366,7 @@ function validateStagedServer(filePath) {
   });
 }
 
-// `node --check` only proves the staged server parses. A release that requires a file or
-// package it forgot to ship still passes it and then crash-loops every machine on boot.
-// Walk the kernel's require graph from server.js and refuse the update if anything the
-// new code needs is neither in the release nor already installed here.
-const BUILTIN_MODULES = new Set(require("module").builtinModules);
-function validateStagedRuntime(stagePath, files) {
-  const staged = new Set(files.map(file => file.relativePath));
-  const existsInRelease = relativePath => staged.has(relativePath) ||
-    fs.existsSync(path.join(__dirname, ...relativePath.split("/")));
-  const readSource = relativePath => {
-    const stagedFile = path.join(stagePath, ...relativePath.split("/"));
-    return fs.readFileSync(fs.existsSync(stagedFile) ? stagedFile : path.join(__dirname, ...relativePath.split("/")), "utf8");
-  };
-  const resolveLocal = (fromFile, request) => {
-    const base = path.posix.normalize(path.posix.join(path.posix.dirname(fromFile), request));
-    return [base, `${base}.js`, `${base}.json`, `${base}/index.js`].find(existsInRelease) || null;
-  };
-  const hasPackage = name => existsInRelease(`node_modules/${name}/package.json`);
-
-  const problems = [];
-  const visited = new Set();
-  const queue = ["server.js"];
-  while (queue.length) {
-    const file = queue.shift();
-    if (visited.has(file)) continue;
-    visited.add(file);
-    const source = readSource(file);
-    for (const match of source.matchAll(/require\(\s*(["'])([^"']+)\1\s*\)/g)) {
-      const request = match[2];
-      if (request.startsWith(".")) {
-        const resolved = resolveLocal(file, request);
-        if (!resolved) problems.push(`${file} requires missing file ${request}`);
-        else if (resolved.endsWith(".js")) queue.push(resolved);
-        continue;
-      }
-      if (request.startsWith("node:") || BUILTIN_MODULES.has(request) || request === "electron") continue;
-      const name = request.startsWith("@") ? request.split("/").slice(0, 2).join("/") : request.split("/")[0];
-      if (!hasPackage(name)) problems.push(`${file} requires missing package ${name}`);
-    }
-  }
-  if (problems.length) {
-    throw new Error(`The update is incomplete and would not boot: ${[...new Set(problems)].join("; ")}`);
-  }
-}
-
-function matchesGitBlob(contents, expectedHash) {
-  const hashBuffer = buffer => crypto.createHash("sha1")
-    .update(`blob ${buffer.length}\0`)
-    .update(buffer)
-    .digest("hex");
-  if (hashBuffer(contents) === expectedHash) return true;
-
-  const text = contents.toString("utf8");
-  if (!Buffer.from(text, "utf8").equals(contents) || !text.includes("\r\n")) return false;
-  return hashBuffer(Buffer.from(text.replace(/\r\n/g, "\n"), "utf8")) === expectedHash;
-}
+const { matchesGitBlob, validateStagedRuntime, verifyReleaseSignature } = require("./lib/update-checks");
 
 function getStagedUpdateFiles(stagePath) {
   const index = runGit(["-C", stagePath, "ls-files", "-s", "-z"], stagePath);
@@ -2933,6 +2773,13 @@ app.get('/api/system/check-update', async (req, res) => {
     }
     
     const remote = await response.json();
+    // A release the launcher had to roll back is not offered again: the next fixed
+    // release will carry a different version number.
+    const rollback = readRollbackPoint(__dirname);
+    if (rollback && rollback.rolledBack && rollback.toVersion && rollback.toVersion === remote.version) {
+      return res.json({ updateAvailable: false, current: local, latest: remote.version, blocked: true,
+        error: `Version ${remote.version} was rolled back because it did not start. Waiting for a fixed release.` });
+    }
     res.json(
       isNewerVersion(remote.version, local)
         ? { updateAvailable: true, current: local, latest: remote.version, changelog: remote.changelog }
@@ -2966,22 +2813,31 @@ app.get('/api/system/ota-update', (req, res) => {
     try {
       const channel = getUpdateChannel();
 
-      // A-07: verify the release signature (when a public key is configured) BEFORE
-      // downloading/applying anything. Refuse unauthenticated code.
-      send(2, "Verifying update authenticity...");
-      const auth = await verifyUpdateAuthenticity(
-        `https://raw.githubusercontent.com/mariowOS/${channel}/main/version.json`
-      );
-      if (!auth.ok) throw new Error("Update rejected: " + auth.reason);
-
       send(5, "Downloading complete update...");
       await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", `https://github.com/mariowOS/${channel}.git`, stagePath], os.tmpdir());
       send(70, "Checking every downloaded file...");
       const files = await getStagedUpdateFiles(stagePath);
       if (files.length === 0) throw new Error("The update contains no files");
+      // A-07: with a public key installed, only a release signed by the maintainer is applied.
+      const publicKey = getUpdatePublicKey();
+      if (publicKey) {
+        send(72, "Verifying the release signature...");
+        const auth = verifyReleaseSignature(stagePath, files, publicKey);
+        if (!auth.ok) throw new Error("Update rejected: " + auth.reason);
+      } else {
+        console.warn("[update] No update-pubkey.pem configured: this update is NOT signature-verified.");
+      }
       const serverUpdate = files.find(file => file.relativePath === "server.js");
       if (serverUpdate) await validateStagedServer(serverUpdate.stagedFile);
-      validateStagedRuntime(stagePath, files);
+      validateStagedRuntime(stagePath, files, __dirname);
+      // Keep the files this update replaces: if the new kernel keeps crashing, the
+      // launcher puts them back (lib/rollback.js) instead of leaving a boot loop.
+      send(74, "Saving a restore point...");
+      createRollbackPoint(__dirname, files, {
+        toVersion: readStagedVersion(stagePath),
+        isProtected: isUpdateProtectedFile,
+        isUnchanged: (contents, file) => matchesGitBlob(contents, file.blobHash)
+      });
       send(75, `Verified ${files.length} files. Applying update...`);
       const transaction = applyStagedFiles(files, send, 75, 98);
 
@@ -3104,8 +2960,50 @@ app.get("/sysinfo", (req, res) => {
   const cpus = os.cpus();
   res.json({
     OS: `mariowOS (${currentOS})`, Kernel: `${os.type()} ${os.release()}`, Uptime: os.uptime(),
-    CPU: `${cpus[0].model}`, RAM: `${Math.round(os.totalmem() / 1048576)} MB`
+    CPU: `${cpus[0].model}`, RAM: `${Math.round(os.totalmem() / 1048576)} MB`,
+    FreeRAM: `${Math.round(os.freemem() / 1048576)} MB`, Cores: cpus.length, Platform: `${os.platform()} ${os.arch()}`
   });
+});
+
+// --- KEYRING ---
+// The Terminal's addkey / delkey / listkeys commands. Keys are opaque strings the user
+// wants the system to remember, kept in keys.json as [{ key, date }] — the file the
+// recovery wipe and factory reset already empty and the updater never overwrites.
+const keyringFile = path.join(__dirname, "keys.json");
+const KEYRING_MAX = 200;
+function readKeyring() {
+  try {
+    const keys = JSON.parse(fs.readFileSync(keyringFile, "utf8"));
+    return Array.isArray(keys) ? keys.filter(entry => entry && typeof entry.key === "string") : [];
+  } catch (error) { return []; }
+}
+function writeKeyring(keys) {
+  fs.writeFileSync(keyringFile, JSON.stringify(keys, null, 2));
+}
+function cleanKey(value) {
+  const key = typeof value === "string" ? value.trim() : "";
+  return key && key.length <= 512 && !/[\x00-\x1f]/.test(key) ? key : null;
+}
+app.get("/api/system/keyring", requireAuthJson, (req, res) => {
+  res.set("Cache-Control", "no-store");
+  res.json({ success: true, keys: readKeyring() });
+});
+app.post("/api/system/keyring", requireAuthJson, (req, res) => {
+  const key = cleanKey(req.body?.key);
+  if (!key) return res.status(400).json({ success: false, error: "Invalid key (1-512 printable characters)." });
+  const keys = readKeyring();
+  if (keys.some(entry => entry.key === key)) return res.status(409).json({ success: false, error: "Key already in the keyring." });
+  if (keys.length >= KEYRING_MAX) return res.status(400).json({ success: false, error: `The keyring is full (${KEYRING_MAX} keys).` });
+  keys.push({ key, date: new Date().toISOString() });
+  writeKeyring(keys);
+  res.json({ success: true });
+});
+app.post("/api/system/keyring/delete", requireAuthJson, (req, res) => {
+  const key = cleanKey(req.body?.key);
+  const keys = readKeyring();
+  if (!key || !keys.some(entry => entry.key === key)) return res.status(404).json({ success: false, error: "Key not found." });
+  writeKeyring(keys.filter(entry => entry.key !== key));
+  res.json({ success: true });
 });
 
 // --- MUSIC LIBRARY ---
@@ -3725,6 +3623,41 @@ pruneLogs();
 cron.schedule("0 3 * * *", pruneLogs);
 
 httpServer = app.listen(PORT, BIND_HOST, () => console.log(`kernel booted on [${currentOS}] at http://${BIND_HOST}:${PORT}`));
+
+// Third-party Store apps (see THIRD-PARTY APP ISOLATION): static files only, on their
+// own origin. Nothing here can reach the shell's API, cookies or storage.
+const APP_SANDBOX_CSP = [
+  "default-src 'self' https: data: blob:",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https:",
+  "style-src 'self' 'unsafe-inline' https:",
+  "img-src 'self' data: blob: https:",
+  "media-src 'self' data: blob: https:",
+  "font-src 'self' data: https:",
+  "connect-src 'self' https:",
+  "object-src 'none'",
+  "base-uri 'self'",
+  `frame-ancestors ${[...SHELL_ORIGINS].join(" ")}`
+].join("; ");
+const appsApp = express();
+appsApp.disable("x-powered-by");
+appsApp.use((req, res, next) => {
+  res.setHeader("Content-Security-Policy", APP_SANDBOX_CSP);
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  if (req.method !== "GET" && req.method !== "HEAD") return res.status(405).end();
+  next();
+});
+appsApp.use("/apps/:appId", (req, res, next) => {
+  if (!thirdPartyAppIds().has(req.params.appId)) return res.status(404).end();
+  express.static(path.join(__dirname, "desktop", "apps", req.params.appId), { dotfiles: "deny", fallthrough: false })(req, res, next);
+});
+// Shared fonts and icons, so apps can match the system look.
+for (const shared of ["fonts", "icons"]) {
+  appsApp.use(`/desktop/assets/${shared}`, express.static(path.join(__dirname, "desktop", "assets", shared), { fallthrough: false }));
+}
+appsApp.use((req, res) => res.status(404).end());
+const appsServer = appsApp.listen(APPS_PORT, BIND_HOST);
+appsServer.on("error", error => console.error("[apps] isolated app server could not start:", error.message));
 httpServer.on('error', error => {
   console.error('kernel failed to bind its HTTP server:', error);
   process.exit(1);

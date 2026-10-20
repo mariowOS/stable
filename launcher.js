@@ -7,6 +7,7 @@ const fs = require('fs');
 const http = require('http');
 const os = require('os');
 const path = require('path');
+const { pathToFileURL } = require('url');
 
 app.commandLine.appendSwitch('enable-gpu-rasterization');
 app.commandLine.appendSwitch('enable-features', 'CSSBackdropFilter');
@@ -19,6 +20,14 @@ const HEALTH_PATH = '/api/system/health';
 const SHELL_URL = `http://127.0.0.1:${PORT}/`;
 const EXIT_CODES = Object.freeze({ SHUTDOWN: 20, UPDATE_RESTART: 21, KERNEL_REBOOT: 22 });
 const bootPage = path.join(__dirname, 'boot.html');
+const kernelRecoveryPage = path.join(__dirname, 'kernel-recovery.html');
+const rollback = require('./lib/rollback');
+// Consecutive kernel failures before undoing the last update / showing the recovery screen.
+const ROLLBACK_AFTER_FAILURES = 3;
+const RECOVERY_AFTER_FAILURES = 5;
+const KERNEL_ERROR_LINES = 80;
+let kernelErrorLines = [];
+let inKernelRecovery = false;
 const bootModeFile = path.join(__dirname, 'boot-mode.json');
 const shutdownToken = crypto.randomBytes(32).toString('hex');
 
@@ -144,6 +153,114 @@ ipcMain.handle('mariowos:reboot', async (event) => {
     return { accepted: true };
 });
 
+function rememberKernelError(text) {
+    kernelErrorLines.push(...text.split(/\r?\n/));
+    if (kernelErrorLines.length > KERNEL_ERROR_LINES) kernelErrorLines = kernelErrorLines.slice(-KERNEL_ERROR_LINES);
+}
+
+// --- KERNEL RECOVERY ---
+// Shown (from a local file, no kernel needed) after the kernel failed to start several
+// times in a row. Automatic restarts stop; the user picks what to do next.
+function showKernelRecovery() {
+    inKernelRecovery = true;
+    clearTimeout(backendRestartTimer);
+    backendRestartTimer = null;
+    console.error('[sniffer]: kernel keeps failing; showing the recovery screen.');
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    mainWindow.loadFile(kernelRecoveryPage).catch(error => {
+        console.error('[sniffer]: could not show the recovery screen:', error);
+    });
+}
+
+function isTrustedRecoveryEvent(event) {
+    if (!inKernelRecovery || !mainWindow || mainWindow.isDestroyed() || event.sender !== mainWindow.webContents) return false;
+    if (event.senderFrame !== event.sender.mainFrame) return false;
+    return event.senderFrame.url === pathToFileURL(kernelRecoveryPage).href;
+}
+
+function restartFromRecovery() {
+    inKernelRecovery = false;
+    backendRestartAttempt = 0;
+    kernelErrorLines = [];
+    showBootScreen();
+    if (!backendProcess) startBackend();
+}
+
+ipcMain.handle('mariowos:recovery-state', (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    const point = rollback.readRollbackPoint(__dirname);
+    let version = null;
+    try { version = JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8')).version; } catch {}
+    return {
+        version,
+        errors: kernelErrorLines.join('\n'),
+        rollback: point && !point.rolledBack ? { fromVersion: point.fromVersion, toVersion: point.toVersion } : null
+    };
+});
+
+ipcMain.handle('mariowos:recovery-retry', (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    restartFromRecovery();
+    return { ok: true };
+});
+
+ipcMain.handle('mariowos:recovery-rollback', (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    const restored = rollback.restoreRollbackPoint(__dirname);
+    console.warn(`[sniffer]: user restored ${restored.fromVersion || 'the previous version'} from recovery.`);
+    restartFromRecovery();
+    return { ok: true };
+});
+
+ipcMain.handle('mariowos:recovery-repair', async (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    const ok = await installKernelDependencies();
+    if (ok) restartFromRecovery();
+    return { ok };
+});
+
+ipcMain.handle('mariowos:recovery-open-folder', (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    const logFile = path.join(__dirname, 'mariowos.log');
+    if (fs.existsSync(logFile)) shell.showItemInFolder(logFile);
+    else shell.openPath(__dirname);
+    return { ok: true };
+});
+
+// Sent only when the user presses "Send report" on the recovery screen. Personal details
+// (home folder, user name, email addresses) are removed before anything leaves the device.
+const CRASH_REPORT_URL = `${(process.env.MARIOWOS_MAIL_RELAY_URL || 'https://mariowos-mail.mariowos.workers.dev').replace(/\/+$/, '')}/crash-report`;
+function scrubReport(text) {
+    let clean = String(text || '');
+    const home = os.homedir();
+    const user = os.userInfo().username;
+    for (const variant of new Set([home, home.replace(/\\/g, '\\\\'), home.replace(/\\/g, '/')])) {
+        clean = clean.split(variant).join('~');
+    }
+    if (user && user.length > 2) clean = clean.replace(new RegExp(user.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '<user>');
+    return clean.replace(/[^\s@'"<>]+@[^\s@'"<>]+\.[a-z]{2,}/gi, '<email>').slice(-6000);
+}
+
+ipcMain.handle('mariowos:recovery-send-report', async (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    let version = null;
+    try { version = JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8')).version; } catch {}
+    const { net } = require('electron');
+    const response = await net.fetch(CRASH_REPORT_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ kind: 'kernel-crash', version, platform: `${process.platform} ${os.release()}`, errors: scrubReport(kernelErrorLines.join('\n')) })
+    });
+    return { ok: response.ok };
+});
+
+ipcMain.handle('mariowos:recovery-quit', (event) => {
+    if (!isTrustedRecoveryEvent(event)) throw new Error('recovery request rejected');
+    shuttingDown = true;
+    app.quit();
+    return { ok: true };
+});
+
 function showBootScreen() {
     if (!mainWindow || mainWindow.isDestroyed()) return;
     mainWindow.loadFile(bootPage, { query: getBootQuery() }).catch(error => {
@@ -265,7 +382,11 @@ function startBackend() {
     child.updateMarker = updateMarker;
 
     child.stdout.on('data', data => console.log(`[kernel]: ${data.toString().trim()}`));
-    child.stderr.on('data', data => console.error(`[kernel]: ${data.toString().trim()}`));
+    child.stderr.on('data', data => {
+        const text = data.toString().trim();
+        console.error(`[kernel]: ${text}`);
+        rememberKernelError(text);
+    });
     child.on('error', error => console.error('[sniffer]: kernel couldn\'t start', error));
     child.on('exit', (code, signal) => {
         if (backendProcess === child) backendProcess = null;
@@ -310,6 +431,26 @@ function startBackend() {
 
         fs.rmSync(updateMarker, { force: true });
         console.warn(`[sniffer]: kernel crashed unexpectedly (${signal || code}); recovering.`);
+        const failures = backendRestartAttempt + 1;
+        // An update that never boots is undone automatically, then retried at once.
+        if (failures >= ROLLBACK_AFTER_FAILURES && rollback.canRollback(__dirname) &&
+            !rollback.readRollbackPoint(__dirname).verified) {
+            try {
+                const restored = rollback.restoreRollbackPoint(__dirname);
+                console.warn(`[sniffer]: update ${restored.toVersion || ''} did not boot; restored ${restored.fromVersion || 'the previous version'}.`);
+                backendRestartAttempt = 0;
+                showBootScreen();
+                startBackend();
+                return;
+            } catch (error) {
+                console.error('[sniffer]: automatic rollback failed:', error);
+            }
+        }
+        // Retrying forever only shows "Failed to fetch": hand the user a recovery screen.
+        if (failures >= RECOVERY_AFTER_FAILURES) {
+            showKernelRecovery();
+            return;
+        }
         showBootScreen();
         scheduleBackendRestart();
     });
@@ -318,6 +459,9 @@ function startBackend() {
         if (!isLiveChild(child) || shuttingDown) return;
         backendReady = true;
         backendRestartAttempt = 0;
+        inKernelRecovery = false;
+        try { rollback.markRollbackVerified(__dirname); }
+        catch (error) { console.error('[sniffer]: could not confirm the update:', error.message); }
         console.log('[sniffer]: kernel loaded; booting GUI.');
         const bootUrl = new URL('boot', SHELL_URL);
         if (isVerboseBootEnabled()) bootUrl.searchParams.set('verbose', '1');

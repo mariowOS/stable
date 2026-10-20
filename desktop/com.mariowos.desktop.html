@@ -569,8 +569,8 @@ Questions? https://discord.gg/YDVxw6jfbH
           <a onclick="launchAppFromMenu('popup8')"><div class="dropdown-item" data-popup="popup8"><img src="/desktop/assets/icons/terminal.png" class="menu-icon"> <span>Terminal</span></div></a>
           <a onclick="launchAppFromMenu('popup9')"><div class="dropdown-item" data-popup="popup9"><img src="/desktop/assets/icons/calculator.png" class="menu-icon"> <span>Calculator</span></div></a>
           <a onclick="launchAppFromMenu('popup11')"><div class="dropdown-item" data-popup="popup11"><img src="/desktop/assets/icons/calendar.png" class="menu-icon"> <span>Calendar</span></div></a>
-          <a onclick="launchAppFromMenu('popup12')"><div class="dropdown-item" data-popup="popup12"><img src="/desktop/assets/icons/pictures.png" class="menu-icon"> <span>Pictures</span></div></a>
-          <a onclick="launchAppFromMenu('popup13')"><div class="dropdown-item" data-popup="popup13"><img src="/desktop/assets/icons/videos.png" class="menu-icon"> <span>Video Player</span></div></a>
+          <a onclick="launchAppFromMenu('popup12')"><div class="dropdown-item" data-popup="popup12"><img src="/desktop/assets/icons/pictures.svg" class="menu-icon"> <span>Pictures</span></div></a>
+          <a onclick="launchAppFromMenu('popup13')"><div class="dropdown-item" data-popup="popup13"><img src="/desktop/assets/icons/video.svg" class="menu-icon"> <span>Video Player</span></div></a>
         </div>
       </div>
       
@@ -1110,6 +1110,12 @@ Questions? https://discord.gg/YDVxw6jfbH
 
       const frame = document.createElement('iframe');
       frame.className = 'popup-frame';
+      // Third-party Store apps come from their own origin (server.js, THIRD-PARTY APP
+      // ISOLATION). The sandbox also stops them from navigating the whole OS away.
+      if (app.isolated) {
+        frame.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-downloads');
+        frame.setAttribute('allow', 'fullscreen');
+      }
       frame.setAttribute('data-default-src', osSafeAppUrl(app.url));
       frame.src = 'about:blank';
 
@@ -2774,7 +2780,29 @@ Questions? https://discord.gg/YDVxw6jfbH
     }
     window.addEventListener('storage', e => { if (e.key === 'desktopStyle') applyDesktopStyle(); });
 
+    // Window commands an app from another origin (an isolated Store app) may send: only
+    // for its own window, and only these. Everything else must come from the OS itself.
+    const CROSS_ORIGIN_APP_MESSAGES = new Set(['show-notification', 'close-app', 'maximize-app']);
+    function appIdOfMessageSource(source) {
+      const popup = [...document.querySelectorAll('.popup')]
+        .find(p => { const f = p.querySelector('iframe'); return f && f.contentWindow === source; });
+      return popup ? popup.id : null;
+    }
+
     window.addEventListener("message", async (e) => {
+      if (!e.data || typeof e.data !== 'object') return;
+      if (e.origin !== window.location.origin && !(e.origin && e.origin.includes("minnit.chat"))) {
+        const ownAppId = appIdOfMessageSource(e.source);
+        if (!ownAppId || !CROSS_ORIGIN_APP_MESSAGES.has(e.data.type)) return;
+        if (e.data.type === 'show-notification') {
+          showNotification(String(e.data.title || '').slice(0, 80), String(e.data.msg || '').slice(0, 300));
+        } else if (e.data.type === 'close-app') {
+          closePopup(ownAppId);
+        } else {
+          toggleMaximize(ownAppId);
+        }
+        return;
+      }
       if (e.data.type === 'show-notification') { showNotification(e.data.title, e.data.msg, e.data.icon); }
       if (e.data.type === 'close-app') { closePopup(e.data.appId); }
       if (e.data.type === 'maximize-app') { toggleMaximize(e.data.appId); }
@@ -2787,7 +2815,9 @@ Questions? https://discord.gg/YDVxw6jfbH
       if (e.data.type === 'apply-wallpaper') { applyUserWallpaper(); (async () => { try { const r = await fetch("/get-settings"); if (r.ok) { const cfg = await r.json(); applyLabFlagEffects({ darkMode: cfg.darkMode, performance: cfg.performance, animations: cfg.animations, developer: cfg.developer }); }; } catch (e) {} })(); }
       
       if (e.data.type === 'app-installed-live') {
-        const app = e.data.app;
+        // Ask the kernel for the app entry: it decides whether the app runs isolated.
+        const fresh = await fetch('/get-settings').then(r => r.json()).catch(() => null);
+        const app = (fresh && (fresh.installedApps || []).find(a => e.data.app && a.appId === e.data.app.appId)) || e.data.app;
         if (!document.querySelector(`[data-popup="${CSS.escape(String(app.appId == null ? '' : app.appId))}"]`)) {
           dynamicInstalledApps.push({ id: app.appId, title: app.title, icon: app.icon });
 

@@ -1,5 +1,5 @@
 {
-  "version": "1.4.0",
-  "changelog": "Emails (verification, password reset, daily report) are now sent through the mariowOS mail service: no mail password is stored on your device any more. If you use the daily report, verify your email again once in Settings. Updates are now checked for missing files before they are installed.",
+  "version": "1.4.1",
+  "changelog": "Safer updates: if an update does not start, mariowOS now restores the previous version automatically, and a new recovery screen helps when the system cannot boot (with an optional error report). Third-party Store apps now run isolated from the system. New: choose the language in Settings > General (English or Italian). Security fixes: a session key that had been published online is replaced automatically, so you will need to log in again once.",
   "_comment": "obb."
 }

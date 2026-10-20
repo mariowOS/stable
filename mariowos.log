@@ -1,8 +1,0 @@
-
-> development@1.0.0 start-os
-> electron system/launcher.js
-
-
-[sniffer]: booting...
-[kernel]: kernel booted on [win32] at http://127.0.0.1:3000
-[sniffer]: kernel loaded; booting GUI.

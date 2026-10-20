@@ -125,7 +125,8 @@ body {
   color: var(--md-sys-color-on-surface);
 }
 
-.setting-card input[type="text"] {
+.setting-card input[type="text"],
+.setting-card input[type="password"] {
   width: 100%;
   padding: 9px 12px;
   background: rgba(0,0,0,0.2);
@@ -139,11 +140,13 @@ body {
   transition: all 0.2s ease;
 }
 
-.setting-card input[type="text"]:focus {
+.setting-card input[type="text"]:focus,
+.setting-card input[type="password"]:focus {
   border-color: var(--md-sys-color-error);
 }
 
-.setting-card input[type="text"]::placeholder {
+.setting-card input[type="text"]::placeholder,
+.setting-card input[type="password"]::placeholder {
   color: var(--md-sys-color-outline);
 }
 
@@ -263,7 +266,13 @@ html::-webkit-scrollbar {
 
     <div class="setting-card">
       <label for="confirmInput">Confirmation Required</label>
-      <input type="text" id="confirmInput" placeholder="Type: FACTORY RESET" onkeyup="checkConfirmation()">
+      <input type="text" id="confirmInput" placeholder="Type: FACTORY RESET" oninput="checkConfirmation()">
+    </div>
+
+    <div class="setting-card" id="passwordCard" style="display:none">
+      <label for="passwordInput">Account Password</label>
+      <input type="password" id="passwordInput" placeholder="Enter your password" autocomplete="current-password" oninput="checkConfirmation()">
+      <div id="passwordHint" style="font-size:12px;color:var(--md-sys-color-on-surface-variant);margin-top:8px;">Your password is required to erase this device.</div>
     </div>
 
     <div class="confirmation-card">
@@ -283,33 +292,47 @@ function goBack() {
   window.history.back();
 }
 
-function showStage2() {
+// true / false, or null when the kernel is too old to tell (then the field is optional).
+let needsPassword = null;
+
+async function showStage2() {
   document.querySelector('.stage-1').classList.remove('active');
   document.querySelector('.stage-2').classList.add('active');
+  needsPassword = await factoryResetNeedsPassword();
+  document.getElementById('passwordCard').style.display = needsPassword === false ? 'none' : '';
+  if (needsPassword === null) {
+    document.getElementById('passwordHint').textContent = 'Leave it empty if you never set a password.';
+  }
   document.getElementById('confirmInput').focus();
+  checkConfirmation();
 }
 
 function goBackToStage1() {
   document.querySelector('.stage-2').classList.remove('active');
   document.querySelector('.stage-1').classList.add('active');
   document.getElementById('confirmInput').value = '';
+  document.getElementById('passwordInput').value = '';
   document.getElementById('resetBtn').disabled = true;
 }
 
 function checkConfirmation() {
   const input = document.getElementById('confirmInput').value;
   const btn = document.getElementById('resetBtn');
-  btn.disabled = (input !== 'FACTORY RESET');
+  const password = document.getElementById('passwordInput').value;
+  btn.disabled = (input !== 'FACTORY RESET') || (needsPassword === true && !password);
 }
 
 async function executeFactoryReset() {
   const btn = document.getElementById('resetBtn');
   if (btn) btn.disabled = true;
   try {
-    await runFactoryReset();
+    await runFactoryReset(needsPassword === false ? '' : document.getElementById('passwordInput').value);
   } catch (err) {
     await mDialog.alert('Factory reset failed: ' + err.message);
-    if (btn) btn.disabled = false;
+    const pwd = document.getElementById('passwordInput');
+    pwd.value = '';
+    if (needsPassword !== false) pwd.focus();
+    checkConfirmation();
   }
 }
 

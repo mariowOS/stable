@@ -274,8 +274,10 @@
 
   async function factoryReset() {
     if (await mDialog.confirm("This will erase all system preferences, apps and data. Continue?", { danger: true, okText: "Erase everything", title: "Factory reset" })) {
+      const password = await askFactoryResetPassword();
+      if (password === null) return;
       try {
-        await runFactoryReset();
+        await runFactoryReset(password);
       } catch (e) {
         await mDialog.alert("Factory reset failed: " + e.message);
       }
