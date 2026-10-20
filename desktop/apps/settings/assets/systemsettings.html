@@ -245,7 +245,7 @@
 <script>
 // Language: saved in the system settings, then Settings reloads in the new language.
 const languageSelect = document.getElementById('languageSelect');
-fetch('/get-settings').then(r => r.json()).then(settings => { languageSelect.value = settings.language || 'auto'; }).catch(() => {});
+fetch('/get-settings').then(r => r.json()).then(settings => { languageSelect.value = settings.language || 'en'; }).catch(() => {});
 languageSelect.addEventListener('change', async () => {
   try {
     const response = await fetch('/save-settings', {

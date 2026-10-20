@@ -4,14 +4,16 @@
 // English stays written in the HTML and is the fallback; other languages live in
 // /desktop/assets/locales/<lang>.json as { "key": "translation" }. In scripts, use
 // mariowOSI18n.t("key", "English text"). The language is Settings › General › Language
-// ("auto" follows the computer's language).
+// (default English; "auto" follows the computer's language).
 (function () {
   const SUPPORTED = ["en", "it"];
   let dictionary = {};
   let language = "en";
 
+  // English unless the user picked a language; "auto" (opt-in) follows the computer.
   function resolve(preference) {
     if (SUPPORTED.includes(preference)) return preference;
+    if (preference !== "auto") return "en";
     const fromSystem = String(navigator.language || "en").slice(0, 2).toLowerCase();
     return SUPPORTED.includes(fromSystem) ? fromSystem : "en";
   }
@@ -36,8 +38,8 @@
   }
 
   async function load() {
-    let preference = "auto";
-    try { preference = (await (await fetch("/get-settings")).json()).language || "auto"; } catch (e) {}
+    let preference = "en";
+    try { preference = (await (await fetch("/get-settings")).json()).language || "en"; } catch (e) {}
     language = resolve(preference);
     dictionary = {};
     if (language !== "en") {

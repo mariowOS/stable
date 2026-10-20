@@ -167,7 +167,10 @@ function showKernelRecovery() {
     backendRestartTimer = null;
     console.error('[sniffer]: kernel keeps failing; showing the recovery screen.');
     if (!mainWindow || mainWindow.isDestroyed()) return;
-    mainWindow.loadFile(kernelRecoveryPage).catch(error => {
+    // Same language as the system apps (Settings › General › Language), English by default.
+    let lang = 'en';
+    try { lang = JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8')).language || 'en'; } catch {}
+    mainWindow.loadFile(kernelRecoveryPage, { query: { lang } }).catch(error => {
         console.error('[sniffer]: could not show the recovery screen:', error);
     });
 }
@@ -175,7 +178,7 @@ function showKernelRecovery() {
 function isTrustedRecoveryEvent(event) {
     if (!inKernelRecovery || !mainWindow || mainWindow.isDestroyed() || event.sender !== mainWindow.webContents) return false;
     if (event.senderFrame !== event.sender.mainFrame) return false;
-    return event.senderFrame.url === pathToFileURL(kernelRecoveryPage).href;
+    return event.senderFrame.url.split('?')[0] === pathToFileURL(kernelRecoveryPage).href;
 }
 
 function restartFromRecovery() {
