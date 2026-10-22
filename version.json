@@ -1,5 +1,5 @@
 {
-  "version": "1.4.1",
-  "changelog": "Safer updates: if an update does not start, mariowOS now restores the previous version automatically, and a new recovery screen helps when the system cannot boot (with an optional error report). Third-party Store apps now run isolated from the system. New: choose the language in Settings > General (English or Italian). Security fixes: a session key that had been published online is replaced automatically, so you will need to log in again once.",
+  "version": "1.4.2",
+  "changelog": "The whole system can now be translated, not just Settings: desktop, login, setup, Settings and every built-in app follow the language chosen in Settings > General, with a complete Italian translation. In Italian, dates and clocks use the Italian format. Volunteers can add new languages by translating a single file (see TRANSLATING.md).",
   "_comment": "obb."
 }
