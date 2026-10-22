@@ -536,6 +536,41 @@ app.get('/desktop/assets/bootlogo.user.png', serveUploadedImage(
   'boot logo'
 ));
 
+// A language is available when it is listed in locales/languages.json and has its
+// locales/<code>.json (English is built into the pages and needs no file).
+const LOCALES_DIR = path.join(__dirname, "desktop", "assets", "locales");
+function isAvailableLanguage(code) {
+  if (code === "auto" || code === "en") return true;
+  if (typeof code !== "string" || !/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/.test(code)) return false;
+  return Object.hasOwn(readLanguages(), code) && fs.existsSync(path.join(LOCALES_DIR, `${code}.json`));
+}
+function readLanguages() {
+  try { return { en: "English", ...JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, "languages.json"), "utf8")) }; }
+  catch { return { en: "English" }; }
+}
+// "auto" follows the computer: Electron sends its language as Accept-Language.
+function resolveLanguage(preference, acceptLanguage) {
+  if (preference !== "auto") return preference && preference !== "en" && isAvailableLanguage(preference) ? preference : "en";
+  for (const part of String(acceptLanguage || "").toLowerCase().split(",")) {
+    const tag = part.split(";")[0].trim();
+    for (const code of [tag, tag.split("-")[0]]) if (code && code !== "auto" && isAvailableLanguage(code)) return code;
+  }
+  return "en";
+}
+// The page's language and translations as a script, so they are ready before the
+// page's own scripts run (see desktop/assets/i18n.js).
+app.get("/desktop/assets/i18n-data.js", (req, res) => {
+  const preference = config.language || "en";
+  const language = resolveLanguage(preference, req.get("accept-language"));
+  let dictionary = {};
+  if (language !== "en") {
+    try { dictionary = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, `${language}.json`), "utf8")); } catch {}
+  }
+  const data = JSON.stringify({ preference, language, languages: readLanguages(), dictionary }).replace(/</g, "\\u003c");
+  res.set({ "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" });
+  res.send(`window.__mariowOSI18nData = ${data};\n`);
+});
+
 // Static files are the actual desktop shell. The login screen, settings pages, and app folders
 // are served as normal web assets from the filesystem, which keeps the OS feel web-based and easy to tweak.
 // The notes database lives under desktop/ for historical reasons: never serve it as a static file.
@@ -1345,18 +1380,6 @@ app.get("/get-settings", (req, res) => {
   if (safe.lastfm) safe.lastfm = { username: safe.lastfm.username }; // the API key stays server-side
   res.json(safe);
 });
-
-// A language is available when it is listed in locales/languages.json and has its
-// locales/<code>.json (English is built into the pages and needs no file).
-const LOCALES_DIR = path.join(__dirname, "desktop", "assets", "locales");
-function isAvailableLanguage(code) {
-  if (code === "auto" || code === "en") return true;
-  if (typeof code !== "string" || !/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/.test(code)) return false;
-  try {
-    const languages = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, "languages.json"), "utf8"));
-    return Object.hasOwn(languages, code) && fs.existsSync(path.join(LOCALES_DIR, `${code}.json`));
-  } catch { return false; }
-}
 
 // SECURITY (C-03): this route is an allowlist, not a denylist. It previously
 // copied ANY field that was not explicitly protected into config.json, which let

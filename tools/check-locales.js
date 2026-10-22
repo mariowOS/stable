@@ -1,21 +1,25 @@
 #!/usr/bin/env node
-// Checks the system-app translations in desktop/assets/locales/ (see TRANSLATING.md).
-//   node tools/check-locales.js
+// Checks the system translations in desktop/assets/locales/ (see TRANSLATING.md).
+//   node tools/check-locales.js             check every language
+//   node tools/check-locales.js --new fr    create fr.json with the English text to translate
+//   node tools/check-locales.js --missing fr  list what fr.json still lacks, with the English
 // Errors (exit code 1): invalid JSON, a language listed in languages.json without its
 // <code>.json or the other way round, bad language codes, non-text or empty translations,
-// keys the system does not use. Warnings: keys not translated yet (they show in English).
+// keys the system does not use, {placeholders} that differ from the English.
+// Warnings: keys not translated yet (they show in English).
 //
-// The keys the system uses are read from the pages themselves: data-i18n,
-// data-i18n-placeholder and data-i18n-title attributes, and mariowOSI18n.t("key") calls.
+// The keys and their English text are read from the pages themselves: data-i18n,
+// data-i18n-placeholder / -title / -aria-label attributes, and mariowOSI18n.t("key", "English")
+// calls.
 
 const fs = require("fs");
 const path = require("path");
 
 const systemDir = path.resolve(__dirname, "..");
-const desktopDir = path.join(systemDir, "desktop");
-const localesDir = path.join(desktopDir, "assets", "locales");
+const SOURCE_DIRS = ["desktop", "loginui", "recovery"].map(dir => path.join(systemDir, dir));
+const localesDir = path.join(systemDir, "desktop", "assets", "locales");
 const CODE = /^[a-z]{2,3}(-[a-z0-9]{2,4})?$/;
-const SKIP_DIRS = new Set(["vendor", "node_modules"]);
+const SKIP_DIRS = new Set(["vendor", "node_modules", "locales"]);
 const SKIP_FILES = new Set(["i18n.js"]); // its comments show example keys
 
 const inActions = !!process.env.GITHUB_ACTIONS;
@@ -32,19 +36,66 @@ function readJson(file) {
   catch (error) { report("error", file, `not valid JSON (${error.message})`); return null; }
 }
 
-function usedKeys(dir, keys = new Set()) {
+const decode = text => text.replace(/&nbsp;/g, " ").replace(/&lt;/g, "<").replace(/&gt;/g, ">")
+  .replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&amp;/g, "&").trim();
+const unquote = literal => { try { return JSON.parse(literal); } catch { return literal.slice(1, -1).replace(/\\(['"`])/g, "$1"); } };
+
+// key -> English text (the first one found), read from every page and script.
+function findKeys(dir, keys = new Map()) {
+  if (!fs.existsSync(dir)) return keys;
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) { if (!SKIP_DIRS.has(entry.name)) usedKeys(full, keys); continue; }
+    if (entry.isDirectory()) { if (!SKIP_DIRS.has(entry.name)) findKeys(full, keys); continue; }
     if (!/\.(html|js)$/.test(entry.name) || SKIP_FILES.has(entry.name)) continue;
     const text = fs.readFileSync(full, "utf8");
-    for (const match of text.matchAll(/data-i18n(?:-placeholder|-title)?="([^"]+)"/g)) keys.add(match[1]);
-    for (const match of text.matchAll(/mariowOSI18n\.t\(\s*["']([^"']+)["']/g)) keys.add(match[1]);
+    const add = (key, english) => { if (!keys.has(key) || (!keys.get(key) && english)) keys.set(key, english || ""); };
+    for (const [tag] of text.matchAll(/<[a-z][^<>]*\bdata-i18n(?:-[a-z-]+)?="[^"]+"[^<>]*>/gi)) {
+      const textKey = tag.match(/\bdata-i18n="([^"]+)"/);
+      if (textKey) {
+        const after = text.slice(text.indexOf(tag) + tag.length).match(/^([^<]*)</);
+        add(textKey[1], after ? decode(after[1]) : "");
+      }
+      for (const name of ["placeholder", "title", "aria-label"]) {
+        const key = tag.match(new RegExp(`\\bdata-i18n-${name}="([^"]+)"`));
+        if (!key) continue;
+        const value = tag.match(new RegExp(`\\s${name}="([^"]*)"`));
+        add(key[1], value ? decode(value[1]) : "");
+      }
+    }
+    for (const match of text.matchAll(/mariowOSI18n\.t\(\s*["']([^"']+)["']\s*(?:,\s*("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\$]|\\.)*`))?/g)) {
+      add(match[1], match[2] ? unquote(match[2]) : "");
+    }
   }
   return keys;
 }
 
-const keys = usedKeys(desktopDir);
+const placeholders = text => [...String(text).matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort().join(",");
+
+const keys = new Map();
+SOURCE_DIRS.forEach(dir => findKeys(dir, keys));
+const [mode, target] = process.argv.slice(2);
+
+if (mode === "--new" || mode === "--missing") {
+  if (!CODE.test(target || "") || target === "en") {
+    console.log('Give a language code, e.g. "fr" or "pt-br".');
+    process.exit(1);
+  }
+  const file = path.join(localesDir, `${target}.json`);
+  if (mode === "--new") {
+    if (fs.existsSync(file)) { console.log(`${path.relative(systemDir, file)} already exists.`); process.exit(1); }
+    const sorted = Object.fromEntries([...keys].sort(([a], [b]) => a.localeCompare(b)));
+    fs.writeFileSync(file, JSON.stringify(sorted, null, 2) + "\n");
+    console.log(`Created ${path.relative(systemDir, file)} with ${keys.size} English texts: translate the values,`);
+    console.log(`then add "${target}": "<name of the language>" to desktop/assets/locales/languages.json.`);
+  } else {
+    const dictionary = fs.existsSync(file) ? readJson(file) || {} : {};
+    const missing = [...keys].filter(([key]) => !Object.hasOwn(dictionary, key));
+    missing.forEach(([key, english]) => console.log(`${JSON.stringify(key)}: ${JSON.stringify(english)},`));
+    console.log(`${missing.length} key(s) missing in ${target}.json`);
+  }
+  process.exit(0);
+}
+
 const manifestFile = path.join(localesDir, "languages.json");
 const languages = readJson(manifestFile) || {};
 
@@ -66,8 +117,9 @@ for (const name of files) {
   for (const [key, value] of Object.entries(dictionary)) {
     if (!keys.has(key)) report("error", file, `"${key}" is not used by the system (typo, or translate the key instead of the value?)`);
     else if (typeof value !== "string" || !value.trim()) report("error", file, `"${key}" must be non-empty text`);
+    else if (placeholders(value) !== placeholders(keys.get(key))) report("error", file, `"${key}" must keep the placeholders of the English text: ${JSON.stringify(keys.get(key))}`);
   }
-  const missing = [...keys].filter(key => !Object.hasOwn(dictionary, key));
+  const missing = [...keys.keys()].filter(key => !Object.hasOwn(dictionary, key));
   missing.forEach(key => report("warning", file, `"${key}" is not translated yet (shown in English)`));
   console.log(`${code}: ${keys.size - missing.length}/${keys.size} keys translated`);
 }
