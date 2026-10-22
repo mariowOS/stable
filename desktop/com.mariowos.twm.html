@@ -17,6 +17,8 @@ Questions? https://discord.gg/YDVxw6jfbH
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -795,40 +797,40 @@ body.power-saver .qs-subpanel-header {
     <div class="status-left">
 
       <div class="btn-wrapper">
-        <button class="status-btn" id="actionsBtn" title="Menu">Activities</button>
+        <button class="status-btn" id="actionsBtn" title="Menu" data-i18n-title="twm.bar.menu" data-i18n="twm.bar.activities">Activities</button>
         <div class="dropdown" id="actionsDropdown">
           <a onclick="openPopup('popup6')">
-            <div class="dropdown-item" data-popup="popup6"><img src="assets/icons/messaging.png" class="menu-icon"> <span>Messaging</span></div>
+            <div class="dropdown-item" data-popup="popup6"><img src="assets/icons/messaging.png" class="menu-icon"> <span data-i18n="twm.app.messaging">Messaging</span></div>
           </a>
           <a onclick="openPopup('popup2')">
-            <div class="dropdown-item" data-popup="popup2"><img src="assets/icons/browser.png" class="menu-icon"> <span>Browser</span></div>
+            <div class="dropdown-item" data-popup="popup2"><img src="assets/icons/browser.png" class="menu-icon"> <span data-i18n="twm.app.browser">Browser</span></div>
           </a>
           <a onclick="openPopup('popup1')">
-            <div class="dropdown-item" data-popup="popup1"><img src="assets/icons/settings.png" class="menu-icon"> <span>Settings</span></div>
+            <div class="dropdown-item" data-popup="popup1"><img src="assets/icons/settings.png" class="menu-icon"> <span data-i18n="twm.app.settings">Settings</span></div>
           </a>
           <a onclick="openPopup('popup4')">
-            <div class="dropdown-item" data-popup="popup4"><img src="assets/icons/music.png" class="menu-icon"> <span>Music</span></div>
+            <div class="dropdown-item" data-popup="popup4"><img src="assets/icons/music.png" class="menu-icon"> <span data-i18n="twm.app.music">Music</span></div>
           </a>
           <a onclick="openPopup('popup7')">
-            <div class="dropdown-item" data-popup="popup7"><img src="assets/icons/store.png" class="menu-icon"> <span>Store</span></div>
+            <div class="dropdown-item" data-popup="popup7"><img src="assets/icons/store.png" class="menu-icon"> <span data-i18n="twm.app.store">Store</span></div>
           </a>
           <a onclick="openPopup('popup3')">
-            <div class="dropdown-item" data-popup="popup3"><img src="assets/icons/feedback.png" class="menu-icon"> <span>Help</span></div>
+            <div class="dropdown-item" data-popup="popup3"><img src="assets/icons/feedback.png" class="menu-icon"> <span data-i18n="twm.app.help">Help</span></div>
           </a>
           <a onclick="openPopup('popup5')">
-            <div class="dropdown-item" data-popup="popup5"><img src="assets/icons/notes.png" class="menu-icon"> <span>Notes</span></div>
+            <div class="dropdown-item" data-popup="popup5"><img src="assets/icons/notes.png" class="menu-icon"> <span data-i18n="twm.app.notes">Notes</span></div>
           </a>
           <a onclick="openPopup('popup8')">
-            <div class="dropdown-item" data-popup="popup8"><img src="assets/icons/terminal.png" class="menu-icon"> <span>Terminal</span></div>
+            <div class="dropdown-item" data-popup="popup8"><img src="assets/icons/terminal.png" class="menu-icon"> <span data-i18n="twm.app.terminal">Terminal</span></div>
           </a>
           <a onclick="openPopup('popup9')">
-            <div class="dropdown-item" data-popup="popup9"><img src="assets/icons/calculator.png" class="menu-icon"> <span>Calculator</span></div>
+            <div class="dropdown-item" data-popup="popup9"><img src="assets/icons/calculator.png" class="menu-icon"> <span data-i18n="twm.app.calculator">Calculator</span></div>
           </a>
           <a onclick="openPopup('popup12')">
-            <div class="dropdown-item" data-popup="popup12"><img src="assets/icons/pictures.svg" class="menu-icon"> <span>Pictures</span></div>
+            <div class="dropdown-item" data-popup="popup12"><img src="assets/icons/pictures.svg" class="menu-icon"> <span data-i18n="twm.app.pictures">Pictures</span></div>
           </a>
           <a onclick="openPopup('popup13')">
-            <div class="dropdown-item" data-popup="popup13"><img src="assets/icons/video.svg" class="menu-icon"> <span>Video Player</span></div>
+            <div class="dropdown-item" data-popup="popup13"><img src="assets/icons/video.svg" class="menu-icon"> <span data-i18n="twm.app.video-player">Video Player</span></div>
           </a>
         </div>
       </div>
@@ -837,19 +839,19 @@ body.power-saver .qs-subpanel-header {
         <button class="status-btn" id="contextBtn">···</button>
         <div class="dropdown" id="contextDropdown">
           <a href="com.mariowos.desktop.html">
-            <div class="dropdown-item"><span>Refresh desktop</span></div>
+            <div class="dropdown-item"><span data-i18n="twm.menu.refresh-desktop">Refresh desktop</span></div>
           </a>
         </div>
       </div>
 
       <div class="btn-wrapper">
-        <button class="status-btn" id="activitiesBtn" title="System Finder">Finder</button>
+        <button class="status-btn" id="activitiesBtn" title="System Finder" data-i18n-title="twm.bar.finder-title">Finder</button>
         <div class="dropdown activities" id="activitiesDropdown">
           <a href="com.mariowos.desktop.html">
-            <div class="dropdown-item"><span>Refresh desktop</span></div>
+            <div class="dropdown-item"><span data-i18n="twm.menu.refresh-desktop">Refresh desktop</span></div>
           </a>
           <a href="/loginui/com.mariowos.loginui.html">
-            <div class="dropdown-item"><span>Lock Screen</span></div>
+            <div class="dropdown-item"><span data-i18n="twm.menu.lock-screen">Lock Screen</span></div>
           </a>
         </div>
       </div>
@@ -860,7 +862,7 @@ body.power-saver .qs-subpanel-header {
     <div class="status-right">
       <span id="devChip" style="display:none;font-size:10px;background:var(--md-sys-color-primary);color:var(--md-sys-color-on-primary);border-radius:6px;padding:1px 6px;font-weight:600;">DEV</span>
       <div class="btn-wrapper">
-        <button class="notification" id="notificationsBtn" title="Notifications">
+        <button class="notification" id="notificationsBtn" title="Notifications" data-i18n-title="twm.bar.notifications">
           <svg viewBox="0 0 24 24">
             <path d="M12 22c1.1 0 2-.9 2-2h-4a2 2 0 002 2zm6-6V11c0-3.07-1.63-5.64-4.5-6.32V4a1.5 1.5 0 00-3 0v.68C7.63 5.36 6 7.92 6 11v5l-1.7 1.7A1 1 0 006 20h12a1 1 0 00.7-1.7L18 16z" />
           </svg>
@@ -882,7 +884,7 @@ body.power-saver .qs-subpanel-header {
             </div>
             <div class="qs-tile inactive" id="tileDnd" onclick="toggleQS('dnd')">
               <span class="material-symbols-outlined" id="iconDnd">do_not_disturb_on</span>
-              <span class="tile-title" id="titleDnd">Do Not Disturb</span>
+              <span class="tile-title" id="titleDnd" data-i18n="twm.qs.dnd">Do Not Disturb</span>
             </div>
             <div class="qs-tile active" id="tilePower" onclick="cyclePowerMode()">
               <span class="material-symbols-outlined" id="iconPower">battery_charging_full</span>
@@ -893,22 +895,22 @@ body.power-saver .qs-subpanel-header {
           <!-- Sub-panel Espandibile per Reti Wi-Fi -->
           <div class="qs-subpanel" id="panelWifi">
             <div class="qs-subpanel-header">
-              <span>Wi-Fi Networks</span>
+              <span data-i18n="twm.qs.wifi-networks">Wi-Fi Networks</span>
               <span class="material-symbols-outlined" onclick="toggleQS('wifi')" style="cursor:pointer; font-size:16px;">power_settings_new</span>
             </div>
             <div class="qs-subpanel-list" id="wifiList">
-              <div style="font-size:11px; color:#aaa; text-align:center;">Scanning networks...</div>
+              <div style="font-size:11px; color:#aaa; text-align:center;" data-i18n="twm.qs.scanning">Scanning networks...</div>
             </div>
           </div>
 
           <!-- Sub-panel Espandibile per Dispositivi Bluetooth -->
           <div class="qs-subpanel" id="panelBt">
             <div class="qs-subpanel-header">
-              <span>Bluetooth Devices</span>
+              <span data-i18n="twm.qs.bt-devices">Bluetooth Devices</span>
               <span class="material-symbols-outlined" onclick="toggleQS('bluetooth')" style="cursor:pointer; font-size:16px;">power_settings_new</span>
             </div>
             <div class="qs-subpanel-list" id="btList">
-              <div style="font-size:11px; color:#aaa; text-align:center;">Searching devices...</div>
+              <div style="font-size:11px; color:#aaa; text-align:center;" data-i18n="twm.qs.searching">Searching devices...</div>
             </div>
           </div>
 
@@ -920,7 +922,7 @@ body.power-saver .qs-subpanel-header {
               </div>
               <div class="device-chip">
                 <span class="material-symbols-outlined">smartphone</span>
-                <span>This phone</span>
+                <span data-i18n="twm.media.this-phone">This phone</span>
               </div>
             </div>
 
@@ -957,12 +959,12 @@ body.power-saver .qs-subpanel-header {
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.08); font-size: 11px; font-weight: 600; color: #888;">
-            <span>NOTIFICATIONS</span>
-            <span onclick="clearNotifications()" style="color: #3584e4; cursor: pointer;">Clear</span>
+            <span data-i18n="twm.notif.header">NOTIFICATIONS</span>
+            <span onclick="clearNotifications()" style="color: #3584e4; cursor: pointer;" data-i18n="twm.notif.clear">Clear</span>
           </div>
 
           <div id="notificationsList">
-            <div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;">No new notifications</div>
+            <div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;" data-i18n="twm.notif.empty">No new notifications</div>
           </div>
         </div>
       </div>
@@ -972,19 +974,19 @@ body.power-saver .qs-subpanel-header {
   <div id="toast-container"></div>
 
   <div id="popup1" class="popup">
-    <div class="popup-header"><span>Settings</span><span class="altf4" onclick="closePopup('popup1')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.settings">Settings</span><span class="altf4" onclick="closePopup('popup1')">✖</span></div>
     <iframe src="apps/settings/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup2" class="popup">
     <div class="popup-header" style="gap: 8px;">
-      <span style="white-space: nowrap; font-size: 12px; flex-shrink: 0;">Browser</span>
+      <span style="white-space: nowrap; font-size: 12px; flex-shrink: 0;" data-i18n="twm.app.browser">Browser</span>
       <div style="display: flex; align-items: center; gap: 5px; flex: 1;">
-        <button class="browser-nav-btn" onclick="browserNav('back')" title="Back">‹</button>
-        <button class="browser-nav-btn" onclick="browserNav('fwd')" title="Forward">›</button>
-        <button class="browser-nav-btn" onclick="browserNav('reload')" title="Reload">↺</button>
-        <input id="browserUrl" type="text" placeholder="Search with Google or enter a URL..." onkeydown="if(event.key==='Enter') openAdvancedSearch(this.value)" />
-        <button class="browser-nav-btn" onclick="openAdvancedSearch(document.getElementById('browserUrl').value)" title="Advanced Search">⚙</button>
+        <button class="browser-nav-btn" onclick="browserNav('back')" title="Back" data-i18n-title="common.back">‹</button>
+        <button class="browser-nav-btn" onclick="browserNav('fwd')" title="Forward" data-i18n-title="twm.browser.forward">›</button>
+        <button class="browser-nav-btn" onclick="browserNav('reload')" title="Reload" data-i18n-title="twm.browser.reload">↺</button>
+        <input id="browserUrl" type="text" placeholder="Search with Google or enter a URL..." data-i18n-placeholder="twm.browser.url-placeholder" onkeydown="if(event.key==='Enter') openAdvancedSearch(this.value)" />
+        <button class="browser-nav-btn" onclick="openAdvancedSearch(document.getElementById('browserUrl').value)" title="Advanced Search" data-i18n-title="twm.browser.advanced-search">⚙</button>
       </div>
       <span class="altf4" onclick="closePopup('popup2')" style="flex-shrink: 0;">✖</span>
     </div>
@@ -992,78 +994,78 @@ body.power-saver .qs-subpanel-header {
   </div>
 
   <div id="popupAdvancedSearch" class="popup" style="width: 600px; height: auto; max-height: 500px;">
-    <div class="popup-header"><span>Where to next?</span><span class="altf4" onclick="closePopup('popupAdvancedSearch')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.search.title">Where to next?</span><span class="altf4" onclick="closePopup('popupAdvancedSearch')">✖</span></div>
     <div class="popup-content" style="padding: 20px;">
       <form id="advancedSearchForm" onsubmit="performAdvancedSearch(event)">
         <div style="margin-bottom: 20px;">
-          <label for="advSearchQuery" style="display: block; margin-bottom: 8px; font-weight: 500;">Where to next?</label>
-          <input type="text" id="advSearchQuery" placeholder="Enter search term..." style="width: 100%; padding: 10px; background: rgba(255,255,255,.1); border: 1px solid #3a3a3a; border-radius: 5px; color: #fff; font-family: 'Poppins'; box-sizing: border-box;" />
+          <label for="advSearchQuery" style="display: block; margin-bottom: 8px; font-weight: 500;" data-i18n="twm.search.title">Where to next?</label>
+          <input type="text" id="advSearchQuery" placeholder="Enter search term..." data-i18n-placeholder="twm.search.placeholder" style="width: 100%; padding: 10px; background: rgba(255,255,255,.1); border: 1px solid #3a3a3a; border-radius: 5px; color: #fff; font-family: 'Poppins'; box-sizing: border-box;" />
         </div>
         <div style="margin-bottom: 20px;">
-          <p style="margin: 0 0 12px 0; font-weight: 500;">Search type:</p>
+          <p style="margin: 0 0 12px 0; font-weight: 500;" data-i18n="twm.search.type">Search type:</p>
           <div style="display: flex; flex-direction: column; gap: 10px;">
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="web" checked /><span>🌐 Web</span></label>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="images" /><span>🖼️ Images</span></label>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="news" /><span>📰 News</span></label>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="videos" /><span>🎥 Videos</span></label>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="books" /><span>📚 Books</span></label>
-            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="shopping" /><span>🛒 Shopping</span></label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="web" checked /><span>🌐 <span data-i18n="twm.search.web">Web</span></span></label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="images" /><span>🖼️ <span data-i18n="twm.search.images">Images</span></span></label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="news" /><span>📰 <span data-i18n="twm.search.news">News</span></span></label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="videos" /><span>🎥 <span data-i18n="twm.search.videos">Videos</span></span></label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="books" /><span>📚 <span data-i18n="twm.search.books">Books</span></span></label>
+            <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="radio" name="searchType" value="shopping" /><span>🛒 <span data-i18n="twm.search.shopping">Shopping</span></span></label>
           </div>
         </div>
         <div style="margin-bottom: 20px;">
-          <p style="margin: 0 0 12px 0; font-weight: 500;">Advanced options:</p>
-          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="checkbox" id="safeSearch" /><span>Safe Search</span></label>
+          <p style="margin: 0 0 12px 0; font-weight: 500;" data-i18n="twm.search.advanced-options">Advanced options:</p>
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer;"><input type="checkbox" id="safeSearch" /><span data-i18n="twm.search.safe-search">Safe Search</span></label>
         </div>
         <div style="display: flex; gap: 10px; justify-content: flex-end;">
-          <button type="button" onclick="closePopup('popupAdvancedSearch')" style="padding: 8px 16px; background: rgba(255,255,255,.1); border: 1px solid #3a3a3a; border-radius: 5px; color: #fff; cursor: pointer; font-family: 'Poppins';">Cancel</button>
-          <button type="submit" style="padding: 8px 16px; background: rgba(100,200,255,.6); border: none; border-radius: 5px; color: #fff; cursor: pointer; font-family: 'Poppins'; font-weight: 500;">Search on Google</button>
+          <button type="button" onclick="closePopup('popupAdvancedSearch')" style="padding: 8px 16px; background: rgba(255,255,255,.1); border: 1px solid #3a3a3a; border-radius: 5px; color: #fff; cursor: pointer; font-family: 'Poppins';" data-i18n="common.cancel">Cancel</button>
+          <button type="submit" style="padding: 8px 16px; background: rgba(100,200,255,.6); border: none; border-radius: 5px; color: #fff; cursor: pointer; font-family: 'Poppins'; font-weight: 500;" data-i18n="twm.search.submit">Search on Google</button>
         </div>
       </form>
     </div>
   </div>
 
   <div id="popup3" class="popup">
-    <div class="popup-header"><span>Help</span><span class="altf4" onclick="closePopup('popup3')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.help">Help</span><span class="altf4" onclick="closePopup('popup3')">✖</span></div>
     <iframe src="apps/help/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup4" class="popup">
-    <div class="popup-header"><span>Music</span><span class="altf4" onclick="closePopup('popup4')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.music">Music</span><span class="altf4" onclick="closePopup('popup4')">✖</span></div>
     <iframe src="apps/music/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup5" class="popup">
-    <div class="popup-header"><span>Notes</span><span class="altf4" onclick="closePopup('popup5')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.notes">Notes</span><span class="altf4" onclick="closePopup('popup5')">✖</span></div>
     <iframe src="apps/notes/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup6" class="popup">
-    <div class="popup-header"><span>Messaging</span><span class="altf4" onclick="closePopup('popup6')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.messaging">Messaging</span><span class="altf4" onclick="closePopup('popup6')">✖</span></div>
     <iframe src="https://organizations.minnit.chat/744784529789521/c/Main?embed" class="popup-frame" id="chattable"></iframe>
   </div>
 
   <div id="popup7" class="popup">
-    <div class="popup-header"><span>Store</span><span class="altf4" onclick="closePopup('popup7')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.store">Store</span><span class="altf4" onclick="closePopup('popup7')">✖</span></div>
     <iframe src="apps/store/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup8" class="popup">
-    <div class="popup-header"><span>Terminal</span><span class="altf4" onclick="closePopup('popup8')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.terminal">Terminal</span><span class="altf4" onclick="closePopup('popup8')">✖</span></div>
     <iframe src="apps/terminal/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup9" class="popup" style="width: 400px; height: 550px;">
-    <div class="popup-header"><span>Calculator</span><span class="altf4" onclick="closePopup('popup9')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.calculator">Calculator</span><span class="altf4" onclick="closePopup('popup9')">✖</span></div>
     <iframe src="apps/calculator/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup12" class="popup">
-    <div class="popup-header"><span>Pictures</span><span class="altf4" onclick="closePopup('popup12')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.pictures">Pictures</span><span class="altf4" onclick="closePopup('popup12')">✖</span></div>
     <iframe src="apps/pictures/index.html" class="popup-frame"></iframe>
   </div>
 
   <div id="popup13" class="popup">
-    <div class="popup-header"><span>Video Player</span><span class="altf4" onclick="closePopup('popup13')">✖</span></div>
+    <div class="popup-header"><span data-i18n="twm.app.video-player">Video Player</span><span class="altf4" onclick="closePopup('popup13')">✖</span></div>
     <iframe src="apps/videoplayer/index.html" class="popup-frame"></iframe>
   </div>
 
@@ -1166,8 +1168,8 @@ body.power-saver .qs-subpanel-header {
       tileWifi.className = `qs-tile ${qsState.wifi ? 'active' : 'inactive'}`;
       document.getElementById("iconWifi").textContent = qsState.wifi ? "wifi" : "wifi_off";
       document.getElementById("titleWifi").textContent = qsState.wifi 
-        ? (qsState.connectedWifi || "Internet") 
-        : "Off";
+        ? (qsState.connectedWifi === "Disconnected" ? mariowOSI18n.t("twm.qs.disconnected", "Disconnected") : (qsState.connectedWifi || mariowOSI18n.t("twm.qs.internet", "Internet"))) 
+        : mariowOSI18n.t("twm.qs.off", "Off");
 
       // Bluetooth
       const tileBt = document.getElementById("tileBt");
@@ -1175,7 +1177,7 @@ body.power-saver .qs-subpanel-header {
       document.getElementById("iconBt").textContent = qsState.bluetooth ? "bluetooth" : "bluetooth_disabled";
       document.getElementById("titleBt").textContent = qsState.bluetooth 
         ? (qsState.connectedBt || "Bluetooth") 
-        : "Off";
+        : mariowOSI18n.t("twm.qs.off", "Off");
 
       // DND
       const tileDnd = document.getElementById("tileDnd");
@@ -1187,7 +1189,12 @@ body.power-saver .qs-subpanel-header {
       const titlePower = document.getElementById("titlePower");
       const iconPower = document.getElementById("iconPower");
 
-      titlePower.textContent = qsState.powerMode;
+      const powerLabels = {
+        "Balanced": mariowOSI18n.t("twm.power.balanced", "Balanced"),
+        "Performance": mariowOSI18n.t("twm.power.performance", "Performance"),
+        "Battery Saver": mariowOSI18n.t("twm.power.battery-saver", "Battery Saver")
+      };
+      titlePower.textContent = powerLabels[qsState.powerMode] || qsState.powerMode;
       if (qsState.powerMode === "Performance") {
         tilePower.className = "qs-tile active";
         iconPower.textContent = "bolt";
@@ -1271,7 +1278,7 @@ function cyclePowerMode() {
           renderQuickSettings();
 
           if (data.networks.length === 0) {
-            listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No Wi-Fi networks found</div>`;
+            listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">${mariowOSI18n.t("twm.qs.no-wifi", "No Wi-Fi networks found")}</div>`;
             return;
           }
 
@@ -1292,13 +1299,13 @@ function cyclePowerMode() {
             left.append(icon, name);
             const sig = document.createElement('span');
             sig.style.fontSize = '11px';
-            sig.textContent = net.connected ? 'Connected' : (net.signal + '%');
+            sig.textContent = net.connected ? mariowOSI18n.t("twm.qs.connected", "Connected") : (net.signal + '%');
             item.append(left, sig);
             listContainer.appendChild(item);
           });
         }
       } catch (err) {
-        listContainer.innerHTML = `<div style="font-size:11px; color:#ff6b6b; text-align:center;">Failed to scan Wi-Fi</div>`;
+        listContainer.innerHTML = `<div style="font-size:11px; color:#ff6b6b; text-align:center;">${mariowOSI18n.t("twm.qs.wifi-failed", "Failed to scan Wi-Fi")}</div>`;
       }
     }
 
@@ -1315,7 +1322,7 @@ function cyclePowerMode() {
           qsState.wifi = true;
           renderQuickSettings();
           fetchNetworks();
-          showNotification("Wi-Fi Connected", `Connected to ${ssid}`, "📶");
+          showNotification(mariowOSI18n.t("twm.toast.wifi-connected", "Wi-Fi Connected"), mariowOSI18n.t("twm.toast.connected-to", "Connected to {name}", { name: ssid }), "📶");
         }
       } catch (err) { console.error("Error connecting wifi:", err); }
     }
@@ -1331,7 +1338,7 @@ function cyclePowerMode() {
           renderQuickSettings();
 
           if (data.devices.length === 0) {
-            listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No Bluetooth devices found</div>`;
+            listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">${mariowOSI18n.t("twm.qs.no-bt", "No Bluetooth devices found")}</div>`;
             return;
           }
 
@@ -1353,13 +1360,13 @@ function cyclePowerMode() {
             left.append(icon, name);
             const status = document.createElement('span');
             status.style.fontSize = '11px';
-            status.textContent = dev.connected ? 'Connected' : 'Saved';
+            status.textContent = dev.connected ? mariowOSI18n.t("twm.qs.connected", "Connected") : mariowOSI18n.t("twm.qs.saved", "Saved");
             item.append(left, status);
             listContainer.appendChild(item);
           });
         }
       } catch (err) {
-        listContainer.innerHTML = `<div style="font-size:11px; color:#ff6b6b; text-align:center;">Failed to find Bluetooth devices</div>`;
+        listContainer.innerHTML = `<div style="font-size:11px; color:#ff6b6b; text-align:center;">${mariowOSI18n.t("twm.qs.bt-failed", "Failed to find Bluetooth devices")}</div>`;
       }
     }
 
@@ -1376,7 +1383,7 @@ function cyclePowerMode() {
           qsState.bluetooth = true;
           renderQuickSettings();
           fetchBtDevices();
-          showNotification("Bluetooth", data.connectedBt ? `Connected to ${name}` : `Disconnected ${name}`, "🎧");
+          showNotification("Bluetooth", data.connectedBt ? mariowOSI18n.t("twm.toast.connected-to", "Connected to {name}", { name }) : mariowOSI18n.t("twm.toast.disconnected", "Disconnected {name}", { name }), "🎧");
         }
       } catch (err) { console.error("Error connecting BT:", err); }
     }
@@ -1398,7 +1405,7 @@ function cyclePowerMode() {
         setTimeout(() => toast.remove(), 200);
       }, 4000);
 
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const time = new Date().toLocaleTimeString(mariowOSI18n.locale, { hour: '2-digit', minute: '2-digit' });
       notificationsHistory.unshift({ title, msg, icon, time });
       if (notificationsHistory.length > 10) notificationsHistory.pop();
 
@@ -1414,7 +1421,7 @@ function cyclePowerMode() {
         if (banner && banner.style.display === 'flex') {
           list.innerHTML = '';
         } else {
-          list.innerHTML = `<div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;">No new notifications</div>`;
+          list.innerHTML = `<div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;" data-i18n="twm.notif.empty">No new notifications</div>`;
         }
         badge.style.display = 'none';
         return;
@@ -1500,11 +1507,11 @@ function cyclePowerMode() {
           return a;
         };
         contextDropdown.replaceChildren();
-        contextDropdown.appendChild(mkLink(`Quit ${appName == null ? '' : appName}`, () => closePopup(topPopup.id), '#ff6b6b'));
-        if (topPopup.querySelector('iframe')) contextDropdown.appendChild(mkLink('Reload App', () => reloadPopupIframe(topPopup.id)));
+        contextDropdown.appendChild(mkLink(mariowOSI18n.t("twm.menu.quit", "Quit {app}", { app: appName == null ? '' : appName }), () => closePopup(topPopup.id), '#ff6b6b'));
+        if (topPopup.querySelector('iframe')) contextDropdown.appendChild(mkLink(mariowOSI18n.t("twm.menu.reload-app", "Reload App"), () => reloadPopupIframe(topPopup.id)));
       } else {
         contextBtn.innerText = "···";
-        contextDropdown.innerHTML = `<a href="com.mariowos.desktop.html"><div class="dropdown-item"><span>Refresh desktop</span></div></a>`;
+        contextDropdown.innerHTML = `<a href="com.mariowos.desktop.html"><div class="dropdown-item"><span data-i18n="twm.menu.refresh-desktop">Refresh desktop</span></div></a>`;
       }
     }
 
@@ -1687,6 +1694,12 @@ function cyclePowerMode() {
       }
       const d = new Date(utcMs);
       let h = d.getUTCHours(), m = d.getUTCMinutes();
+      if (mariowOSI18n.locale) {
+        const opts = { timeZone: "UTC" };
+        document.getElementById("center-clock").textContent =
+          `${d.toLocaleDateString(mariowOSI18n.locale, { ...opts, weekday: "long", day: "numeric", month: "long" })}, ${d.toLocaleTimeString(mariowOSI18n.locale, { ...opts, hour: "2-digit", minute: "2-digit" })}`;
+        return;
+      }
       const ampm = h >= 12 ? "PM" : "AM";
       h = h % 12 || 12;
       m = m < 10 ? "0" + m : m;
@@ -1767,7 +1780,7 @@ function cyclePowerMode() {
           const popupDiv = buildInstalledAppEntry(app, dropdown);
           document.body.appendChild(popupDiv);
 
-          showNotification("App Installata", `${app.title} è pronta all'uso!`, app.icon);
+          showNotification(mariowOSI18n.t("twm.toast.app-installed", "App installed"), mariowOSI18n.t("twm.toast.app-installed-msg", "{title} is ready to use!", { title: app.title }), app.icon);
         }
       }
 
@@ -1786,7 +1799,7 @@ function cyclePowerMode() {
           setTimeout(() => popupDiv.remove(), 200);
         }
 
-        showNotification("App Rimossa", "L'applicazione è stata disinstallata.", "🗑️");
+        showNotification(mariowOSI18n.t("twm.toast.app-removed", "App removed"), mariowOSI18n.t("twm.toast.app-removed-msg", "The app has been uninstalled."), "🗑️");
       }
 
       if (e.data.type === "load-youafter") {
@@ -1899,6 +1912,8 @@ function cyclePowerMode() {
         console.error("Errore durante il caricamento delle app:", error);
       }
     }
+
+    renderQuickSettings();
 
     window.addEventListener("DOMContentLoaded", () => {
       applyUserWallpaper();
