@@ -3,6 +3,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
   <meta charset="UTF-8">
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
@@ -47,7 +49,7 @@
   </div>
 
   <div class="panel" id="networksPanel">
-    <div class="row"><div class="subtitle">Scanning for networks…</div></div>
+    <div class="row"><div class="subtitle" data-i18n="settings.wifi.scanning">Scanning for networks…</div></div>
   </div>
 
   <script>
@@ -57,7 +59,7 @@
       document.getElementById('wifiToggle').checked = qs.wifi;
 
       if (!qs.wifi) {
-        document.getElementById('networksPanel').innerHTML = `<div class="row"><div class="subtitle">Wi-Fi is disabled.</div></div>`;
+        document.getElementById('networksPanel').innerHTML = `<div class="row"><div class="subtitle">${mariowOSI18n.t("settings.wifi.disabled", "Wi-Fi is disabled.")}</div></div>`;
         return;
       }
 
@@ -91,7 +93,7 @@
                   <span class="material-symbols-outlined" style="color: ${net.connected ? '#0a84ff' : 'white'}">wifi</span>
                   <div>
                     <div class="title" style="color: ${net.connected ? '#0a84ff' : 'white'}">${net.ssid}</div>
-                    <div class="subtitle" id="status-${safeId}">${net.connected ? 'Connected' : ''}</div>
+                    <div class="subtitle" id="status-${safeId}">${net.connected ? mariowOSI18n.t("settings.wifi.connected", "Connected") : ''}</div>
                   </div>
                 </div>
                 ${net.secured ? '<span class="material-symbols-outlined" style="font-size: 18px; color: rgba(255,255,255,0.3);">lock</span>' : ''}
@@ -101,17 +103,17 @@
             if (net.secured) {
               html += `
                 <div class="pwd-dropdown" id="pwd-${safeId}">
-                  <input type="password" id="input-${safeId}" placeholder="Enter password for ${net.ssid}" onkeydown="if(event.key === 'Enter') doConnect('${safeId}', '${net.ssid}')">
-                  <button onclick="doConnect('${safeId}', '${net.ssid}')">Join</button>
+                  <input type="password" id="input-${safeId}" placeholder="${mariowOSI18n.t("settings.wifi.password-for", "Enter password for {network}", { network: net.ssid })}" onkeydown="if(event.key === 'Enter') doConnect('${safeId}', '${net.ssid}')">
+                  <button onclick="doConnect('${safeId}', '${net.ssid}')">${mariowOSI18n.t("settings.wifi.join", "Join")}</button>
                 </div>
               `;
             }
           });
         } else {
-          html = `<div class="row"><div class="subtitle">No networks found.</div></div>`;
+          html = `<div class="row"><div class="subtitle">${mariowOSI18n.t("settings.wifi.no-networks", "No networks found.")}</div></div>`;
         }
       } else {
-        html = `<div class="row"><div class="subtitle">No networks found.</div></div>`;
+        html = `<div class="row"><div class="subtitle">${mariowOSI18n.t("settings.wifi.no-networks", "No networks found.")}</div></div>`;
       }
       document.getElementById('networksPanel').innerHTML = html;
     }
@@ -147,7 +149,7 @@
 
       const statusEl = document.getElementById(`status-${safeId}`);
       if (statusEl) {
-        statusEl.innerText = "Connecting…";
+        statusEl.innerText = mariowOSI18n.t("settings.wifi.connecting", "Connecting…");
         statusEl.style.color = "rgba(255,255,255,0.5)";
       }
 

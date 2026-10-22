@@ -5,8 +5,10 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
   <meta charset="UTF-8">
-  <title>Settings</title>
+  <title data-i18n="common.settings">Settings</title>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
 
@@ -136,8 +138,8 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
     <div class="profile-banner menu-item" onclick="loadPage('you', this)">
       <img src="/desktop/assets/avatar.user.png" class="profile-avatar" id="sidebarAvatar" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTEyIDJDMiAxMiA2LjQ4IDEyIDEyIDEyIDEyczEwLTQuNDggMTAtMTAgMTAuNDgtMTAgMTItMTB6IiBvcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNMTIgMTJjMi4yMSAwIDQtMS43OSA0LTRzLTEuNzktNC00LTQtNCAxLjc5LTQgNCAxLjc5IDQgNCA0em0wIDJjLTIuNjcgMC04IDEuMzQtOCA0djJoMTZ2LTJjMC0yLjY2LTUuMzMtNC04LTR6Ii8+PC9zdmc+'">
       <div class="text-group">
-        <div class="title" id="sidebarUsername">mariowOS User</div>
-        <div class="subtitle" id="sidebarEmail">mariowOS Account</div>
+        <div class="title" id="sidebarUsername" data-i18n="settings.you.default-name">mariowOS User</div>
+        <div class="subtitle" id="sidebarEmail" data-i18n="settings.you.default-account">mariowOS Account</div>
       </div>
     </div>
 
@@ -254,8 +256,6 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
 
   <div class="content" id="content"></div>
 
-<script src="/desktop/assets/i18n-data.js"></script>
-<script src="/desktop/assets/i18n.js"></script>
 <script>
   function censorEmail(email) {
     if (!email || !email.includes('@')) return email;
@@ -409,13 +409,13 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
     overlay.innerHTML = `
       <div style="background:rgba(30,30,30,0.8);border:1px solid rgba(255,255,255,0.1);padding:24px;border-radius:14px;width:280px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-family:'Poppins',sans-serif;color:white;">
         <div style="margin-bottom:12px;"><span class="material-symbols-outlined" style="font-size:32px;color:#0a84ff;">lock</span></div>
-        <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:500;">Authentication Required</h3>
-        <p style="margin:0 0 20px 0;font-size:12px;color:rgba(255,255,255,0.6);">Enter your password to proceed.</p>
-        <input type="password" id="auth-pwd" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:white;margin-bottom:12px;box-sizing:border-box;outline:none;font-family:inherit;" placeholder="Password">
-        <div style="color:#ff453a;font-size:12px;margin-bottom:12px;display:none;" id="auth-err">Incorrect password</div>
+        <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:500;">${mariowOSI18n.t("settings.auth.title", "Authentication Required")}</h3>
+        <p style="margin:0 0 20px 0;font-size:12px;color:rgba(255,255,255,0.6);">${mariowOSI18n.t("settings.auth.message", "Enter your password to proceed.")}</p>
+        <input type="password" id="auth-pwd" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:white;margin-bottom:12px;box-sizing:border-box;outline:none;font-family:inherit;" placeholder="${mariowOSI18n.t("settings.auth.password", "Password")}">
+        <div style="color:#ff453a;font-size:12px;margin-bottom:12px;display:none;" id="auth-err">${mariowOSI18n.t("settings.auth.incorrect", "Incorrect password")}</div>
         <div style="display:flex;gap:10px;">
-          <button id="auth-cancel" style="flex:1;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:white;cursor:pointer;font-family:inherit;">Cancel</button>
-          <button id="auth-ok" style="flex:1;padding:8px;border-radius:8px;border:none;background:#0a84ff;color:white;cursor:pointer;font-family:inherit;">Verify</button>
+          <button id="auth-cancel" style="flex:1;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:white;cursor:pointer;font-family:inherit;">${mariowOSI18n.t("common.cancel", "Cancel")}</button>
+          <button id="auth-ok" style="flex:1;padding:8px;border-radius:8px;border:none;background:#0a84ff;color:white;cursor:pointer;font-family:inherit;">${mariowOSI18n.t("settings.auth.verify", "Verify")}</button>
         </div>
       </div>
     `;

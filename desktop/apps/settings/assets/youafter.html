@@ -3,9 +3,11 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>User Account</title>
+<title data-i18n="settings.you.account-title">User Account</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -122,17 +124,17 @@ html::-webkit-scrollbar {
 <div class="container">
   <div class="account-card">
     <div class="account-info">
-      <span class="label">Username</span>
+      <span class="label" data-i18n="settings.you.username">Username</span>
       <span class="value" id="u-username">—</span>
     </div>
     <div class="account-info">
-      <span class="label">Email</span>
+      <span class="label" data-i18n="settings.you.email">Email</span>
       <span class="value" id="u-email">—</span>
     </div>
 
     <div class="button-group">
-      <button onclick="resetAvatar()">Reset Avatar</button>
-      <button class="secondary" onclick="clearSettings()">Reset Settings</button>
+      <button onclick="resetAvatar()" data-i18n="settings.you.reset-avatar">Reset Avatar</button>
+      <button class="secondary" onclick="clearSettings()" data-i18n="settings.system.reset-settings">Reset Settings</button>
     </div>
   </div>
 </div>
@@ -161,25 +163,25 @@ function editSettings() {
 }
 
 async function resetAvatar() {
-  if (!confirm('Are you sure you want to reset your avatar to default?')) return;
+  if (!confirm(mariowOSI18n.t("settings.you.reset-avatar-confirm", "Are you sure you want to reset your avatar to default?"))) return;
 
   try {
     const r = await fetch('/reset-avatar', { method: 'POST' });
     if (!r.ok) throw new Error('Network');
     const data = await r.json();
     if (data.success) {
-      alert('Avatar reset to default successfully!');
+      alert(mariowOSI18n.t("settings.you.reset-avatar-done", "Avatar reset to default successfully!"));
     } else {
-      alert('Error resetting avatar: ' + (data.error || 'unknown'));
+      alert(mariowOSI18n.t("settings.you.reset-avatar-error", "Error resetting avatar: {message}", { message: data.error || mariowOSI18n.t("settings.you.unknown", "unknown") }));
     }
   } catch (e) {
     console.error('resetAvatar failed', e);
-    alert('Network error while resetting avatar');
+    alert(mariowOSI18n.t("settings.you.reset-avatar-network", "Network error while resetting avatar"));
   }
 }
 
 async function clearSettings() {
-  if (!confirm('Are you sure you want to reset your settings?')) return;
+  if (!confirm(mariowOSI18n.t("settings.you.reset-settings-confirm", "Are you sure you want to reset your settings?"))) return;
 
   try {
     const r = await fetch('/clear-settings', { method: 'POST' });
@@ -188,11 +190,11 @@ async function clearSettings() {
     if (data.success) {
       window.location.href = 'you.html';
     } else {
-      alert('Error resetting settings: ' + (data.error || 'unknown'));
+      alert(mariowOSI18n.t("settings.you.reset-settings-error", "Error resetting settings: {message}", { message: data.error || mariowOSI18n.t("settings.you.unknown", "unknown") }));
     }
   } catch (e) {
     console.error('clearSettings failed', e);
-    alert('Network error while resetting settings');
+    alert(mariowOSI18n.t("settings.you.reset-settings-network", "Network error while resetting settings"));
   }
 }
 </script>
