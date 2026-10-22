@@ -5,9 +5,11 @@ Licensed under the Apache License, Version 2.0
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/desktop/assets/i18n-data.js"></script>
+<script src="/desktop/assets/i18n.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Player</title>
+<title data-i18n="video.title">Video Player</title>
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
 <style>
   :root {
@@ -79,10 +81,10 @@ Licensed under the Apache License, Version 2.0
 </head>
 <body>
   <div class="topbar">
-    <span class="title" id="title">Video Player</span>
-    <button class="ib" id="btnPrev" title="Previous"><span class="material-symbols-outlined">skip_previous</span></button>
-    <button class="ib" id="btnNext" title="Next"><span class="material-symbols-outlined">skip_next</span></button>
-    <button class="ib" id="btnOpen" title="Open video(s)"><span class="material-symbols-outlined">folder_open</span></button>
+    <span class="title" id="title"></span>
+    <button class="ib" id="btnPrev" title="Previous" data-i18n-title="video.previous"><span class="material-symbols-outlined">skip_previous</span></button>
+    <button class="ib" id="btnNext" title="Next" data-i18n-title="video.next"><span class="material-symbols-outlined">skip_next</span></button>
+    <button class="ib" id="btnOpen" title="Open video(s)" data-i18n-title="video.open-videos"><span class="material-symbols-outlined">folder_open</span></button>
   </div>
 
   <div class="stage" id="stage">
@@ -90,26 +92,26 @@ Licensed under the Apache License, Version 2.0
     <button class="center-play" id="centerPlay"><span class="material-symbols-outlined">play_arrow</span></button>
     <div class="empty" id="empty">
       <span class="material-symbols-outlined">movie</span>
-      <h2>No video open</h2>
-      <p>Open a video to play it, or drag a video file anywhere into this window.</p>
-      <button class="open-btn" id="emptyOpen"><span class="material-symbols-outlined" style="font-size:18px;">folder_open</span> Open video</button>
+      <h2 data-i18n="video.empty.title">No video open</h2>
+      <p data-i18n="video.empty.text">Open a video to play it, or drag a video file anywhere into this window.</p>
+      <button class="open-btn" id="emptyOpen"><span class="material-symbols-outlined" style="font-size:18px;">folder_open</span> <span data-i18n="video.empty.open">Open video</span></button>
     </div>
-    <div class="drophint">Drop to play</div>
+    <div class="drophint" data-i18n="video.drop">Drop to play</div>
   </div>
 
   <div class="controls" id="controls">
     <div class="seek"><input type="range" id="seek" min="0" max="1000" value="0" step="1"></div>
     <div class="row">
-      <button class="ib" id="btnPlay" title="Play/Pause (Space)"><span class="material-symbols-outlined">play_arrow</span></button>
+      <button class="ib" id="btnPlay" title="Play/Pause (Space)" data-i18n-title="video.play-pause"><span class="material-symbols-outlined">play_arrow</span></button>
       <span class="time" id="time">0:00 / 0:00</span>
       <div class="vol">
-        <button class="ib" id="btnMute" title="Mute (M)"><span class="material-symbols-outlined">volume_up</span></button>
+        <button class="ib" id="btnMute" title="Mute (M)" data-i18n-title="video.mute"><span class="material-symbols-outlined">volume_up</span></button>
         <input type="range" id="vol" min="0" max="1" step="0.01" value="1">
       </div>
       <span class="spring"></span>
-      <button class="rate" id="btnRate" title="Playback speed">1x</button>
-      <button class="ib" id="btnPip" title="Picture in picture"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>
-      <button class="ib" id="btnFull" title="Fullscreen (F)"><span class="material-symbols-outlined">fullscreen</span></button>
+      <button class="rate" id="btnRate" title="Playback speed" data-i18n-title="video.speed">1x</button>
+      <button class="ib" id="btnPip" title="Picture in picture" data-i18n-title="video.pip"><span class="material-symbols-outlined">picture_in_picture_alt</span></button>
+      <button class="ib" id="btnFull" title="Fullscreen (F)" data-i18n-title="video.fullscreen"><span class="material-symbols-outlined">fullscreen</span></button>
     </div>
   </div>
 
@@ -120,6 +122,7 @@ Licensed under the Apache License, Version 2.0
   const $ = id => document.getElementById(id);
   const video = $('video'), stage = $('stage'), empty = $('empty'), controls = $('controls'),
         centerPlay = $('centerPlay'), fileInput = $('fileInput');
+  $('title').textContent = mariowOSI18n.t("video.title", "Video Player");
   let items = [];     // { url, name }
   let index = -1;
   const RATES = [0.5, 1, 1.25, 1.5, 2];
@@ -153,7 +156,7 @@ Licensed under the Apache License, Version 2.0
     const it = items[i];
     $('title').textContent = '';
     const b = document.createElement('b'); b.textContent = it.name;
-    $('title').append(b, document.createTextNode(items.length > 1 ? `  ·  ${i + 1} of ${items.length}` : ''));
+    $('title').append(b, document.createTextNode(items.length > 1 ? '  ·  ' + mariowOSI18n.t("video.position", "{current} of {total}", { current: i + 1, total: items.length }) : ''));
     $('btnPrev').style.display = items.length > 1 ? '' : 'none';
     $('btnNext').style.display = items.length > 1 ? '' : 'none';
   }
