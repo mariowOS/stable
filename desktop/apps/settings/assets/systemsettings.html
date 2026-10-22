@@ -160,7 +160,6 @@
         <select id="languageSelect" class="language-select" aria-label="Language" data-i18n-title="general.language">
           <option value="auto" data-i18n="general.language.auto">Automatic</option>
           <option value="en">English</option>
-          <option value="it">Italiano</option>
         </select>
       </div>
 
@@ -243,9 +242,16 @@
 
 <script src="/desktop/assets/i18n.js"></script>
 <script>
-// Language: saved in the system settings, then Settings reloads in the new language.
+// Language: the choices come from /desktop/assets/locales/languages.json; the pick is
+// saved in the system settings, then Settings reloads in the new language.
 const languageSelect = document.getElementById('languageSelect');
-fetch('/get-settings').then(r => r.json()).then(settings => { languageSelect.value = settings.language || 'en'; }).catch(() => {});
+mariowOSI18n.ready.then(async () => {
+  Object.entries(mariowOSI18n.languages).forEach(([code, name]) => {
+    if (code === 'en') return;
+    languageSelect.add(new Option(name, code));
+  });
+  try { languageSelect.value = (await (await fetch('/get-settings')).json()).language || 'en'; } catch (e) {}
+});
 languageSelect.addEventListener('change', async () => {
   try {
     const response = await fetch('/save-settings', {

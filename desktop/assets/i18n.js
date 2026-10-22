@@ -2,20 +2,22 @@
 //
 // Mark text in HTML with data-i18n="key" (also data-i18n-placeholder / data-i18n-title).
 // English stays written in the HTML and is the fallback; other languages live in
-// /desktop/assets/locales/<lang>.json as { "key": "translation" }. In scripts, use
+// /desktop/assets/locales/<lang>.json as { "key": "translation" }, and are listed in
+// /desktop/assets/locales/languages.json ({ "<lang>": "Native name" }). In scripts, use
 // mariowOSI18n.t("key", "English text"). The language is Settings › General › Language
-// (default English; "auto" follows the computer's language).
+// (default English; "auto" follows the computer's language). See TRANSLATING.md.
 (function () {
-  const SUPPORTED = ["en", "it"];
+  let languages = { en: "English" };
   let dictionary = {};
   let language = "en";
 
   // English unless the user picked a language; "auto" (opt-in) follows the computer.
   function resolve(preference) {
-    if (SUPPORTED.includes(preference)) return preference;
-    if (preference !== "auto") return "en";
-    const fromSystem = String(navigator.language || "en").slice(0, 2).toLowerCase();
-    return SUPPORTED.includes(fromSystem) ? fromSystem : "en";
+    if (preference !== "auto") return Object.hasOwn(languages, preference) ? preference : "en";
+    const fromSystem = String(navigator.language || "en").toLowerCase();
+    if (Object.hasOwn(languages, fromSystem)) return fromSystem;
+    const base = fromSystem.split("-")[0];
+    return Object.hasOwn(languages, base) ? base : "en";
   }
 
   const t = (key, fallback) => (dictionary[key] !== undefined ? dictionary[key] : (fallback !== undefined ? fallback : key));
@@ -38,6 +40,7 @@
   }
 
   async function load() {
+    try { languages = { en: "English", ...(await (await fetch("/desktop/assets/locales/languages.json")).json()) }; } catch (e) {}
     let preference = "en";
     try { preference = (await (await fetch("/get-settings")).json()).language || "en"; } catch (e) {}
     language = resolve(preference);
@@ -56,7 +59,7 @@
     ready: load(),
     t,
     apply,
-    SUPPORTED,
+    get languages() { return { ...languages }; },
     get language() { return language; }
   });
 })();

@@ -1346,6 +1346,18 @@ app.get("/get-settings", (req, res) => {
   res.json(safe);
 });
 
+// A language is available when it is listed in locales/languages.json and has its
+// locales/<code>.json (English is built into the pages and needs no file).
+const LOCALES_DIR = path.join(__dirname, "desktop", "assets", "locales");
+function isAvailableLanguage(code) {
+  if (code === "auto" || code === "en") return true;
+  if (typeof code !== "string" || !/^[a-z]{2,3}(-[a-z0-9]{2,4})?$/.test(code)) return false;
+  try {
+    const languages = JSON.parse(fs.readFileSync(path.join(LOCALES_DIR, "languages.json"), "utf8"));
+    return Object.hasOwn(languages, code) && fs.existsSync(path.join(LOCALES_DIR, `${code}.json`));
+  } catch { return false; }
+}
+
 // SECURITY (C-03): this route is an allowlist, not a denylist. It previously
 // copied ANY field that was not explicitly protected into config.json, which let
 // an unauthenticated caller flip security flags such as `allowFlashing` or
@@ -1371,7 +1383,7 @@ app.post("/save-settings", (req, res) => {
     config.email = cleanEmail;
   }
   Object.keys(extra).forEach(key => {
-    if (key === "language" && !["auto", "en", "it"].includes(extra[key])) return;
+    if (key === "language" && !isAvailableLanguage(extra[key])) return;
     if (SAVE_SETTINGS_ALLOWED.has(key)) config[key] = extra[key];
   });
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
