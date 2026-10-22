@@ -47,13 +47,20 @@
   // Guess a tone from the message so legacy alert("Error: ...") calls still look right.
   function guessKind(message) {
     const m = String(message).toLowerCase();
-    if (/(error|failed|could not|cannot|invalid|wrong|incorrect|not match|denied|unable)/.test(m)) return 'error';
-    if (/(warning|are you sure|cannot be undone|irreversible)/.test(m)) return 'warning';
-    if (/(success|saved|complete|updated|restored|verified|created|set to|cleared|done)/.test(m)) return 'success';
+    // English and Italian words, as messages may be translated.
+    if (/(error|failed|could not|cannot|invalid|wrong|incorrect|not match|denied|unable|errore|non riuscit|impossibile|non valid|non corrispond|errat|negat)/.test(m)) return 'error';
+    if (/(warning|are you sure|cannot be undone|irreversible|attenzione|sei sicur|irreversibil)/.test(m)) return 'warning';
+    if (/(success|saved|complete|updated|restored|verified|created|set to|cleared|done|riuscit|salvat|completat|aggiornat|ripristinat|verificat|creat|fatto)/.test(m)) return 'success';
     return 'info';
   }
   const ICONS = { info: 'i', success: '✓', error: '!', warning: '!' };
-  const TITLES = { info: 'Notice', success: 'Done', error: 'Something went wrong', warning: 'Are you sure?' };
+  // Read when a dialog opens, so they follow the page language (i18n.js may be missing).
+  const TITLES = {
+    info: () => (window.mariowOSI18n ? mariowOSI18n.t("dialogs.title.info", "Notice") : "Notice"),
+    success: () => (window.mariowOSI18n ? mariowOSI18n.t("common.done", "Done") : "Done"),
+    error: () => (window.mariowOSI18n ? mariowOSI18n.t("dialogs.title.error", "Something went wrong") : "Something went wrong"),
+    warning: () => (window.mariowOSI18n ? mariowOSI18n.t("dialogs.title.warning", "Are you sure?") : "Are you sure?")
+  };
 
   const queue = [];
   let open = false;
@@ -87,7 +94,7 @@
           <div class="mdlg-actions"></div>
         </div>`;
       backdrop.querySelector('.mdlg-icon').textContent = ICONS[kind];
-      backdrop.querySelector('.mdlg-title').textContent = opts.title || TITLES[kind];
+      backdrop.querySelector('.mdlg-title').textContent = opts.title || TITLES[kind]();
       backdrop.querySelector('.mdlg-msg').textContent = String(opts.message ?? '');
 
       const input = backdrop.querySelector('.mdlg-input');
@@ -108,8 +115,8 @@
         return b;
       };
       const cancelValue = opts.mode === 'confirm' ? false : null;
-      if (opts.mode !== 'alert') addBtn(opts.cancelText || 'Cancel', '', cancelValue);
-      const okBtn = addBtn(opts.okText || 'OK', opts.danger ? 'danger' : 'primary',
+      if (opts.mode !== 'alert') addBtn(opts.cancelText || (window.mariowOSI18n ? mariowOSI18n.t('common.cancel', 'Cancel') : 'Cancel'), '', cancelValue);
+      const okBtn = addBtn(opts.okText || (window.mariowOSI18n ? mariowOSI18n.t('common.ok', 'OK') : 'OK'), opts.danger ? 'danger' : 'primary',
         opts.mode === 'prompt' ? () => input.value : opts.mode === 'confirm' ? true : undefined);
 
       let closed = false;
