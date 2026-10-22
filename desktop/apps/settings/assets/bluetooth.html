@@ -3,6 +3,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
   <meta charset="UTF-8">
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
@@ -40,7 +42,7 @@
   </div>
 
   <div class="panel" id="btPanel">
-    <div class="row"><div class="subtitle">Searching for devices…</div></div>
+    <div class="row"><div class="subtitle" data-i18n="settings.bluetooth.searching">Searching for devices…</div></div>
   </div>
 
   <script>
@@ -50,7 +52,7 @@
       document.getElementById('btToggle').checked = qs.bluetooth;
 
       if (!qs.bluetooth) {
-        document.getElementById('btPanel').innerHTML = `<div class="row"><div class="subtitle">Bluetooth is disabled.</div></div>`;
+        document.getElementById('btPanel').innerHTML = `<div class="row"><div class="subtitle">${mariowOSI18n.t("settings.bluetooth.disabled", "Bluetooth is disabled.")}</div></div>`;
         return;
       }
 
@@ -76,17 +78,17 @@
                   <span class="material-symbols-outlined" style="color: ${dev.connected ? '#0a84ff' : 'white'}">${icon}</span>
                   <div>
                     <div class="title" style="color: ${dev.connected ? '#0a84ff' : 'white'}">${dev.name}</div>
-                    <div class="subtitle" id="status-${safeId}">${dev.connected ? 'Connected' : 'Not connected'}</div>
+                    <div class="subtitle" id="status-${safeId}">${dev.connected ? mariowOSI18n.t("settings.bluetooth.connected", "Connected") : mariowOSI18n.t("settings.bluetooth.not-connected", "Not connected")}</div>
                   </div>
                 </div>
               </div>
             `;
           });
         } else {
-          html = `<div class="row"><div class="subtitle">No user devices found.</div></div>`;
+          html = `<div class="row"><div class="subtitle">${mariowOSI18n.t("settings.bluetooth.no-user-devices", "No user devices found.")}</div></div>`;
         }
       } else {
-        html = `<div class="row"><div class="subtitle">No devices found.</div></div>`;
+        html = `<div class="row"><div class="subtitle">${mariowOSI18n.t("settings.bluetooth.no-devices", "No devices found.")}</div></div>`;
       }
       document.getElementById('btPanel').innerHTML = html;
     }
@@ -102,7 +104,7 @@
 
     async function connectBt(safeId, name, mac) {
       const statusEl = document.getElementById(`status-${safeId}`);
-      if (statusEl) statusEl.innerText = "Connecting…";
+      if (statusEl) statusEl.innerText = mariowOSI18n.t("settings.bluetooth.connecting", "Connecting…");
 
       await fetch('/api/system/connect-bt', {
         method: 'POST',

@@ -5,9 +5,11 @@ Licensed under the Apache License, Version 2.0
 <!DOCTYPE html>
 <html lang="en">
 <head>
+<script src="/desktop/assets/i18n-data.js"></script>
+<script src="/desktop/assets/i18n.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pictures</title>
+<title data-i18n="pictures.title">Pictures</title>
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
 <style>
   :root {
@@ -79,16 +81,16 @@ Licensed under the Apache License, Version 2.0
 </head>
 <body>
   <div class="topbar">
-    <span class="title" id="title">Pictures</span>
-    <button class="ib" id="btnZoomOut" title="Zoom out"><span class="material-symbols-outlined">remove</span></button>
+    <span class="title" id="title"></span>
+    <button class="ib" id="btnZoomOut" title="Zoom out" data-i18n-title="pictures.zoom-out"><span class="material-symbols-outlined">remove</span></button>
     <span class="zoom-label" id="zoomLabel">100%</span>
-    <button class="ib" id="btnZoomIn" title="Zoom in"><span class="material-symbols-outlined">add</span></button>
-    <button class="ib" id="btnFit" title="Fit to window"><span class="material-symbols-outlined">fit_screen</span></button>
+    <button class="ib" id="btnZoomIn" title="Zoom in" data-i18n-title="pictures.zoom-in"><span class="material-symbols-outlined">add</span></button>
+    <button class="ib" id="btnFit" title="Fit to window" data-i18n-title="pictures.fit"><span class="material-symbols-outlined">fit_screen</span></button>
     <span class="sep"></span>
-    <button class="ib" id="btnRotate" title="Rotate"><span class="material-symbols-outlined">rotate_right</span></button>
-    <button class="ib" id="btnDownload" title="Download"><span class="material-symbols-outlined">download</span></button>
+    <button class="ib" id="btnRotate" title="Rotate" data-i18n-title="pictures.rotate"><span class="material-symbols-outlined">rotate_right</span></button>
+    <button class="ib" id="btnDownload" title="Download" data-i18n-title="pictures.download"><span class="material-symbols-outlined">download</span></button>
     <span class="sep"></span>
-    <button class="ib" id="btnOpen" title="Open image(s)"><span class="material-symbols-outlined">folder_open</span></button>
+    <button class="ib" id="btnOpen" title="Open image(s)" data-i18n-title="pictures.open-images"><span class="material-symbols-outlined">folder_open</span></button>
   </div>
 
   <div class="stage" id="stage">
@@ -96,11 +98,11 @@ Licensed under the Apache License, Version 2.0
     <button class="nav next" id="navNext" hidden><span class="material-symbols-outlined">chevron_right</span></button>
     <div class="empty" id="empty">
       <span class="material-symbols-outlined">image</span>
-      <h2>No image open</h2>
-      <p>Open a picture to view it, or drag an image anywhere into this window.</p>
-      <button class="open-btn" id="emptyOpen"><span class="material-symbols-outlined" style="font-size:18px;">folder_open</span> Open image</button>
+      <h2 data-i18n="pictures.empty.title">No image open</h2>
+      <p data-i18n="pictures.empty.text">Open a picture to view it, or drag an image anywhere into this window.</p>
+      <button class="open-btn" id="emptyOpen"><span class="material-symbols-outlined" style="font-size:18px;">folder_open</span> <span data-i18n="pictures.empty.open">Open image</span></button>
     </div>
-    <div class="drophint">Drop to open</div>
+    <div class="drophint" data-i18n="pictures.drop">Drop to open</div>
   </div>
 
   <div class="filmstrip" id="filmstrip"></div>
@@ -111,6 +113,7 @@ Licensed under the Apache License, Version 2.0
   "use strict";
   const $ = id => document.getElementById(id);
   const stage = $('stage'), empty = $('empty'), filmstrip = $('filmstrip'), fileInput = $('fileInput');
+  $('title').textContent = mariowOSI18n.t("pictures.title", "Pictures");
   let items = [];          // { url, name }
   let index = -1;
   let imgEl = null;
@@ -157,7 +160,7 @@ Licensed under the Apache License, Version 2.0
     const it = items[i];
     $('title').textContent = '';
     const b = document.createElement('b'); b.textContent = it.name;
-    $('title').append(b, document.createTextNode(items.length > 1 ? `  ·  ${i + 1} of ${items.length}` : ''));
+    $('title').append(b, document.createTextNode(items.length > 1 ? '  ·  ' + mariowOSI18n.t("pictures.position", "{current} of {total}", { current: i + 1, total: items.length }) : ''));
     $('navPrev').hidden = items.length < 2;
     $('navNext').hidden = items.length < 2;
     [...filmstrip.children].forEach((t, ti) => t.classList.toggle('active', ti === index));
