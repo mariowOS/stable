@@ -17,6 +17,8 @@ Questions? https://discord.gg/YDVxw6jfbH
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
 
@@ -558,25 +560,25 @@ Questions? https://discord.gg/YDVxw6jfbH
           <img src="/desktop/assets/icons/stars.png" style="width: 30px; height: 30px; object-fit: contain;" class="stars-launcher">
         </button>
         <div class="dropdown" id="actionsDropdown">
-          <a onclick="launchAppFromMenu('popup10')"><div class="dropdown-item" data-popup="popup10"><img src="/desktop/assets/icons/files.png" class="menu-icon"> <span>Files</span></div></a>
-          <a onclick="launchAppFromMenu('popup6')"><div class="dropdown-item" data-popup="popup6"><img src="/desktop/assets/icons/messaging.png" class="menu-icon"> <span>Messaging</span></div></a>
-          <a onclick="launchAppFromMenu('popup2')"><div class="dropdown-item" data-popup="popup2"><img src="/desktop/assets/icons/browser.png" class="menu-icon"> <span>Browser</span></div></a>
-          <a onclick="launchAppFromMenu('popup1')"><div class="dropdown-item" data-popup="popup1"><img src="/desktop/assets/icons/settings.png" class="menu-icon"> <span>Settings</span></div></a>
-          <a onclick="launchAppFromMenu('popup4')"><div class="dropdown-item" data-popup="popup4"><img src="/desktop/assets/icons/music.png" class="menu-icon"> <span>Music</span></div></a>
-          <a onclick="launchAppFromMenu('popup7')"><div class="dropdown-item" data-popup="popup7"><img src="/desktop/assets/icons/store.png" class="menu-icon"> <span>Store</span></div></a>
-          <a onclick="launchAppFromMenu('popup3')"><div class="dropdown-item" data-popup="popup3"><img src="/desktop/assets/icons/feedback.png" class="menu-icon"> <span>Help</span></div></a>
-          <a onclick="launchAppFromMenu('popup5')"><div class="dropdown-item" data-popup="popup5"><img src="/desktop/assets/icons/notes.png" class="menu-icon"> <span>Notes</span></div></a>
-          <a onclick="launchAppFromMenu('popup8')"><div class="dropdown-item" data-popup="popup8"><img src="/desktop/assets/icons/terminal.png" class="menu-icon"> <span>Terminal</span></div></a>
-          <a onclick="launchAppFromMenu('popup9')"><div class="dropdown-item" data-popup="popup9"><img src="/desktop/assets/icons/calculator.png" class="menu-icon"> <span>Calculator</span></div></a>
-          <a onclick="launchAppFromMenu('popup11')"><div class="dropdown-item" data-popup="popup11"><img src="/desktop/assets/icons/calendar.png" class="menu-icon"> <span>Calendar</span></div></a>
-          <a onclick="launchAppFromMenu('popup12')"><div class="dropdown-item" data-popup="popup12"><img src="/desktop/assets/icons/pictures.svg" class="menu-icon"> <span>Pictures</span></div></a>
-          <a onclick="launchAppFromMenu('popup13')"><div class="dropdown-item" data-popup="popup13"><img src="/desktop/assets/icons/video.svg" class="menu-icon"> <span>Video Player</span></div></a>
+          <a onclick="launchAppFromMenu('popup10')"><div class="dropdown-item" data-popup="popup10"><img src="/desktop/assets/icons/files.png" class="menu-icon"> <span data-i18n="desktop.app.files">Files</span></div></a>
+          <a onclick="launchAppFromMenu('popup6')"><div class="dropdown-item" data-popup="popup6"><img src="/desktop/assets/icons/messaging.png" class="menu-icon"> <span data-i18n="desktop.app.messaging">Messaging</span></div></a>
+          <a onclick="launchAppFromMenu('popup2')"><div class="dropdown-item" data-popup="popup2"><img src="/desktop/assets/icons/browser.png" class="menu-icon"> <span data-i18n="desktop.app.browser">Browser</span></div></a>
+          <a onclick="launchAppFromMenu('popup1')"><div class="dropdown-item" data-popup="popup1"><img src="/desktop/assets/icons/settings.png" class="menu-icon"> <span data-i18n="desktop.app.settings">Settings</span></div></a>
+          <a onclick="launchAppFromMenu('popup4')"><div class="dropdown-item" data-popup="popup4"><img src="/desktop/assets/icons/music.png" class="menu-icon"> <span data-i18n="desktop.app.music">Music</span></div></a>
+          <a onclick="launchAppFromMenu('popup7')"><div class="dropdown-item" data-popup="popup7"><img src="/desktop/assets/icons/store.png" class="menu-icon"> <span data-i18n="desktop.app.store">Store</span></div></a>
+          <a onclick="launchAppFromMenu('popup3')"><div class="dropdown-item" data-popup="popup3"><img src="/desktop/assets/icons/feedback.png" class="menu-icon"> <span data-i18n="desktop.app.help">Help</span></div></a>
+          <a onclick="launchAppFromMenu('popup5')"><div class="dropdown-item" data-popup="popup5"><img src="/desktop/assets/icons/notes.png" class="menu-icon"> <span data-i18n="desktop.app.notes">Notes</span></div></a>
+          <a onclick="launchAppFromMenu('popup8')"><div class="dropdown-item" data-popup="popup8"><img src="/desktop/assets/icons/terminal.png" class="menu-icon"> <span data-i18n="desktop.app.terminal">Terminal</span></div></a>
+          <a onclick="launchAppFromMenu('popup9')"><div class="dropdown-item" data-popup="popup9"><img src="/desktop/assets/icons/calculator.png" class="menu-icon"> <span data-i18n="desktop.app.calculator">Calculator</span></div></a>
+          <a onclick="launchAppFromMenu('popup11')"><div class="dropdown-item" data-popup="popup11"><img src="/desktop/assets/icons/calendar.png" class="menu-icon"> <span data-i18n="desktop.app.calendar">Calendar</span></div></a>
+          <a onclick="launchAppFromMenu('popup12')"><div class="dropdown-item" data-popup="popup12"><img src="/desktop/assets/icons/pictures.svg" class="menu-icon"> <span data-i18n="desktop.app.pictures">Pictures</span></div></a>
+          <a onclick="launchAppFromMenu('popup13')"><div class="dropdown-item" data-popup="popup13"><img src="/desktop/assets/icons/video.svg" class="menu-icon"> <span data-i18n="desktop.app.videoplayer">Video Player</span></div></a>
         </div>
       </div>
       
       <div class="search-btn" onclick="openSpotlight()">
         <span class="material-symbols-outlined">search</span>
-        <span>Search</span>
+        <span data-i18n="common.search">Search</span>
       </div>
     </div>
 
@@ -587,7 +589,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       
       <div class="btn-wrapper">
         <button class="system-tray-btn" id="contextBtn"><span class="material-symbols-outlined">more_horiz</span></button>
-        <div class="dropdown" id="contextDropdown"><a href="/desktop/com.mariowos.desktop.html"><div class="dropdown-item"><span>Refresh desktop</span></div></a></div>
+        <div class="dropdown" id="contextDropdown"><a href="/desktop/com.mariowos.desktop.html"><div class="dropdown-item"><span data-i18n="desktop.menu.refresh">Refresh desktop</span></div></a></div>
       </div>
 
       <button class="system-tray-btn" onclick="toggleQS('wifi')"><span class="material-symbols-outlined" id="trayWifiIcon">wifi</span></button>
@@ -595,7 +597,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       <div class="btn-wrapper">
         <button class="system-tray-btn" id="volumeBtn"><span class="material-symbols-outlined" id="volumeIcon">volume_up</span></button>
         <div class="dropdown" id="volumeDropdown" style="right: 0; left: auto; width: 260px; padding: 16px; transform-origin: bottom right;">
-          <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: rgba(255,255,255,0.7);">Output Volume</div>
+          <div style="font-size: 12px; font-weight: 600; margin-bottom: 12px; color: rgba(255,255,255,0.7);" data-i18n="desktop.volume.title">Output Volume</div>
           <div style="display: flex; align-items: center; gap: 12px;">
             <span class="material-symbols-outlined" id="volumeDropdownIcon" style="font-size: 20px; color: var(--m3-accent-active);">volume_up</span>
             <input type="range" id="volumeSlider" min="0" max="100" value="70" style="flex: 1; cursor: pointer;">
@@ -613,12 +615,12 @@ Questions? https://discord.gg/YDVxw6jfbH
           </div>
             <div class="cal-nav">
               <span class="cal-month-label" id="calMonthLabel"></span>
-              <span class="material-symbols-outlined cal-nav-btn" id="calPrev" title="Previous month">chevron_left</span>
-              <span class="material-symbols-outlined cal-nav-btn" id="calNext" title="Next month">chevron_right</span>
+              <span class="material-symbols-outlined cal-nav-btn" id="calPrev" title="Previous month" data-i18n-title="desktop.cal.prev-month">chevron_left</span>
+              <span class="material-symbols-outlined cal-nav-btn" id="calNext" title="Next month" data-i18n-title="desktop.cal.next-month">chevron_right</span>
             </div>
             <div class="cal-grid" id="calGrid"></div>
             <div class="cal-events" id="calEvents"></div>
-            <div class="cal-open-app" id="calOpenApp"><span class="material-symbols-outlined">calendar_month</span> Open Calendar</div>
+            <div class="cal-open-app" id="calOpenApp"><span class="material-symbols-outlined">calendar_month</span> <span data-i18n="desktop.cal.open-app">Open Calendar</span></div>
           </div>
       </div>
 
@@ -634,11 +636,11 @@ Questions? https://discord.gg/YDVxw6jfbH
               <div id="mediaPlayerBanner" class="hmos-media-card">
                 <div class="hmos-media-header">
                   <div class="app-icon"><span class="material-symbols-outlined">play_arrow</span></div>
-                  <span style="font-size: 11px; opacity: 0.7; color: #fff;">This device</span>
+                  <span style="font-size: 11px; opacity: 0.7; color: #fff;" data-i18n="desktop.media.this-device">This device</span>
                 </div>
                 <div class="hmos-media-info">
-                  <div class="media-title" id="mediaBannerTitle">No media</div>
-                  <div class="media-artist" id="mediaBannerArtist">Not playing</div>
+                  <div class="media-title" id="mediaBannerTitle" data-i18n="desktop.media.no-media">No media</div>
+                  <div class="media-artist" id="mediaBannerArtist" data-i18n="desktop.media.not-playing">Not playing</div>
                 </div>
                 <div class="hmos-media-controls">
                   <span class="material-symbols-outlined media-btn" onclick="sendMediaCommand('prev')">skip_previous</span>
@@ -652,14 +654,14 @@ Questions? https://discord.gg/YDVxw6jfbH
                   <div class="hmos-icon-bg" onclick="event.stopPropagation(); toggleQS('wifi')"><span class="material-symbols-outlined" id="iconWifi">wifi</span></div>
                   <div class="hmos-text-container" id="wifiTextContainer">
                     <span class="hmos-title" id="titleWifi">WLAN</span>
-                    <span class="hmos-subtitle" id="subWifi">On</span>
+                    <span class="hmos-subtitle" id="subWifi" data-i18n="desktop.qs.on">On</span>
                   </div>
                 </div>
                 <div class="qs-tile-hmos active" id="tileBt">
                   <div class="hmos-icon-bg" onclick="event.stopPropagation(); toggleQS('bluetooth')"><span class="material-symbols-outlined" id="iconBt">bluetooth</span></div>
                   <div class="hmos-text-container" onclick="toggleSubPanel('bt')">
                     <span class="hmos-title" id="titleBt">Bluetooth</span>
-                    <span class="hmos-subtitle" id="subBt">On</span>
+                    <span class="hmos-subtitle" id="subBt" data-i18n="desktop.qs.on">On</span>
                   </div>
                 </div>
               </div>
@@ -668,66 +670,66 @@ Questions? https://discord.gg/YDVxw6jfbH
             <div class="hmos-bottom-row">
               <div class="hmos-circle-toggle inactive" id="tileDnd" onclick="toggleQS('dnd')">
                 <div class="hmos-icon-bg"><span class="material-symbols-outlined" id="iconDnd">do_not_disturb_on</span></div>
-                <span class="hmos-label" id="titleDnd">DND</span>
+                <span class="hmos-label" id="titleDnd" data-i18n="desktop.qs.dnd">DND</span>
               </div>
               <div class="hmos-circle-toggle active" id="tilePower" onclick="cyclePowerMode()">
                 <div class="hmos-icon-bg"><span class="material-symbols-outlined" id="iconPower">battery_charging_full</span></div>
-                <span class="hmos-label" id="titlePower">Balanced</span>
+                <span class="hmos-label" id="titlePower" data-i18n="desktop.qs.power.balanced">Balanced</span>
               </div>
               <div class="hmos-circle-toggle inactive" style="opacity: 0.3; cursor: default;">
                 <div class="hmos-icon-bg"><span class="material-symbols-outlined">lightbulb</span></div>
-                <span class="hmos-label">Flash</span>
+                <span class="hmos-label" data-i18n="desktop.qs.flash">Flash</span>
               </div>
               <div class="hmos-circle-toggle inactive" style="opacity: 0.3; cursor: default;">
                 <div class="hmos-icon-bg"><span class="material-symbols-outlined">screen_rotation</span></div>
-                <span class="hmos-label">Auto</span>
+                <span class="hmos-label" data-i18n="desktop.qs.auto-rotate">Auto</span>
               </div>
             </div>
           </div>
 
           <!-- Network & Device Subpanels -->
           <div class="qs-subpanel" id="panelWifi">
-            <div class="qs-subpanel-header"><span>WLAN Networks</span><span class="material-symbols-outlined" onclick="toggleQS('wifi')" style="cursor:pointer; font-size:16px;">power_settings_new</span></div>
-            <div class="qs-subpanel-list" id="wifiList"><div style="font-size:11px; color:#aaa; text-align:center;">Scanning networks...</div></div>
+            <div class="qs-subpanel-header"><span data-i18n="desktop.qs.wifi-networks">WLAN Networks</span><span class="material-symbols-outlined" onclick="toggleQS('wifi')" style="cursor:pointer; font-size:16px;">power_settings_new</span></div>
+            <div class="qs-subpanel-list" id="wifiList"><div style="font-size:11px; color:#aaa; text-align:center;" data-i18n="desktop.qs.scanning">Scanning networks...</div></div>
           </div>
           <div class="qs-subpanel" id="panelEthernet">
-            <div class="qs-subpanel-header"><span>Ethernet Ports</span><span class="material-symbols-outlined" style="cursor:pointer; font-size:16px; opacity:0.5;">settings_ethernet</span></div>
-            <div class="qs-subpanel-list" id="ethList"><div style="font-size:11px; color:#aaa; text-align:center;">Loading stats...</div></div>
+            <div class="qs-subpanel-header"><span data-i18n="desktop.qs.ethernet-ports">Ethernet Ports</span><span class="material-symbols-outlined" style="cursor:pointer; font-size:16px; opacity:0.5;">settings_ethernet</span></div>
+            <div class="qs-subpanel-list" id="ethList"><div style="font-size:11px; color:#aaa; text-align:center;" data-i18n="desktop.qs.loading-stats">Loading stats...</div></div>
           </div>
           <div class="qs-subpanel" id="panelBt">
-            <div class="qs-subpanel-header"><span>Bluetooth Devices</span><span class="material-symbols-outlined" onclick="toggleQS('bluetooth')" style="cursor:pointer; font-size:16px;">power_settings_new</span></div>
-            <div class="qs-subpanel-list" id="btList"><div style="font-size:11px; color:#aaa; text-align:center;">Searching devices...</div></div>
+            <div class="qs-subpanel-header"><span data-i18n="desktop.qs.bt-devices">Bluetooth Devices</span><span class="material-symbols-outlined" onclick="toggleQS('bluetooth')" style="cursor:pointer; font-size:16px;">power_settings_new</span></div>
+            <div class="qs-subpanel-list" id="btList"><div style="font-size:11px; color:#aaa; text-align:center;" data-i18n="desktop.qs.searching-devices">Searching devices...</div></div>
           </div>
 
           <div class="qs-subpanel" id="panelSession">
-            <div class="qs-subpanel-header"><span>Session Actions</span></div>
+            <div class="qs-subpanel-header"><span data-i18n="desktop.session.title">Session Actions</span></div>
             <div class="qs-subpanel-list">
               <div class="qs-list-item" onclick="window.location.reload()">
-                <div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">refresh</span><span>Refresh Desktop</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">refresh</span><span data-i18n="desktop.session.refresh">Refresh Desktop</span></div>
               </div>
               <div class="qs-list-item" onclick="window.location.href='/loginui/com.mariowos.loginui.html'">
-                <div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">lock</span><span>Sign out</span></div>
+                <div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">lock</span><span data-i18n="desktop.session.sign-out">Sign out</span></div>
               </div>
-              <button class="qs-list-item" id="shutdownMariowOSButton" type="button" aria-label="Shutdown" onclick="shutdownMariowOS()" style="width:100%; color:inherit; text-align:left; font-family:inherit;">
-                <span style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">power_settings_new</span><span id="shutdownMariowOSLabel">Shutdown</span></span>
+              <button class="qs-list-item" id="shutdownMariowOSButton" type="button" aria-label="Shutdown" data-i18n-aria-label="desktop.session.shutdown" onclick="shutdownMariowOS()" style="width:100%; color:inherit; text-align:left; font-family:inherit;">
+                <span style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">power_settings_new</span><span id="shutdownMariowOSLabel" data-i18n="desktop.session.shutdown">Shutdown</span></span>
               </button>
-              <button class="qs-list-item" id="rebootMariowOSButton" type="button" aria-label="Reboot" onclick="rebootMariowOS()" style="width:100%; color:inherit; text-align:left; font-family:inherit;">
-                <span style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">restart_alt</span><span id="rebootMariowOSLabel">Reboot</span></span>
+              <button class="qs-list-item" id="rebootMariowOSButton" type="button" aria-label="Reboot" data-i18n-aria-label="desktop.session.reboot" onclick="rebootMariowOS()" style="width:100%; color:inherit; text-align:left; font-family:inherit;">
+                <span style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">restart_alt</span><span id="rebootMariowOSLabel" data-i18n="desktop.session.reboot">Reboot</span></span>
               </button>
             </div>
           </div>
 
           <div style="display: flex; justify-content: space-between; align-items: center; padding: 4px; font-size: 11px; font-weight: 600; color: #888;">
-            <span>NOTIFICATIONS</span>
-            <span onclick="clearNotifications()" style="color: #3584e4; cursor: pointer;">Clear</span>
+            <span data-i18n="desktop.notifications.header">NOTIFICATIONS</span>
+            <span onclick="clearNotifications()" style="color: #3584e4; cursor: pointer;" data-i18n="desktop.notifications.clear">Clear</span>
           </div>
           <div id="notificationsList">
-            <div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;">No new notifications</div>
+            <div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;" data-i18n="desktop.notifications.empty">No new notifications</div>
           </div>
 
           <div class="cc-actions-row">
             <div class="cc-action-btn" onclick="toggleSubPanel('session')">
-              <span class="material-symbols-outlined" style="font-size:18px;">grid_view</span> Desktop & Session
+              <span class="material-symbols-outlined" style="font-size:18px;">grid_view</span> <span data-i18n="desktop.session.button">Desktop & Session</span>
             </div>
           </div>
         </div>
@@ -741,7 +743,7 @@ Questions? https://discord.gg/YDVxw6jfbH
         <span class="material-symbols-outlined spotlight-icon">search</span>
         <div style="position: relative; flex: 1; display: flex; align-items: center;">
           <input type="text" id="spotlightAutofill" class="spotlight-input" disabled style="position: absolute; left: 0; top: 0; width: 100%; color: rgba(255,255,255,0.3); pointer-events: none; background: transparent;">
-          <input type="text" id="spotlightInput" class="spotlight-input" placeholder="Search..." oninput="handleSpotlightInput(this.value)" onkeydown="handleSpotlightKeydown(event)" style="position: relative; z-index: 1; background: transparent;">
+          <input type="text" id="spotlightInput" class="spotlight-input" placeholder="Search..." data-i18n-placeholder="desktop.spotlight.placeholder" oninput="handleSpotlightInput(this.value)" onkeydown="handleSpotlightKeydown(event)" style="position: relative; z-index: 1; background: transparent;">
         </div>
       </div>
       <div id="spotlightResults" class="spotlight-results"></div>
@@ -753,29 +755,29 @@ Questions? https://discord.gg/YDVxw6jfbH
   <div class="dropdown" id="taskbarContextMenu"></div>
   
   <div class="dropdown" id="desktopContextMenu">
-    <a onclick="createDesktopItem('folder')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">create_new_folder</span> <span>New Folder</span></div></a>
-    <a onclick="createDesktopItem('file')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">note_add</span> <span>New Text File</span></div></a>
+    <a onclick="createDesktopItem('folder')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">create_new_folder</span> <span data-i18n="desktop.menu.new-folder">New Folder</span></div></a>
+    <a onclick="createDesktopItem('file')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">note_add</span> <span data-i18n="desktop.menu.new-text-file">New Text File</span></div></a>
     <div style="height:1px; background:rgba(255,255,255,0.1); margin: 4px 0;"></div>
-    <a onclick="window.location.reload()"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">refresh</span> <span>Refresh desktop</span></div></a>
+    <a onclick="window.location.reload()"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">refresh</span> <span data-i18n="desktop.menu.refresh">Refresh desktop</span></div></a>
     <div style="height:1px; background:rgba(255,255,255,0.1); margin: 4px 0;"></div>
-    <a onclick="openPopup('popup8')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">terminal</span> <span>Open Terminal</span></div></a>
-    <a onclick="openPopup('popup7')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">store</span> <span>App Store</span></div></a>
+    <a onclick="openPopup('popup8')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">terminal</span> <span data-i18n="desktop.menu.open-terminal">Open Terminal</span></div></a>
+    <a onclick="openPopup('popup7')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">store</span> <span data-i18n="desktop.menu.app-store">App Store</span></div></a>
     <div style="height:1px; background:rgba(255,255,255,0.1); margin: 4px 0;"></div>
-    <a onclick="document.querySelector('#popup1 iframe').src = '/desktop/apps/settings/index.html#wallpaper'; openPopup('popup1');"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">wallpaper</span> <span>Change wallpaper</span></div></a>
-    <a onclick="openPopup('popup1')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">settings</span> <span>System settings</span></div></a>
+    <a onclick="document.querySelector('#popup1 iframe').src = '/desktop/apps/settings/index.html#wallpaper'; openPopup('popup1');"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">wallpaper</span> <span data-i18n="desktop.menu.change-wallpaper">Change wallpaper</span></div></a>
+    <a onclick="openPopup('popup1')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">settings</span> <span data-i18n="desktop.menu.system-settings">System settings</span></div></a>
   </div>
 
   <!-- Dedicated Context Menu for Desktop Icons (Folders & Files) -->
   <div class="dropdown" id="desktopItemContextMenu">
-    <a onclick="desktopItemAction('open')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;" id="itemMenuOpenIcon">open_in_new</span> <span id="itemMenuOpenText">Open</span></div></a>
-    <a onclick="desktopItemAction('rename')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">drive_file_rename_outline</span> <span>Rename</span></div></a>
+    <a onclick="desktopItemAction('open')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;" id="itemMenuOpenIcon">open_in_new</span> <span id="itemMenuOpenText" data-i18n="common.open">Open</span></div></a>
+    <a onclick="desktopItemAction('rename')"><div class="dropdown-item"><span class="material-symbols-outlined" style="font-size:18px;">drive_file_rename_outline</span> <span data-i18n="common.rename">Rename</span></div></a>
     <div style="height:1px; background:rgba(255,255,255,0.1); margin: 4px 0;"></div>
-    <a onclick="desktopItemAction('delete')"><div class="dropdown-item" style="color: #ff453a;"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> <span>Delete</span></div></a>
+    <a onclick="desktopItemAction('delete')"><div class="dropdown-item" style="color: #ff453a;"><span class="material-symbols-outlined" style="font-size:18px;">delete</span> <span data-i18n="common.delete">Delete</span></div></a>
   </div>
 
   <div id="popup1" class="popup">
     <div class="popup-header">
-      <span>Settings</span>
+      <span data-i18n="desktop.app.settings">Settings</span>
       <div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup1')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup1')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup1')">close</span></div>
     </div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div>
@@ -784,88 +786,88 @@ Questions? https://discord.gg/YDVxw6jfbH
 
   <div id="popup2" class="popup">
     <div class="popup-header">
-      <div class="browser-tabs" id="browserTabs" role="tablist" aria-label="Browser tabs"></div>
-      <button class="browser-nav-btn" id="browserNewTab" onclick="createBrowserTab()" aria-label="New tab" title="New tab (Ctrl+T)"><span class="material-symbols-outlined" style="font-size:18px;">add</span></button>
+      <div class="browser-tabs" id="browserTabs" role="tablist" aria-label="Browser tabs" data-i18n-aria-label="desktop.browser.tabs"></div>
+      <button class="browser-nav-btn" id="browserNewTab" onclick="createBrowserTab()" aria-label="New tab" title="New tab (Ctrl+T)" data-i18n-aria-label="desktop.browser.new-tab" data-i18n-title="desktop.browser.new-tab-shortcut"><span class="material-symbols-outlined" style="font-size:18px;">add</span></button>
       <div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup2')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup2')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup2')">close</span></div>
     </div>
     <div class="browser-toolbar">
-      <button class="browser-nav-btn" id="browserBack" onclick="browserNav('back')" aria-label="Back" title="Back (Alt+Left)"><span class="material-symbols-outlined" style="font-size:20px;">arrow_back</span></button>
-      <button class="browser-nav-btn" id="browserForward" onclick="browserNav('fwd')" aria-label="Forward" title="Forward (Alt+Right)"><span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span></button>
-      <button class="browser-nav-btn" id="browserReload" onclick="browserNav('reload')" aria-label="Reload" title="Reload (F5)"><span class="material-symbols-outlined" style="font-size:20px;">refresh</span></button>
-      <button class="browser-nav-btn" onclick="browserNav('home')" aria-label="Home" title="Home"><span class="material-symbols-outlined" style="font-size:20px;">home</span></button>
+      <button class="browser-nav-btn" id="browserBack" onclick="browserNav('back')" aria-label="Back" title="Back (Alt+Left)" data-i18n-aria-label="common.back" data-i18n-title="desktop.browser.back-shortcut"><span class="material-symbols-outlined" style="font-size:20px;">arrow_back</span></button>
+      <button class="browser-nav-btn" id="browserForward" onclick="browserNav('fwd')" aria-label="Forward" title="Forward (Alt+Right)" data-i18n-aria-label="desktop.browser.forward" data-i18n-title="desktop.browser.forward-shortcut"><span class="material-symbols-outlined" style="font-size:20px;">arrow_forward</span></button>
+      <button class="browser-nav-btn" id="browserReload" onclick="browserNav('reload')" aria-label="Reload" title="Reload (F5)" data-i18n-aria-label="desktop.browser.reload" data-i18n-title="desktop.browser.reload-shortcut"><span class="material-symbols-outlined" style="font-size:20px;">refresh</span></button>
+      <button class="browser-nav-btn" onclick="browserNav('home')" aria-label="Home" title="Home" data-i18n-aria-label="desktop.browser.home" data-i18n-title="desktop.browser.home"><span class="material-symbols-outlined" style="font-size:20px;">home</span></button>
       <div class="browser-url-wrap">
         <span class="material-symbols-outlined browser-url-icon" id="browserUrlIcon">search</span>
-        <input id="browserUrl" type="text" placeholder="Search or enter a website" autocomplete="off" spellcheck="false" />
-        <button id="browserZoom" onclick="browserZoom(0)" title="Reset zoom" hidden>100%</button>
+        <input id="browserUrl" type="text" placeholder="Search or enter a website" data-i18n-placeholder="desktop.browser.url-placeholder" autocomplete="off" spellcheck="false" />
+        <button id="browserZoom" onclick="browserZoom(0)" title="Reset zoom" data-i18n-title="desktop.browser.reset-zoom" hidden>100%</button>
       </div>
-      <button class="browser-nav-btn" onclick="toggleBrowserMenu()" aria-label="Menu" title="Menu"><span class="material-symbols-outlined" style="font-size:20px;">more_vert</span></button>
+      <button class="browser-nav-btn" onclick="toggleBrowserMenu()" aria-label="Menu" title="Menu" data-i18n-aria-label="desktop.browser.menu" data-i18n-title="desktop.browser.menu"><span class="material-symbols-outlined" style="font-size:20px;">more_vert</span></button>
       <div class="browser-progress" id="browserProgress"></div>
     </div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div>
     <div class="browser-tab-content" id="browserTabContent">
       <div class="browser-findbar" id="browserFindbar" hidden>
-        <input id="browserFindInput" placeholder="Find in page" spellcheck="false" />
+        <input id="browserFindInput" placeholder="Find in page" data-i18n-placeholder="desktop.browser.find" spellcheck="false" />
         <span class="count" id="browserFindCount"></span>
-        <button class="browser-nav-btn" onclick="browserFind(false)" aria-label="Previous match"><span class="material-symbols-outlined" style="font-size:18px;">keyboard_arrow_up</span></button>
-        <button class="browser-nav-btn" onclick="browserFind(true)" aria-label="Next match"><span class="material-symbols-outlined" style="font-size:18px;">keyboard_arrow_down</span></button>
-        <button class="browser-nav-btn" onclick="closeBrowserFind()" aria-label="Close find"><span class="material-symbols-outlined" style="font-size:18px;">close</span></button>
+        <button class="browser-nav-btn" onclick="browserFind(false)" aria-label="Previous match" data-i18n-aria-label="desktop.browser.find-prev"><span class="material-symbols-outlined" style="font-size:18px;">keyboard_arrow_up</span></button>
+        <button class="browser-nav-btn" onclick="browserFind(true)" aria-label="Next match" data-i18n-aria-label="desktop.browser.find-next"><span class="material-symbols-outlined" style="font-size:18px;">keyboard_arrow_down</span></button>
+        <button class="browser-nav-btn" onclick="closeBrowserFind()" aria-label="Close find" data-i18n-aria-label="desktop.browser.find-close"><span class="material-symbols-outlined" style="font-size:18px;">close</span></button>
       </div>
       <div class="browser-menu" id="browserMenu" hidden></div>
     </div>
   </div>
 
   <div id="popup3" class="popup">
-    <div class="popup-header"><span>Help</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup3')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup3')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup3')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.help">Help</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup3')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup3')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup3')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/help/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup4" class="popup">
-    <div class="popup-header"><span>Music</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup4')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup4')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup4')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.music">Music</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup4')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup4')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup4')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/music/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup5" class="popup">
-    <div class="popup-header"><span>Notes</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup5')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup5')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup5')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.notes">Notes</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup5')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup5')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup5')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/notes/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup6" class="popup">
-    <div class="popup-header"><span>Messaging</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup6')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup6')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup6')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.messaging">Messaging</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup6')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup6')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup6')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><webview data-default-src="https://app.element.io/" src="about:blank" class="popup-frame" id="chattable" webpreferences="contextIsolation=yes,nodeIntegration=no,sandbox=yes" allowpopups></webview>
   </div>
 
   <div id="popup7" class="popup">
-    <div class="popup-header"><span>Store</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup7')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup7')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup7')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.store">Store</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup7')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup7')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup7')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/store/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup8" class="popup">
-    <div class="popup-header"><span>Terminal</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup8')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup8')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup8')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.terminal">Terminal</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup8')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup8')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup8')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/terminal/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup9" class="popup" style="width: 820px; height: 580px;">
-    <div class="popup-header"><span>Calculator</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup9')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup9')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup9')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.calculator">Calculator</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup9')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup9')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup9')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/calculator/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
   
   <div id="popup10" class="popup">
-    <div class="popup-header"><span>Files</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup10')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup10')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup10')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.files">Files</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup10')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup10')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup10')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/explorer/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup11" class="popup">
-    <div class="popup-header"><span>Calendar</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup11')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup11')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup11')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.calendar">Calendar</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup11')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup11')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup11')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/calendar/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup12" class="popup">
-    <div class="popup-header"><span>Pictures</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup12')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup12')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup12')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.pictures">Pictures</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup12')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup12')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup12')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/pictures/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
   <div id="popup13" class="popup">
-    <div class="popup-header"><span>Video Player</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup13')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup13')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup13')">close</span></div></div>
+    <div class="popup-header"><span data-i18n="desktop.app.videoplayer">Video Player</span><div class="window-actions"><span class="material-symbols-outlined action-btn min-btn" onclick="minimizePopup('popup13')">remove</span><span class="material-symbols-outlined action-btn max-btn" onclick="toggleMaximize('popup13')">crop_square</span><span class="material-symbols-outlined action-btn close-btn" onclick="closePopup('popup13')">close</span></div></div>
     <div class="popup-glass" onclick="focusPopup(this.parentElement)"></div><iframe data-default-src="/desktop/apps/videoplayer/index.html" src="about:blank" class="popup-frame"></iframe>
   </div>
 
@@ -902,7 +904,7 @@ Questions? https://discord.gg/YDVxw6jfbH
           <div>${message}</div>
         </div>
         <div class="dialog-buttons">
-          <div class="dialog-btn" onclick="closeDialog('${dialogId}')">OK</div>
+          <div class="dialog-btn" onclick="closeDialog('${dialogId}')">${mariowOSI18n.t("common.ok", "OK")}</div>
         </div>
       `;
 
@@ -940,7 +942,7 @@ Questions? https://discord.gg/YDVxw6jfbH
     }
 
     // Native OS Confirmation Dialog (Replaces browser confirm)
-    function showConfirmDialog(title, message, onConfirm, confirmText = 'Delete', isDanger = true) {
+    function showConfirmDialog(title, message, onConfirm, confirmText = mariowOSI18n.t("common.delete", "Delete"), isDanger = true) {
       const dialogId = 'dialog_' + Date.now() + Math.floor(Math.random() * 1000);
       const popupDiv = document.createElement('div');
       popupDiv.id = dialogId;
@@ -958,7 +960,7 @@ Questions? https://discord.gg/YDVxw6jfbH
           <div>${message}</div>
         </div>
         <div class="dialog-buttons" style="gap: 8px;">
-          <div class="dialog-btn" onclick="closeDialog('${dialogId}')">Cancel</div>
+          <div class="dialog-btn" onclick="closeDialog('${dialogId}')">${mariowOSI18n.t("common.cancel", "Cancel")}</div>
           <div class="dialog-btn" id="${dialogId}_confirmBtn" style="${isDanger ? 'background: #ff453a; color: #fff;' : 'background: var(--m3-accent-active); color: #fff;'}">${confirmText}</div>
         </div>
       `;
@@ -1007,7 +1009,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       });
       
       if (throttledCount > 0) {
-        showDialog('warning', 'com.mariowos.desktop', 'High resource usage detected. Background tasks are paused to preserve system resources.');
+        showDialog('warning', 'com.mariowos.desktop', mariowOSI18n.t("desktop.dialog.high-usage", "High resource usage detected. Background tasks are paused to preserve system resources."));
       }
       
       setTimeout(() => {
@@ -1137,19 +1139,19 @@ Questions? https://discord.gg/YDVxw6jfbH
     let draggedAppId = null;
 
     const builtInApps = [
-      { id: 'popup10', title: 'Files', icon: '/desktop/assets/icons/files.png' },
-      { id: 'popup1', title: 'Settings', icon: '/desktop/assets/icons/settings.png' },
-      { id: 'popup2', title: 'Browser', icon: '/desktop/assets/icons/browser.png' },
-      { id: 'popup3', title: 'Help', icon: '/desktop/assets/icons/feedback.png' },
-      { id: 'popup4', title: 'Music', icon: '/desktop/assets/icons/music.png' },
-      { id: 'popup5', title: 'Notes', icon: '/desktop/assets/icons/notes.png' },
-      { id: 'popup6', title: 'Messaging', icon: '/desktop/assets/icons/messaging.png' },
-      { id: 'popup7', title: 'Store', icon: '/desktop/assets/icons/store.png' },
-      { id: 'popup8', title: 'Terminal', icon: '/desktop/assets/icons/terminal.png' },
-      { id: 'popup9', title: 'Calculator', icon: '/desktop/assets/icons/calculator.png' },
-      { id: 'popup11', title: 'Calendar', icon: '/desktop/assets/icons/calendar.png' },
-      { id: 'popup12', title: 'Pictures', icon: '/desktop/assets/icons/pictures.svg' },
-      { id: 'popup13', title: 'Video Player', icon: '/desktop/assets/icons/video.svg' }
+      { id: 'popup10', title: mariowOSI18n.t("desktop.app.files", "Files"), icon: '/desktop/assets/icons/files.png' },
+      { id: 'popup1', title: mariowOSI18n.t("desktop.app.settings", "Settings"), icon: '/desktop/assets/icons/settings.png' },
+      { id: 'popup2', title: mariowOSI18n.t("desktop.app.browser", "Browser"), icon: '/desktop/assets/icons/browser.png' },
+      { id: 'popup3', title: mariowOSI18n.t("desktop.app.help", "Help"), icon: '/desktop/assets/icons/feedback.png' },
+      { id: 'popup4', title: mariowOSI18n.t("desktop.app.music", "Music"), icon: '/desktop/assets/icons/music.png' },
+      { id: 'popup5', title: mariowOSI18n.t("desktop.app.notes", "Notes"), icon: '/desktop/assets/icons/notes.png' },
+      { id: 'popup6', title: mariowOSI18n.t("desktop.app.messaging", "Messaging"), icon: '/desktop/assets/icons/messaging.png' },
+      { id: 'popup7', title: mariowOSI18n.t("desktop.app.store", "Store"), icon: '/desktop/assets/icons/store.png' },
+      { id: 'popup8', title: mariowOSI18n.t("desktop.app.terminal", "Terminal"), icon: '/desktop/assets/icons/terminal.png' },
+      { id: 'popup9', title: mariowOSI18n.t("desktop.app.calculator", "Calculator"), icon: '/desktop/assets/icons/calculator.png' },
+      { id: 'popup11', title: mariowOSI18n.t("desktop.app.calendar", "Calendar"), icon: '/desktop/assets/icons/calendar.png' },
+      { id: 'popup12', title: mariowOSI18n.t("desktop.app.pictures", "Pictures"), icon: '/desktop/assets/icons/pictures.svg' },
+      { id: 'popup13', title: mariowOSI18n.t("desktop.app.videoplayer", "Video Player"), icon: '/desktop/assets/icons/video.svg' }
     ];
     
     function getAllApps() { return [...builtInApps, ...dynamicInstalledApps]; }
@@ -1233,7 +1235,7 @@ Questions? https://discord.gg/YDVxw6jfbH
             e.preventDefault();
             dockIcon.classList.remove('drag-over-left', 'drag-over-right');
             if (!draggedAppId || draggedAppId === appId) return;
-            if (!pinnedApps.includes(draggedAppId)) { pinnedApps.push(draggedAppId); showNotification("Dock", `${app.title} pinned to dock`, "📌"); }
+            if (!pinnedApps.includes(draggedAppId)) { pinnedApps.push(draggedAppId); showNotification("Dock", mariowOSI18n.t("desktop.dock.pinned-dock", "{app} pinned to dock", { app: app.title }), "📌"); }
             pinnedApps = pinnedApps.filter(id => id !== draggedAppId);
             if (!pinnedApps.includes(appId)) pinnedApps.push(appId);
             let newIdx = pinnedApps.indexOf(appId); const rect = dockIcon.getBoundingClientRect(); if (e.clientX > rect.left + rect.width / 2) newIdx++; 
@@ -1341,10 +1343,12 @@ Questions? https://discord.gg/YDVxw6jfbH
       const open = Array.from(runningApps).filter(id => !id.startsWith('dialog_'));
       if (!open.length) return;
       showConfirmDialog(
-        'Close all windows',
-        `Close ${open.length} open window${open.length === 1 ? '' : 's'}? Any unsaved work will be lost.`,
+        mariowOSI18n.t("desktop.taskbar.close-all", "Close all windows"),
+        open.length === 1
+          ? mariowOSI18n.t("desktop.close-all.confirm.one", "Close {count} open window? Any unsaved work will be lost.", { count: open.length })
+          : mariowOSI18n.t("desktop.close-all.confirm.other", "Close {count} open windows? Any unsaved work will be lost.", { count: open.length }),
         () => { open.forEach(id => closePopup(id)); minimizedByShowDesktop = []; },
-        'Close all',
+        mariowOSI18n.t("desktop.close-all.button", "Close all"),
         true
       );
     }
@@ -1353,8 +1357,8 @@ Questions? https://discord.gg/YDVxw6jfbH
       const app = getAllApps().find(a => a.id === appId || a.appId === appId);
       if (!app) return;
       showConfirmDialog(
-        'Uninstall app',
-        `Remove "${app.title}" from mariowOS? Its files will be deleted.`,
+        mariowOSI18n.t("desktop.dock.uninstall", "Uninstall app"),
+        mariowOSI18n.t("desktop.uninstall.confirm", "Remove \"{app}\" from mariowOS? Its files will be deleted.", { app: app.title }),
         async () => {
           try {
             const res = await fetch('/api/store/uninstall', {
@@ -1363,13 +1367,13 @@ Questions? https://discord.gg/YDVxw6jfbH
               body: JSON.stringify({ appId })
             });
             const data = await res.json().catch(() => null);
-            if (!res.ok || !data || !data.success) throw new Error((data && data.error) || `Server error (${res.status})`);
+            if (!res.ok || !data || !data.success) throw new Error((data && data.error) || mariowOSI18n.t("desktop.uninstall.server-error", "Server error ({status})", { status: res.status }));
             window.postMessage({ type: 'app-uninstalled-live', appId }, '*');
           } catch (err) {
-            showNotification('Uninstall failed', err.message, '⚠️');
+            showNotification(mariowOSI18n.t("desktop.uninstall.failed", "Uninstall failed"), err.message, '⚠️');
           }
         },
-        'Uninstall',
+        mariowOSI18n.t("desktop.uninstall.button", "Uninstall"),
         true
       );
     }
@@ -1383,19 +1387,19 @@ Questions? https://discord.gg/YDVxw6jfbH
       const isInstalled = dynamicInstalledApps.some(a => a.id === appId);
 
       const items = [
-        { header: true, label: app ? app.title : 'App', state: running ? (visible ? (maximized ? 'Maximized' : 'Open') : 'Minimized') : 'Not running', appIcon: app && app.icon },
+        { header: true, label: app ? app.title : mariowOSI18n.t("desktop.dock.app", "App"), state: running ? (visible ? (maximized ? mariowOSI18n.t("desktop.dock.state.maximized", "Maximized") : mariowOSI18n.t("desktop.dock.state.open", "Open")) : mariowOSI18n.t("desktop.dock.state.minimized", "Minimized")) : mariowOSI18n.t("desktop.dock.state.not-running", "Not running"), appIcon: app && app.icon },
         running
           ? (visible
-            ? { icon: 'minimize', label: 'Minimize', action: () => minimizePopup(appId) }
-            : { icon: 'open_in_full', label: 'Show window', action: () => openPopup(appId) })
-          : { icon: 'open_in_new', label: 'Open', action: () => openPopup(appId) },
-        running && { icon: maximized ? 'close_fullscreen' : 'crop_square', label: maximized ? 'Restore size' : 'Maximize', action: () => { if (!visible) openPopup(appId); toggleMaximize(appId); } },
-        running && popup && popup.querySelector('iframe, webview') && { icon: 'refresh', label: 'Reload app', action: () => reloadApp(appId) },
+            ? { icon: 'minimize', label: mariowOSI18n.t("desktop.dock.minimize", "Minimize"), action: () => minimizePopup(appId) }
+            : { icon: 'open_in_full', label: mariowOSI18n.t("desktop.dock.show-window", "Show window"), action: () => openPopup(appId) })
+          : { icon: 'open_in_new', label: mariowOSI18n.t("common.open", "Open"), action: () => openPopup(appId) },
+        running && { icon: maximized ? 'close_fullscreen' : 'crop_square', label: maximized ? mariowOSI18n.t("desktop.dock.restore-size", "Restore size") : mariowOSI18n.t("desktop.dock.maximize", "Maximize"), action: () => { if (!visible) openPopup(appId); toggleMaximize(appId); } },
+        running && popup && popup.querySelector('iframe, webview') && { icon: 'refresh', label: mariowOSI18n.t("desktop.dock.reload-app", "Reload app"), action: () => reloadApp(appId) },
         { separator: true },
-        { icon: isPinned ? 'keep_off' : 'keep', label: isPinned ? 'Unpin from taskbar' : 'Pin to taskbar', action: () => togglePin(appId) },
-        isInstalled && { icon: 'delete', label: 'Uninstall app', danger: true, action: () => uninstallAppFromDock(appId) },
+        { icon: isPinned ? 'keep_off' : 'keep', label: isPinned ? mariowOSI18n.t("desktop.dock.unpin", "Unpin from taskbar") : mariowOSI18n.t("desktop.dock.pin", "Pin to taskbar"), action: () => togglePin(appId) },
+        isInstalled && { icon: 'delete', label: mariowOSI18n.t("desktop.dock.uninstall", "Uninstall app"), danger: true, action: () => uninstallAppFromDock(appId) },
         running && { separator: true },
-        running && { icon: 'close', label: 'Close window', danger: true, action: () => closePopup(appId) }
+        running && { icon: 'close', label: mariowOSI18n.t("desktop.dock.close-window", "Close window"), danger: true, action: () => closePopup(appId) }
       ];
       openTaskbarMenu(document.getElementById('dockContextMenu'), items, e.clientX);
     }
@@ -1407,15 +1411,15 @@ Questions? https://discord.gg/YDVxw6jfbH
       const canRestore = minimizedByShowDesktop.some(id => runningApps.has(id));
 
       const items = [
-        { icon: anyVisible ? 'desktop_windows' : 'web_asset', label: anyVisible ? 'Show desktop' : 'Restore windows', disabled: !anyVisible && !canRestore, action: showDesktopToggle },
-        { icon: 'close', label: 'Close all windows', danger: true, disabled: openCount === 0, action: closeAllWindows },
+        { icon: anyVisible ? 'desktop_windows' : 'web_asset', label: anyVisible ? mariowOSI18n.t("desktop.taskbar.show-desktop", "Show desktop") : mariowOSI18n.t("desktop.taskbar.restore-windows", "Restore windows"), disabled: !anyVisible && !canRestore, action: showDesktopToggle },
+        { icon: 'close', label: mariowOSI18n.t("desktop.taskbar.close-all", "Close all windows"), danger: true, disabled: openCount === 0, action: closeAllWindows },
         { separator: true },
-        { icon: 'apps', label: 'App launcher', action: () => document.getElementById('actionsBtn').click() },
-        { icon: 'search', label: 'Search', action: () => openSpotlight() },
-        { icon: 'notifications', label: 'Notifications', action: () => document.getElementById('notificationsBtn').click() },
+        { icon: 'apps', label: mariowOSI18n.t("desktop.taskbar.app-launcher", "App launcher"), action: () => document.getElementById('actionsBtn').click() },
+        { icon: 'search', label: mariowOSI18n.t("common.search", "Search"), action: () => openSpotlight() },
+        { icon: 'notifications', label: mariowOSI18n.t("desktop.taskbar.notifications", "Notifications"), action: () => document.getElementById('notificationsBtn').click() },
         { separator: true },
-        { icon: 'wallpaper', label: 'Change wallpaper', action: () => { const frame = document.querySelector('#popup1 iframe'); if (frame) frame.src = '/desktop/apps/settings/index.html#wallpaper'; openPopup('popup1'); } },
-        { icon: 'settings', label: 'System settings', action: () => openPopup('popup1') }
+        { icon: 'wallpaper', label: mariowOSI18n.t("desktop.menu.change-wallpaper", "Change wallpaper"), action: () => { const frame = document.querySelector('#popup1 iframe'); if (frame) frame.src = '/desktop/apps/settings/index.html#wallpaper'; openPopup('popup1'); } },
+        { icon: 'settings', label: mariowOSI18n.t("desktop.menu.system-settings", "System settings"), action: () => openPopup('popup1') }
       ];
       openTaskbarMenu(document.getElementById('taskbarContextMenu'), items, e.clientX);
     }
@@ -1428,8 +1432,8 @@ Questions? https://discord.gg/YDVxw6jfbH
 
     function togglePin(appId) {
       const app = getAllApps().find(a => a.id === appId || a.appId === appId);
-      if (pinnedApps.includes(appId)) { pinnedApps = pinnedApps.filter(id => id !== appId); showNotification("Dock", `${app.title} unpinned from taskbar`, "📌"); }
-      else { pinnedApps.push(appId); showNotification("Dock", `${app.title} pinned to taskbar`, "📌"); }
+      if (pinnedApps.includes(appId)) { pinnedApps = pinnedApps.filter(id => id !== appId); showNotification("Dock", mariowOSI18n.t("desktop.dock.unpinned-taskbar", "{app} unpinned from taskbar", { app: app.title }), "📌"); }
+      else { pinnedApps.push(appId); showNotification("Dock", mariowOSI18n.t("desktop.dock.pinned-taskbar", "{app} pinned to taskbar", { app: app.title }), "📌"); }
       localStorage.setItem('hmos_pinned_apps', JSON.stringify(pinnedApps)); updateDock();
     }
 
@@ -1485,12 +1489,12 @@ Questions? https://discord.gg/YDVxw6jfbH
 
     function renderQuickSettings() {
       const tileWifi = document.getElementById("tileWifi"); const iconWifi = document.getElementById("iconWifi"); const titleWifi = document.getElementById("titleWifi"); const subWifi = document.getElementById("subWifi"); const textContainer = document.getElementById("wifiTextContainer");
-      if (qsState.isEthernet) { tileWifi.className = `qs-tile-hmos active`; iconWifi.textContent = "settings_ethernet"; titleWifi.textContent = "Ethernet"; subWifi.textContent = "Connected"; textContainer.onclick = (e) => { e.stopPropagation(); toggleSubPanel('ethernet'); }; } 
-      else { tileWifi.className = `qs-tile-hmos ${qsState.wifi ? 'active' : 'inactive'}`; iconWifi.textContent = qsState.wifi ? "wifi" : "wifi_off"; titleWifi.textContent = "WLAN"; subWifi.textContent = qsState.wifi ? (qsState.connectedWifi || "On") : "Off"; textContainer.onclick = (e) => { e.stopPropagation(); toggleSubPanel('wifi'); }; }
+      if (qsState.isEthernet) { tileWifi.className = `qs-tile-hmos active`; iconWifi.textContent = "settings_ethernet"; titleWifi.textContent = "Ethernet"; subWifi.textContent = mariowOSI18n.t("desktop.qs.connected", "Connected"); textContainer.onclick = (e) => { e.stopPropagation(); toggleSubPanel('ethernet'); }; } 
+      else { tileWifi.className = `qs-tile-hmos ${qsState.wifi ? 'active' : 'inactive'}`; iconWifi.textContent = qsState.wifi ? "wifi" : "wifi_off"; titleWifi.textContent = "WLAN"; subWifi.textContent = qsState.wifi ? (qsState.connectedWifi || mariowOSI18n.t("desktop.qs.on", "On")) : mariowOSI18n.t("desktop.qs.off", "Off"); textContainer.onclick = (e) => { e.stopPropagation(); toggleSubPanel('wifi'); }; }
       const trayWifiIcon = document.getElementById("trayWifiIcon"); if (trayWifiIcon) trayWifiIcon.textContent = qsState.isEthernet ? "settings_ethernet" : (qsState.wifi ? "wifi" : "wifi_off");
-      const tileBt = document.getElementById("tileBt"); tileBt.className = `qs-tile-hmos ${qsState.bluetooth ? 'active' : 'inactive'}`; document.getElementById("iconBt").textContent = qsState.bluetooth ? "bluetooth" : "bluetooth_disabled"; document.getElementById("subBt").textContent = qsState.bluetooth ? (qsState.connectedBt || "On") : "Off";
+      const tileBt = document.getElementById("tileBt"); tileBt.className = `qs-tile-hmos ${qsState.bluetooth ? 'active' : 'inactive'}`; document.getElementById("iconBt").textContent = qsState.bluetooth ? "bluetooth" : "bluetooth_disabled"; document.getElementById("subBt").textContent = qsState.bluetooth ? (qsState.connectedBt || mariowOSI18n.t("desktop.qs.on", "On")) : mariowOSI18n.t("desktop.qs.off", "Off");
       const tileDnd = document.getElementById("tileDnd"); tileDnd.className = `hmos-circle-toggle ${qsState.dnd ? 'active' : 'inactive'}`; document.getElementById("iconDnd").textContent = qsState.dnd ? "do_not_disturb_on" : "notifications";
-      const tilePower = document.getElementById("tilePower"); const titlePower = document.getElementById("titlePower"); const iconPower = document.getElementById("iconPower"); titlePower.textContent = qsState.powerMode; tilePower.dataset.mode = qsState.powerMode;
+      const tilePower = document.getElementById("tilePower"); const titlePower = document.getElementById("titlePower"); const iconPower = document.getElementById("iconPower"); titlePower.textContent = ({ "Balanced": mariowOSI18n.t("desktop.qs.power.balanced", "Balanced"), "Performance": mariowOSI18n.t("desktop.qs.power.performance", "Performance"), "Battery Saver": mariowOSI18n.t("desktop.qs.power.battery-saver", "Battery Saver") })[qsState.powerMode] || qsState.powerMode; tilePower.dataset.mode = qsState.powerMode;
       if (qsState.powerMode === "Performance") { tilePower.className = "hmos-circle-toggle active"; iconPower.textContent = "bolt"; } else if (qsState.powerMode === "Battery Saver") { tilePower.className = "hmos-circle-toggle inactive"; iconPower.textContent = "battery_saver"; } else { tilePower.className = "hmos-circle-toggle active"; iconPower.textContent = "battery_charging_full"; }
     }
 
@@ -1523,9 +1527,9 @@ Questions? https://discord.gg/YDVxw6jfbH
       const listContainer = document.getElementById("ethList");
       try { const res = await fetch("/api/system/ethernet-stats"); const data = await res.json();
         if (data.interfaces && data.interfaces.length > 0) {
-          listContainer.innerHTML = data.interfaces.map(iface => `<div class="qs-list-item connected" style="cursor: default;"><div style="display:flex; flex-direction:column; gap:2px;"><div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">settings_ethernet</span><span style="font-weight:600;">${iface.name}</span></div><span style="font-size:10px; color:#ddd; margin-left:26px;">IP: ${iface.ip}</span></div><span style="font-size:11px; font-weight:500; text-align:right;">Connected</span></div>`).join('');
-        } else { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No Ethernet ports active</div>`; }
-      } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">Failed to get stats</div>`; }
+          listContainer.innerHTML = data.interfaces.map(iface => `<div class="qs-list-item connected" style="cursor: default;"><div style="display:flex; flex-direction:column; gap:2px;"><div style="display:flex; align-items:center; gap:8px;"><span class="material-symbols-outlined" style="font-size:18px;">settings_ethernet</span><span style="font-weight:600;">${iface.name}</span></div><span style="font-size:10px; color:#ddd; margin-left:26px;">IP: ${iface.ip}</span></div><span style="font-size:11px; font-weight:500; text-align:right;">${mariowOSI18n.t("desktop.qs.connected", "Connected")}</span></div>`).join('');
+        } else { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">${mariowOSI18n.t("desktop.qs.no-ethernet", "No Ethernet ports active")}</div>`; }
+      } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">${mariowOSI18n.t("desktop.qs.stats-failed", "Failed to get stats")}</div>`; }
     }
 
     async function fetchNetworks() {
@@ -1533,7 +1537,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       try { const res = await fetch("/api/system/networks"); const data = await res.json();
         if (data.networks) {
           const activeNet = data.networks.find(net => net.connected); qsState.connectedWifi = activeNet ? activeNet.ssid : null; renderQuickSettings();
-          if (data.networks.length === 0) { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No Wi-Fi networks found</div>`; return; }
+          if (data.networks.length === 0) { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">${mariowOSI18n.t("desktop.qs.no-wifi", "No Wi-Fi networks found")}</div>`; return; }
           // SECURITY (layer-2 XSS): Wi-Fi SSIDs are attacker-controllable; build via DOM.
           listContainer.replaceChildren();
           data.networks.forEach(net => {
@@ -1551,17 +1555,17 @@ Questions? https://discord.gg/YDVxw6jfbH
             left.append(icon, name);
             const sig = document.createElement('span');
             sig.style.fontSize = '11px';
-            sig.textContent = net.connected ? 'Connected' : (net.signal + '%');
+            sig.textContent = net.connected ? mariowOSI18n.t("desktop.qs.connected", "Connected") : (net.signal + '%');
             item.append(left, sig);
             listContainer.appendChild(item);
           });
         }
-      } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">Failed to scan Wi-Fi</div>`; }
+      } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">${mariowOSI18n.t("desktop.qs.wifi-failed", "Failed to scan Wi-Fi")}</div>`; }
     }
 
     async function connectWifi(ssid) {
       try { const res = await fetch("/api/system/connect-wifi", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ssid }) }); const data = await res.json();
-        if (data.success) { qsState.connectedWifi = ssid; qsState.wifi = true; renderQuickSettings(); fetchNetworks(); showNotification("Wi-Fi", `Connected to ${ssid}`, "📶"); }
+        if (data.success) { qsState.connectedWifi = ssid; qsState.wifi = true; renderQuickSettings(); fetchNetworks(); showNotification("Wi-Fi", mariowOSI18n.t("desktop.notify.connected-to", "Connected to {name}", { name: ssid }), "📶"); }
       } catch (err) {}
     }
 
@@ -1570,7 +1574,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       try { const res = await fetch("/api/system/bt-devices"); const data = await res.json();
         if (data.devices) {
           const activeDev = data.devices.find(dev => dev.connected); qsState.connectedBt = activeDev ? activeDev.name : null; renderQuickSettings();
-          if (data.devices.length === 0) { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">No devices found</div>`; return; }
+          if (data.devices.length === 0) { listContainer.innerHTML = `<div style="font-size:11px; color:#aaa; text-align:center;">${mariowOSI18n.t("desktop.qs.no-devices", "No devices found")}</div>`; return; }
           const iconMap = { headset: 'headphones', smartphone: 'smartphone', mouse: 'mouse', keyboard: 'keyboard' };
           // SECURITY (layer-2 XSS): Bluetooth device names are attacker-controllable; build via DOM.
           listContainer.replaceChildren();
@@ -1589,22 +1593,22 @@ Questions? https://discord.gg/YDVxw6jfbH
             left.append(icon, name);
             const status = document.createElement('span');
             status.style.fontSize = '11px';
-            status.textContent = dev.connected ? 'Connected' : 'Saved';
+            status.textContent = dev.connected ? mariowOSI18n.t("desktop.qs.connected", "Connected") : mariowOSI18n.t("desktop.qs.saved", "Saved");
             item.append(left, status);
             listContainer.appendChild(item);
           });
         }
-      } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">Failed to find Bluetooth devices</div>`; }
+      } catch (err) { listContainer.innerHTML = `<div style="font-size:11px; color:#ff453a; text-align:center;">${mariowOSI18n.t("desktop.qs.bt-failed", "Failed to find Bluetooth devices")}</div>`; }
     }
 
     async function connectBt(mac, name) {
       try { const res = await fetch("/api/system/connect-bt", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ mac, name }) }); const data = await res.json();
-        if (data.success) { qsState.connectedBt = data.connectedBt; qsState.bluetooth = true; renderQuickSettings(); fetchBtDevices(); showNotification("Bluetooth", data.connectedBt ? `Connected to ${name}` : `Disconnected ${name}`, "🎧"); }
+        if (data.success) { qsState.connectedBt = data.connectedBt; qsState.bluetooth = true; renderQuickSettings(); fetchBtDevices(); showNotification("Bluetooth", data.connectedBt ? mariowOSI18n.t("desktop.notify.connected-to", "Connected to {name}", { name }) : mariowOSI18n.t("desktop.notify.disconnected", "Disconnected {name}", { name }), "🎧"); }
       } catch (err) {}
     }
 
     function showNotification(title, msg, icon = "🔔") {
-      const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const time = new Date().toLocaleTimeString(mariowOSI18n.locale, { hour: '2-digit', minute: '2-digit' });
       notificationsHistory.unshift({ title, msg, icon, time }); if (notificationsHistory.length > 10) notificationsHistory.pop(); updateNotificationCenter();
       if (qsState.dnd) return;
       const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast';
@@ -1620,42 +1624,42 @@ Questions? https://discord.gg/YDVxw6jfbH
     async function shutdownMariowOS() {
       const button = document.getElementById('shutdownMariowOSButton');
       if (!window.mariowOSElectron?.shutdown) {
-        showNotification('Shutdown unavailable', 'You\'re not running mariowOS in its container', '⚠️');
+        showNotification(mariowOSI18n.t("desktop.session.shutdown-unavailable", "Shutdown unavailable"), mariowOSI18n.t("desktop.session.no-container", "You're not running mariowOS in its container"), '⚠️');
         return;
       }
 
       button.disabled = true;
-      document.getElementById('shutdownMariowOSLabel').textContent = 'Closing...';
+      document.getElementById('shutdownMariowOSLabel').textContent = mariowOSI18n.t("desktop.session.closing", "Closing...");
       try {
         await window.mariowOSElectron.shutdown();
       } catch (error) {
         button.disabled = false;
-        document.getElementById('shutdownMariowOSLabel').textContent = 'Shutdown';
-        showNotification('Shutdown failed', error.message, '⚠️');
+        document.getElementById('shutdownMariowOSLabel').textContent = mariowOSI18n.t("desktop.session.shutdown", "Shutdown");
+        showNotification(mariowOSI18n.t("desktop.session.shutdown-failed", "Shutdown failed"), error.message, '⚠️');
       }
     }
 
     async function rebootMariowOS() {
       const button = document.getElementById('rebootMariowOSButton');
       if (!window.mariowOSElectron?.reboot) {
-        showNotification('Reboot unavailable', 'You\'re not running mariowOS in its container', '⚠️');
+        showNotification(mariowOSI18n.t("desktop.session.reboot-unavailable", "Reboot unavailable"), mariowOSI18n.t("desktop.session.no-container", "You're not running mariowOS in its container"), '⚠️');
         return;
       }
 
       button.disabled = true;
-      document.getElementById('rebootMariowOSLabel').textContent = 'Rebooting…';
+      document.getElementById('rebootMariowOSLabel').textContent = mariowOSI18n.t("desktop.session.rebooting", "Rebooting…");
       try {
         await window.mariowOSElectron.reboot();
       } catch (error) {
         button.disabled = false;
-        document.getElementById('rebootMariowOSLabel').textContent = 'Reboot';
-        showNotification('Reboot failed', error.message, '⚠️');
+        document.getElementById('rebootMariowOSLabel').textContent = mariowOSI18n.t("desktop.session.reboot", "Reboot");
+        showNotification(mariowOSI18n.t("desktop.session.reboot-failed", "Reboot failed"), error.message, '⚠️');
       }
     }
 
     function updateNotificationCenter() {
       const list = document.getElementById('notificationsList'); const badge = document.getElementById('notifBadge'); const dropdown = document.getElementById('notificationsDropdown');
-      if (notificationsHistory.length === 0) { list.innerHTML = `<div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;">No new notifications</div>`; badge.style.display = 'none'; return; }
+      if (notificationsHistory.length === 0) { list.innerHTML = `<div class="dropdown-item" style="color: #888; text-align: center; font-size: 12px; justify-content: center;">${mariowOSI18n.t("desktop.notifications.empty", "No new notifications")}</div>`; badge.style.display = 'none'; return; }
       if (dropdown && !dropdown.classList.contains('open')) badge.style.display = 'block'; 
       list.innerHTML = '';
       notificationsHistory.forEach(n => {
@@ -1690,7 +1694,7 @@ Questions? https://discord.gg/YDVxw6jfbH
     function updateContextBar() {
       const topPopup = getTopmostPopup(); const contextDropdown = document.getElementById('contextDropdown');
       if (topPopup && !topPopup.id.startsWith('dialog_')) { // Don't show quit for dialogs
-        const span = topPopup.querySelector('.popup-header span'); const appName = span ? span.innerText : "App";
+        const span = topPopup.querySelector('.popup-header span'); const appName = span ? span.innerText : mariowOSI18n.t("desktop.dock.app", "App");
         // SECURITY (layer-2 XSS): appName is an app window title (may be untrusted); build via DOM.
         const mkLink = (labelText, handler, color) => {
           const a = document.createElement('a');
@@ -1701,10 +1705,10 @@ Questions? https://discord.gg/YDVxw6jfbH
           return a;
         };
         contextDropdown.replaceChildren();
-        contextDropdown.appendChild(mkLink(`Quit ${appName}`, () => closePopup(topPopup.id), '#ff453a'));
-        if (topPopup.querySelector('iframe')) contextDropdown.appendChild(mkLink('Reload App', () => { const f = document.querySelector(`#${CSS.escape(topPopup.id)} iframe`); if (f && f.contentWindow) f.contentWindow.location.reload(); }));
-        if (topPopup.querySelector('webview')) contextDropdown.appendChild(mkLink('Reload Page', () => browserNav('reload')));
-      } else { contextDropdown.innerHTML = `<a href="/desktop/com.mariowos.desktop.html"><div class="dropdown-item"><span>Refresh desktop</span></div></a>`; }
+        contextDropdown.appendChild(mkLink(mariowOSI18n.t("desktop.context.quit", "Quit {app}", { app: appName }), () => closePopup(topPopup.id), '#ff453a'));
+        if (topPopup.querySelector('iframe')) contextDropdown.appendChild(mkLink(mariowOSI18n.t("desktop.context.reload-app", "Reload App"), () => { const f = document.querySelector(`#${CSS.escape(topPopup.id)} iframe`); if (f && f.contentWindow) f.contentWindow.location.reload(); }));
+        if (topPopup.querySelector('webview')) contextDropdown.appendChild(mkLink(mariowOSI18n.t("desktop.context.reload-page", "Reload Page"), () => browserNav('reload')));
+      } else { contextDropdown.innerHTML = `<a href="/desktop/com.mariowos.desktop.html"><div class="dropdown-item"><span>${mariowOSI18n.t("desktop.menu.refresh", "Refresh desktop")}</span></div></a>`; }
     }
 
     function toggleMaximize(popupId) {
@@ -2054,7 +2058,7 @@ Questions? https://discord.gg/YDVxw6jfbH
           }
           if (!iconEl) { iconEl = document.createElement('span'); iconEl.className = 'material-symbols-outlined spotlight-item-icon'; iconEl.style.cssText = 'font-size:22px; color:var(--m3-accent-active);'; iconEl.textContent = (app.icon && !app.icon.includes('/')) ? app.icon : 'apps'; }
           const nameEl = document.createElement('span'); nameEl.style.fontWeight = '500'; nameEl.textContent = app.title == null ? '' : String(app.title);
-          const tag = document.createElement('span'); tag.style.cssText = 'margin-left: auto; font-size: 11px; opacity: 0.5;'; tag.textContent = 'Application';
+          const tag = document.createElement('span'); tag.style.cssText = 'margin-left: auto; font-size: 11px; opacity: 0.5;'; tag.textContent = mariowOSI18n.t("desktop.spotlight.application", "Application");
           item.append(iconEl, document.createTextNode(' '), nameEl, document.createTextNode(' '), tag);
           resultsDiv.appendChild(item);
         });
@@ -2065,8 +2069,9 @@ Questions? https://discord.gg/YDVxw6jfbH
       const wIcon = document.createElement('span'); wIcon.className = 'material-symbols-outlined spotlight-item-icon'; wIcon.style.cssText = 'font-size:22px; color:#64c8ff;'; wIcon.textContent = 'search';
       const wText = document.createElement('span');
       const wq = document.createElement('b'); wq.textContent = query == null ? '' : String(query);
-      wText.append(document.createTextNode('Search Google for "'), wq, document.createTextNode('"'));
-      const wTag = document.createElement('span'); wTag.style.cssText = 'margin-left: auto; font-size: 11px; opacity: 0.5;'; wTag.textContent = 'Web';
+      const [wBefore, wAfter = ''] = String(mariowOSI18n.t("desktop.spotlight.search-web", "Search Google for \"{query}\"")).split('{query}');
+      wText.append(document.createTextNode(wBefore), wq, document.createTextNode(wAfter));
+      const wTag = document.createElement('span'); wTag.style.cssText = 'margin-left: auto; font-size: 11px; opacity: 0.5;'; wTag.textContent = mariowOSI18n.t("desktop.spotlight.web", "Web");
       webItem.append(wIcon, document.createTextNode(' '), wText, document.createTextNode(' '), wTag);
       resultsDiv.appendChild(webItem);
     }
@@ -2107,7 +2112,7 @@ Questions? https://discord.gg/YDVxw6jfbH
         const local = /^(localhost|\d)/i.test(hostMatch[1]);
         return new URL(`${local ? 'http' : 'https'}://${input}`).href;
       }
-      if (/^[a-z][a-z\d+.-]*:\/\//i.test(input)) throw new Error('Only HTTP and HTTPS websites can be opened.');
+      if (/^[a-z][a-z\d+.-]*:\/\//i.test(input)) throw new Error(mariowOSI18n.t("desktop.browser.only-http", "Only HTTP and HTTPS websites can be opened."));
       return BROWSER_ENGINES[getBrowserEngineId()].url + encodeURIComponent(input);
     }
 
@@ -2132,8 +2137,8 @@ Questions? https://discord.gg/YDVxw6jfbH
       const reload = browserEl('browserReload');
       const loading = !!tab?.loading;
       reload.querySelector('.material-symbols-outlined').textContent = loading ? 'close' : 'refresh';
-      reload.setAttribute('aria-label', loading ? 'Stop' : 'Reload');
-      reload.title = loading ? 'Stop (Esc)' : 'Reload (F5)';
+      reload.setAttribute('aria-label', loading ? mariowOSI18n.t("desktop.browser.stop", "Stop") : mariowOSI18n.t("desktop.browser.reload", "Reload"));
+      reload.title = loading ? mariowOSI18n.t("desktop.browser.stop-shortcut", "Stop (Esc)") : mariowOSI18n.t("desktop.browser.reload-shortcut", "Reload (F5)");
 
       const input = browserEl('browserUrl');
       if (document.activeElement !== input) input.value = browserDisplayUrl(tab?.url);
@@ -2141,7 +2146,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       const shown = browserDisplayUrl(tab?.url);
       icon.textContent = !shown ? 'search' : shown.startsWith('https:') ? 'lock' : 'info';
       icon.classList.toggle('secure', shown.startsWith('https:'));
-      icon.title = !shown ? '' : shown.startsWith('https:') ? 'Secure connection' : 'Connection is not secure';
+      icon.title = !shown ? '' : shown.startsWith('https:') ? mariowOSI18n.t("desktop.browser.secure", "Secure connection") : mariowOSI18n.t("desktop.browser.not-secure", "Connection is not secure");
 
       const zoom = browserEl('browserZoom');
       const factor = tab?.zoom || 1;
@@ -2185,10 +2190,10 @@ Questions? https://discord.gg/YDVxw6jfbH
 
     function updateBrowserTab(tab) {
       const button = tab.button;
-      const title = tab.title || 'New Tab';
+      const title = tab.title || mariowOSI18n.t("desktop.browser.new-tab-title", "New Tab");
       button.querySelector('.browser-tab-title').textContent = title;
       button.title = title;
-      button.querySelector('.browser-tab-close').setAttribute('aria-label', `Close ${title}`);
+      button.querySelector('.browser-tab-close').setAttribute('aria-label', mariowOSI18n.t("desktop.browser.close-tab", "Close {title}", { title }));
       const icon = button.querySelector('.browser-tab-icon');
       icon.classList.toggle('loading', !!tab.loading);
       const currentImg = icon.querySelector('img');
@@ -2256,7 +2261,7 @@ Questions? https://discord.gg/YDVxw6jfbH
         refresh();
       });
       view.addEventListener('page-title-updated', event => {
-        tab.title = event.title || 'New Tab';
+        tab.title = event.title || mariowOSI18n.t("desktop.browser.new-tab-title", "New Tab");
         refresh();
       });
       view.addEventListener('page-favicon-updated', event => {
@@ -2266,8 +2271,8 @@ Questions? https://discord.gg/YDVxw6jfbH
       view.addEventListener('did-fail-load', event => {
         // -3 is an aborted load (user stop / new navigation), not a real failure.
         if (!event.isMainFrame || event.errorCode === -3) return;
-        tab.error = { url: event.validatedURL || tab.url, description: event.errorDescription || 'The page could not be loaded.' };
-        tab.title = "Can't reach this page";
+        tab.error = { url: event.validatedURL || tab.url, description: event.errorDescription || mariowOSI18n.t("desktop.browser.load-failed", "The page could not be loaded.") };
+        tab.title = mariowOSI18n.t("desktop.browser.cant-reach", "Can't reach this page");
         refresh();
       });
       view.addEventListener('found-in-page', event => {
@@ -2289,10 +2294,10 @@ Questions? https://discord.gg/YDVxw6jfbH
       const errorEl = document.createElement('div');
       errorEl.className = 'browser-error';
       errorEl.hidden = true;
-      errorEl.innerHTML = `<span class="material-symbols-outlined">cloud_off</span><h2>Can't reach this page</h2>
-        <p style="white-space:pre-line"></p><button type="button">Try again</button>`;
+      errorEl.innerHTML = `<span class="material-symbols-outlined">cloud_off</span><h2>${mariowOSI18n.t("desktop.browser.cant-reach", "Can't reach this page")}</h2>
+        <p style="white-space:pre-line"></p><button type="button">${mariowOSI18n.t("common.retry", "Try again")}</button>`;
 
-      const tab = { id: nextBrowserTabId++, title: 'New Tab', url: url || BROWSER_HOME, view, errorEl,
+      const tab = { id: nextBrowserTabId++, title: mariowOSI18n.t("desktop.browser.new-tab-title", "New Tab"), url: url || BROWSER_HOME, view, errorEl,
         loading: false, ready: false, favicon: null, error: null, zoom: 1, progress: 0 };
       errorEl.querySelector('button').addEventListener('click', () => {
         tab.error = null;
@@ -2358,12 +2363,12 @@ Questions? https://discord.gg/YDVxw6jfbH
         if (!tab) { createBrowserTab(url); return; }
         tab.url = url;
         tab.error = null;
-        tab.title = 'Loading…';
+        tab.title = mariowOSI18n.t("desktop.browser.loading", "Loading…");
         browserEl('browserUrl').blur();
         tab.view.src = url;
         updateBrowserTab(tab);
       } catch (error) {
-        showNotification('Unable to open website', error.message, '⚠️');
+        showNotification(mariowOSI18n.t("desktop.browser.open-failed", "Unable to open website"), error.message, '⚠️');
       }
     }
 
@@ -2429,19 +2434,19 @@ Questions? https://discord.gg/YDVxw6jfbH
       const engine = getBrowserEngineId();
       const zoom = Math.round((getActiveBrowserTab()?.zoom || 1) * 100);
       menu.innerHTML = `
-        <button data-act="new-tab"><span class="material-symbols-outlined check" style="color:inherit">add</span>New tab<span style="margin-left:auto;opacity:.5">Ctrl+T</span></button>
-        <button data-act="find"><span class="material-symbols-outlined check" style="color:inherit">search</span>Find in page<span style="margin-left:auto;opacity:.5">Ctrl+F</span></button>
+        <button data-act="new-tab"><span class="material-symbols-outlined check" style="color:inherit">add</span>${mariowOSI18n.t("desktop.browser.new-tab", "New tab")}<span style="margin-left:auto;opacity:.5">Ctrl+T</span></button>
+        <button data-act="find"><span class="material-symbols-outlined check" style="color:inherit">search</span>${mariowOSI18n.t("desktop.browser.find", "Find in page")}<span style="margin-left:auto;opacity:.5">Ctrl+F</span></button>
         <div style="display:flex;align-items:center;gap:4px;padding:2px 4px 2px 10px">
-          <span style="flex:1">Zoom</span>
+          <span style="flex:1">${mariowOSI18n.t("desktop.browser.zoom", "Zoom")}</span>
           <button data-act="zoom-out" style="width:auto;padding:4px 10px">−</button>
           <span style="min-width:42px;text-align:center">${zoom}%</span>
           <button data-act="zoom-in" style="width:auto;padding:4px 10px">+</button>
         </div>
-        <hr><div class="menu-label">Search engine</div>
+        <hr><div class="menu-label">${mariowOSI18n.t("desktop.browser.search-engine", "Search engine")}</div>
         ${Object.entries(BROWSER_ENGINES).map(([id, e]) =>
           `<button data-engine="${id}"><span class="material-symbols-outlined check">${id === engine ? 'check' : ''}</span>${e.name}</button>`).join('')}
         <hr>
-        <button data-act="clear-data"><span class="material-symbols-outlined check" style="color:inherit">delete</span>Clear browsing data</button>`;
+        <button data-act="clear-data"><span class="material-symbols-outlined check" style="color:inherit">delete</span>${mariowOSI18n.t("desktop.browser.clear-data", "Clear browsing data")}</button>`;
       menu.onclick = async event => {
         const item = event.target.closest('button');
         if (!item) return;
@@ -2456,9 +2461,9 @@ Questions? https://discord.gg/YDVxw6jfbH
         if (act === 'new-tab') createBrowserTab();
         if (act === 'find') openBrowserFind();
         if (act === 'clear-data') {
-          if (!window.mariowOSElectron?.clearBrowserData) { showNotification('Browser', 'Not available in this mode.', '⚠️'); return; }
-          try { await window.mariowOSElectron.clearBrowserData(); showNotification('Browser', 'Cookies, cache and site data cleared.', '🧹'); }
-          catch (error) { showNotification('Browser', error.message || 'Could not clear browsing data.', '⚠️'); }
+          if (!window.mariowOSElectron?.clearBrowserData) { showNotification(mariowOSI18n.t("desktop.app.browser", "Browser"), mariowOSI18n.t("desktop.browser.not-available", "Not available in this mode."), '⚠️'); return; }
+          try { await window.mariowOSElectron.clearBrowserData(); showNotification(mariowOSI18n.t("desktop.app.browser", "Browser"), mariowOSI18n.t("desktop.browser.data-cleared", "Cookies, cache and site data cleared."), '🧹'); }
+          catch (error) { showNotification(mariowOSI18n.t("desktop.app.browser", "Browser"), error.message || mariowOSI18n.t("desktop.browser.clear-failed", "Could not clear browsing data."), '⚠️'); }
         }
       };
       menu.hidden = false;
@@ -2541,6 +2546,9 @@ Questions? https://discord.gg/YDVxw6jfbH
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     let systemTimeOffset = 0, timezoneOffset = 0, manualTimeEnabled = false;
+    // Other languages: names and formats from Intl (the dates below are UTC-based).
+    const calFormat = (options, date) => new Intl.DateTimeFormat(mariowOSI18n.locale, { timeZone: 'UTC', ...options }).format(date);
+    const calCapitalize = text => text.charAt(0).toUpperCase() + text.slice(1);
 
     // --- System calendar (tray) — shares its events with the Calendar app ---
     const CAL_COLORS = { blue: '#0a84ff', green: '#30d158', red: '#ff453a', orange: '#ff9f0a', purple: '#bf5af2', pink: '#ff375f', teal: '#40c8e0' };
@@ -2595,10 +2603,14 @@ Questions? https://discord.gg/YDVxw6jfbH
       calLastKey = key;
 
       const dayEl = document.getElementById('calDayText'), dateEl = document.getElementById('calDateText');
-      if(dayEl) dayEl.textContent = dayName; if(dateEl) dateEl.textContent = `${monthName} ${date}, ${year}`;
-      const label = document.getElementById('calMonthLabel'); if (label) label.textContent = `${months[vm]} ${vy}`;
+      const localized = !!mariowOSI18n.locale;
+      if(dayEl) dayEl.textContent = localized ? calCapitalize(calFormat({ weekday: 'long' }, d)) : dayName;
+      if(dateEl) dateEl.textContent = localized ? calFormat({ day: 'numeric', month: 'long', year: 'numeric' }, d) : `${monthName} ${date}, ${year}`;
+      const label = document.getElementById('calMonthLabel'); if (label) label.textContent = localized ? calCapitalize(calFormat({ month: 'long', year: 'numeric' }, viewStart)) : `${months[vm]} ${vy}`;
       const grid = document.getElementById('calGrid'); if(!grid) return;
-      let html = '<span class="cal-day-name">S</span><span class="cal-day-name">M</span><span class="cal-day-name">T</span><span class="cal-day-name">W</span><span class="cal-day-name">T</span><span class="cal-day-name">F</span><span class="cal-day-name">S</span>';
+      let html = localized
+        ? [0, 1, 2, 3, 4, 5, 6].map(i => `<span class="cal-day-name">${calEsc(calFormat({ weekday: 'narrow' }, new Date(Date.UTC(2023, 0, 1 + i))).toUpperCase())}</span>`).join('')
+        : '<span class="cal-day-name">S</span><span class="cal-day-name">M</span><span class="cal-day-name">T</span><span class="cal-day-name">W</span><span class="cal-day-name">T</span><span class="cal-day-name">F</span><span class="cal-day-name">S</span>';
       const firstDay = new Date(Date.UTC(vy, vm, 1)).getUTCDay(); const daysInMonth = new Date(Date.UTC(vy, vm + 1, 0)).getUTCDate();
       for (let i = 0; i < firstDay; i++) { html += '<div class="cal-day empty"></div>'; }
       for (let i = 1; i <= daysInMonth; i++) {
@@ -2615,10 +2627,10 @@ Questions? https://discord.gg/YDVxw6jfbH
       if (list) {
         const evs = calEventsOn(picked);
         const p = calParse(picked);
-        const title = picked === todayStr ? 'Today' : `${days[new Date(Date.UTC(p.y, p.m, p.d)).getUTCDay()]}, ${months[p.m]} ${p.d}`;
+        const title = picked === todayStr ? mariowOSI18n.t("desktop.cal.today", "Today") : localized ? calFormat({ weekday: 'long', day: 'numeric', month: 'long' }, new Date(Date.UTC(p.y, p.m, p.d))) : `${days[new Date(Date.UTC(p.y, p.m, p.d)).getUTCDay()]}, ${months[p.m]} ${p.d}`;
         list.innerHTML = `<div class="cal-events-title">${title}</div>` + (evs.length
-          ? evs.map(ev => `<div class="cal-ev" data-date="${picked}"><div class="cal-ev-bar" style="background:${CAL_COLORS[ev.color] || CAL_COLORS.blue}"></div><div><div class="cal-ev-title">${calEsc(ev.title)}</div><div class="cal-ev-time">${ev.allDay ? 'All day' : calEsc(ev.start + (ev.end ? ' – ' + ev.end : ''))}${ev.location ? ' · ' + calEsc(ev.location) : ''}</div></div></div>`).join('')
-          : '<div class="cal-empty">No events · double-click a day to add one</div>');
+          ? evs.map(ev => `<div class="cal-ev" data-date="${picked}"><div class="cal-ev-bar" style="background:${CAL_COLORS[ev.color] || CAL_COLORS.blue}"></div><div><div class="cal-ev-title">${calEsc(ev.title)}</div><div class="cal-ev-time">${ev.allDay ? mariowOSI18n.t("desktop.cal.all-day", "All day") : calEsc(ev.start + (ev.end ? ' – ' + ev.end : ''))}${ev.location ? ' · ' + calEsc(ev.location) : ''}</div></div></div>`).join('')
+          : `<div class="cal-empty">${mariowOSI18n.t("desktop.cal.no-events", "No events · double-click a day to add one")}</div>`);
       }
     }
 
@@ -2668,7 +2680,10 @@ Questions? https://discord.gg/YDVxw6jfbH
             calFired[key] = Date.now();
             saveCalFired();
             const mins = startMin - nowMin;
-            const when = mins <= 0 ? 'Starting now' : mins < 60 ? `Starts in ${mins} min (${ev.start})` : mins < 1440 ? `Starts in ${Math.round(mins / 60)} h (${ev.start})` : `Starts on ${date} at ${ev.start}`;
+            const when = mins <= 0 ? mariowOSI18n.t("desktop.reminder.now", "Starting now")
+              : mins < 60 ? mariowOSI18n.t("desktop.reminder.minutes", "Starts in {count} min ({time})", { count: mins, time: ev.start })
+              : mins < 1440 ? mariowOSI18n.t("desktop.reminder.hours", "Starts in {count} h ({time})", { count: Math.round(mins / 60), time: ev.start })
+              : mariowOSI18n.t("desktop.reminder.date", "Starts on {date} at {time}", { date, time: ev.start });
             showNotification(ev.title, `${when}${ev.location ? ' · ' + ev.location : ''}`, '📅');
           }
         }
@@ -2683,7 +2698,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       if (timezoneOffset !== null) { utcMs += timezoneOffset * 3600000; } else if (manualTimeEnabled) { utcMs += systemTimeOffset; }
       const d = new Date(utcMs); let h = d.getUTCHours(), m = d.getUTCMinutes();
       const ampm = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; m = m < 10 ? "0" + m : m;
-      const clockEl = document.getElementById("clockBtn"); if(clockEl) clockEl.textContent = `${h}:${m} ${ampm}`;
+      const clockEl = document.getElementById("clockBtn"); if(clockEl) clockEl.textContent = mariowOSI18n.locale ? calFormat({ hour: 'numeric', minute: '2-digit' }, d) : `${h}:${m} ${ampm}`;
       renderCalendarGrid(d);
     }
     function checkTimeOffset() { timezoneOffset = localStorage.getItem('timezoneOffset') !== null ? parseFloat(localStorage.getItem('timezoneOffset')) : null; systemTimeOffset = localStorage.getItem('systemTimeOffset') !== null ? parseInt(localStorage.getItem('systemTimeOffset'), 10) : 0; manualTimeEnabled = localStorage.getItem('manualTimeEnabled') === 'true'; }
@@ -2808,7 +2823,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       if (e.data.type === 'maximize-app') { toggleMaximize(e.data.appId); }
       
       if (e.origin && e.origin.includes("minnit.chat")) {
-        try { const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; if (data && (data.action === 'newMessage' || data.type === 'message' || data.event === 'notification')) showNotification("Messaging", "New message received", "💬"); } catch(err) {}
+        try { const data = typeof e.data === 'string' ? JSON.parse(e.data) : e.data; if (data && (data.action === 'newMessage' || data.type === 'message' || data.event === 'notification')) showNotification(mariowOSI18n.t("desktop.app.messaging", "Messaging"), mariowOSI18n.t("desktop.notify.new-message", "New message received"), "💬"); } catch(err) {}
       }
 
       if (e.data.type === 'apply-style') applyDesktopStyle();
@@ -2827,7 +2842,7 @@ Questions? https://discord.gg/YDVxw6jfbH
 
           updateDock();
           const notifIcon = (app.icon && (app.icon.includes('/') || app.icon.includes('.'))) ? "📦" : (app.icon || "📦");
-          showNotification("App is installed", `${app.title} is ready to use!`, notifIcon);
+          showNotification(mariowOSI18n.t("desktop.notify.app-installed", "App is installed"), mariowOSI18n.t("desktop.notify.app-ready", "{app} is ready to use!", { app: app.title }), notifIcon);
         }
       }
       
@@ -2837,7 +2852,7 @@ Questions? https://discord.gg/YDVxw6jfbH
         pinnedApps = pinnedApps.filter(id => id !== appId); localStorage.setItem('hmos_pinned_apps', JSON.stringify(pinnedApps));
         document.querySelectorAll(`[data-popup="${appId}"]`).forEach(el => el.remove()); 
         const popupDiv = document.getElementById(appId); if (popupDiv) { setTimeout(() => popupDiv.remove(), 400); } 
-        updateDock(); showNotification("App removed", "The application has been removed.", "🗑️");
+        updateDock(); showNotification(mariowOSI18n.t("desktop.notify.app-removed", "App removed"), mariowOSI18n.t("desktop.notify.app-removed-msg", "The application has been removed."), "🗑️");
       }
 
       if (e.data.type === 'notes-ready') {
@@ -2905,7 +2920,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       if (e.data.type === 'get-settings') { try { const res = await fetch('/get-settings'); const cfg = await res.json(); e.source.postMessage({ type: 'settings', data: cfg }, '*'); } catch (err) { } }
       if (e.data.type === 'open-app-from-store') { openPopup(e.data.appId); }
       if (e.data.type === 'media-update') {
-        if (e.data.title === 'Not playing' || !e.data.title) { document.getElementById('mediaBannerTitle').textContent = 'No media'; document.getElementById('mediaBannerArtist').textContent = 'Not playing'; document.getElementById('mediaBannerPlayIcon').textContent = "play_arrow"; } 
+        if (e.data.title === 'Not playing' || !e.data.title) { document.getElementById('mediaBannerTitle').textContent = mariowOSI18n.t("desktop.media.no-media", "No media"); document.getElementById('mediaBannerArtist').textContent = mariowOSI18n.t("desktop.media.not-playing", "Not playing"); document.getElementById('mediaBannerPlayIcon').textContent = "play_arrow"; } 
         else { document.getElementById('mediaBannerTitle').textContent = e.data.title; document.getElementById('mediaBannerArtist').textContent = e.data.artist; document.getElementById('mediaBannerPlayIcon').textContent = e.data.isPlaying ? "pause" : "play_arrow"; }
         updateNotificationCenter();
       }
@@ -2979,10 +2994,10 @@ Questions? https://discord.gg/YDVxw6jfbH
       kpDiv.innerHTML = `
         <div class="kp-center">
           <div class="kp-qr">
-            <img src="${qrUrl}" alt="QR Code Error Info">
+            <img src="${qrUrl}" alt="${mariowOSI18n.t("desktop.panic.qr-alt", "QR Code Error Info")}">
           </div>
           <div class="kp-text" style="font-weight: bold;">KERNEL PANIC!</div>
-          <div class="kp-text">Please reboot your computer.</div>
+          <div class="kp-text">${mariowOSI18n.t("desktop.panic.reboot", "Please reboot your computer.")}</div>
           <br>
           <div class="kp-text" style="font-size: 12px; color: #ccc;">
             Error code: BACKEND_WATCHDOG_TIMEOUT (0x00000001)<br>
@@ -3205,11 +3220,11 @@ Questions? https://discord.gg/YDVxw6jfbH
     const openText = document.getElementById('itemMenuOpenText');
     if (item.type === 'folder') {
       openIcon.textContent = 'folder_open';
-      openText.textContent = 'Open in Files';
+      openText.textContent = mariowOSI18n.t("desktop.item.open-in-files", "Open in Files");
     } 
     else {
       openIcon.textContent = 'open_in_new';
-      openText.textContent = 'Open in Notes';
+      openText.textContent = mariowOSI18n.t("desktop.item.open-in-notes", "Open in Notes");
   }
 
   menu.style.position = 'fixed';
@@ -3248,16 +3263,16 @@ Questions? https://discord.gg/YDVxw6jfbH
       document.getElementById('desktopContextMenu').classList.remove('open');
       
       try {
-        let baseName = type === 'folder' ? 'New Folder' : 'New Text File.txt';
+        let baseName = type === 'folder' ? mariowOSI18n.t("desktop.menu.new-folder", "New Folder") : mariowOSI18n.t("desktop.menu.new-text-file", "New Text File") + '.txt';
         let candidate = baseName;
         let counter = 2;
         const existingNames = new Set(desktopItemsList.map(i => i.name.toLowerCase()));
 
         while (existingNames.has(candidate.toLowerCase())) {
           if (type === 'folder') {
-            candidate = `New Folder (${counter})`;
+            candidate = mariowOSI18n.t("desktop.new-item.folder-numbered", "New Folder ({n})", { n: counter });
           } else {
-            candidate = `New Text File (${counter}).txt`;
+            candidate = mariowOSI18n.t("desktop.new-item.text-file-numbered", "New Text File ({n})", { n: counter }) + '.txt';
           }
           counter++;
         }
@@ -3283,7 +3298,7 @@ Questions? https://discord.gg/YDVxw6jfbH
           explorerIframe.contentWindow.postMessage({type: 'refresh-view'}, '*');
         }
       } catch (e) {
-        showNotification("Error", "Could not create item.", "❌");
+        showNotification(mariowOSI18n.t("common.error", "Error"), mariowOSI18n.t("desktop.item.create-failed", "Could not create item."), "❌");
       }
     }
 
@@ -3337,7 +3352,7 @@ Questions? https://discord.gg/YDVxw6jfbH
             input.remove();
             nameSpan.style.display = '';
             isDesktopRenaming = false;
-            showNotification("Desktop", `Renamed to ${newName}`, "✏️");
+            showNotification("Desktop", mariowOSI18n.t("desktop.item.renamed", "Renamed to {name}", { name: newName }), "✏️");
             const explorerIframe = document.querySelector('#popup10 iframe');
             if(explorerIframe && explorerIframe.contentWindow) {
               explorerIframe.contentWindow.postMessage({type: 'refresh-view'}, '*');
@@ -3346,7 +3361,7 @@ Questions? https://discord.gg/YDVxw6jfbH
             input.remove();
             nameSpan.style.display = '';
             isDesktopRenaming = false;
-            showNotification("Error", resData.error || "Could not rename", "❌");
+            showNotification(mariowOSI18n.t("common.error", "Error"), resData.error || mariowOSI18n.t("desktop.item.rename-failed", "Could not rename"), "❌");
           }
         } catch (err) {
           input.remove();
@@ -3387,8 +3402,8 @@ Questions? https://discord.gg/YDVxw6jfbH
 
     function deleteDesktopItem(item) {
       showConfirmDialog(
-        `Delete ${item.type === 'folder' ? 'Folder' : 'File'}`,
-        `Are you sure you want to delete "${item.name}"? This action cannot be undone.`,
+        item.type === 'folder' ? mariowOSI18n.t("desktop.item.delete-folder", "Delete Folder") : mariowOSI18n.t("desktop.item.delete-file", "Delete File"),
+        mariowOSI18n.t("desktop.item.delete-confirm", "Are you sure you want to delete \"{name}\"? This action cannot be undone.", { name: item.name }),
         async () => {
           try {
             await fetch('/api/system/files/delete', {
@@ -3398,16 +3413,16 @@ Questions? https://discord.gg/YDVxw6jfbH
             });
             selectedDesktopItem = null;
             loadDesktopIcons();
-            showNotification("Desktop", `"${item.name}" deleted.`, "🗑️");
+            showNotification("Desktop", mariowOSI18n.t("desktop.item.deleted", "\"{name}\" deleted.", { name: item.name }), "🗑️");
             const explorerIframe = document.querySelector('#popup10 iframe');
             if(explorerIframe && explorerIframe.contentWindow) {
               explorerIframe.contentWindow.postMessage({type: 'refresh-view'}, '*');
             }
           } catch (e) {
-            showNotification("Error", "Could not delete item.", "❌");
+            showNotification(mariowOSI18n.t("common.error", "Error"), mariowOSI18n.t("desktop.item.delete-failed", "Could not delete item."), "❌");
           }
         },
-        'Delete',
+        mariowOSI18n.t("common.delete", "Delete"),
         true
       );
     }
@@ -3422,7 +3437,7 @@ Questions? https://discord.gg/YDVxw6jfbH
       
       const files = e.dataTransfer.files;
       if (files.length > 0) {
-        showNotification("Desktop", `Uploading ${files.length} file(s)...`, "⏳");
+        showNotification("Desktop", files.length === 1 ? mariowOSI18n.t("desktop.upload.progress.one", "Uploading {count} file...", { count: files.length }) : mariowOSI18n.t("desktop.upload.progress.other", "Uploading {count} files...", { count: files.length }), "⏳");
         
         let uploadsComplete = 0;
         for(let file of files) {
@@ -3438,7 +3453,7 @@ Questions? https://discord.gg/YDVxw6jfbH
              
              uploadsComplete++;
              if(uploadsComplete === files.length) {
-               showNotification("Desktop", "Uploads complete!", "✅");
+               showNotification("Desktop", mariowOSI18n.t("desktop.upload.done", "Uploads complete!"), "✅");
                loadDesktopIcons(); 
                
                const explorerIframe = document.querySelector('#popup10 iframe');
