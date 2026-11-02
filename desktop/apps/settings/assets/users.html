@@ -48,6 +48,27 @@
     .note { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; font-size: 12.5px; color: rgba(255,255,255,0.6); line-height: 1.45; }
     .note .material-symbols-outlined { font-size: 20px; color: rgba(255,255,255,0.5); }
     [hidden] { display: none !important; }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; inset: 0; cursor: pointer; background: rgba(255,255,255,0.2); transition: .3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px; background: #fff; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    .switch input:checked + .slider { background: #34c759; }
+    .switch input:checked + .slider:before { transform: translateX(20px); }
+    .limits { padding: 0 16px 16px 70px; animation: limitsIn .35s cubic-bezier(.2, 1.2, .4, 1); }
+    @keyframes limitsIn { from { opacity: 0; transform: translateY(-6px); } }
+    .limits h4 { margin: 4px 0 8px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.55); text-transform: uppercase; letter-spacing: .4px; }
+    .app-checks { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 6px 14px; margin-bottom: 12px; }
+    .app-checks label { display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: rgba(255,255,255,0.8); cursor: pointer; }
+    .app-checks input, .hours input[type=checkbox] { width: 16px; height: 16px; accent-color: #ff453a; }
+    .hours { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 12.5px; color: rgba(255,255,255,0.8); margin-bottom: 12px; }
+    .hours input[type=time] { padding: 6px 8px; border: 1px solid rgba(255,255,255,0.12); border-radius: 8px; background: rgba(0,0,0,0.3); color: #fff; font: 13px 'Poppins', sans-serif; color-scheme: dark; }
+    .user-wrap { border-bottom: 1px solid rgba(255,255,255,0.05); }
+    .user-wrap:last-child { border-bottom: none; }
+    .user-wrap .user { border-bottom: none; }
+    .tag.limited { background: rgba(255,159,10,0.2); color: #ffb340; }
+    .row-line { display: flex; align-items: center; gap: 14px; padding: 14px 16px; }
+    .row-line .user-text { flex: 1; min-width: 0; }
+    a.btn { text-decoration: none; display: inline-block; }
   </style>
 </head>
 <body>
@@ -56,6 +77,20 @@
   <div class="panel" id="userList"></div>
   <div class="panel" id="standardNote" hidden>
     <div class="note"><span class="material-symbols-outlined">shield_person</span><span data-i18n="settings.users.standard-note">You are using a standard account. Only administrators can add accounts, change them, install apps or use Terminal.</span></div>
+  </div>
+
+  <div id="guestSection" hidden>
+    <div class="section-title" data-i18n="settings.users.guest">Guest</div>
+    <div class="panel" style="margin-top: 20px;">
+      <div class="row-line">
+        <span class="material-symbols-outlined" style="font-size: 26px; color: rgba(255,255,255,0.6);">person_outline</span>
+        <div class="user-text">
+          <div class="user-name" data-i18n="settings.users.guest-title">Guest account</div>
+          <div class="user-role" data-i18n="settings.users.guest-help">Anyone can use the computer without a password. Their files are erased when they sign out.</div>
+        </div>
+        <label class="switch"><input type="checkbox" id="guestToggle"><span class="slider"></span></label>
+      </div>
+    </div>
   </div>
 
   <div id="addSection" hidden>
@@ -72,6 +107,25 @@
   </div>
 
   <div>
+    <div class="section-title" data-i18n="settings.users.your-data">Your files</div>
+    <div class="panel" style="margin-top: 20px;">
+      <div class="row-line">
+        <span class="material-symbols-outlined" style="font-size: 26px; color: rgba(255,255,255,0.6);">backup</span>
+        <div class="user-text">
+          <div class="user-name" data-i18n="settings.users.backup-title">Back up my account</div>
+          <div class="user-role" data-i18n="settings.users.backup-help">A ZIP with your home folder, notes, profile picture and desktop style. Restore it here, on this or another computer.</div>
+          <div class="status" id="backupStatus"></div>
+        </div>
+        <div class="actions">
+          <a class="btn" id="backupExport" href="/api/users/backup" download data-i18n="settings.users.backup-export">Export</a>
+          <button class="btn" type="button" id="backupRestore" data-i18n="settings.users.backup-restore">Restore…</button>
+          <input type="file" id="backupFile" accept=".zip,application/zip" hidden>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="passwordSection">
     <div class="section-title" data-i18n="settings.users.your-password">Your password</div>
     <div class="panel" style="margin-top: 20px;">
       <form class="form" id="passwordForm" autocomplete="off">
@@ -115,11 +169,26 @@ function render() {
     const nameText = document.createElement('span'); nameText.textContent = user.username;
     name.append(nameText);
     if (user.id === me.id) { const you = document.createElement('span'); you.className = 'tag you'; you.textContent = mariowOSI18n.t('settings.users.you', 'You'); name.append(you); }
-    const role = document.createElement('div'); role.className = 'user-role'; role.textContent = roleLabel(user);
+    if (user.limits) { const limited = document.createElement('span'); limited.className = 'tag limited'; limited.textContent = mariowOSI18n.t('settings.users.limited', 'Limited'); name.append(limited); }
+    const role = document.createElement('div'); role.className = 'user-role'; role.textContent = user.guest ? mariowOSI18n.t('settings.users.role-guest', 'Guest · no password') : roleLabel(user);
     text.append(name, role);
     row.append(img, text);
+    const wrap = document.createElement('div'); wrap.className = 'user-wrap';
+    wrap.append(row);
+    // Parental controls: only standard accounts and the guest can be limited.
+    const limitsButton = () => {
+      const button = document.createElement('button'); button.type = 'button'; button.className = 'btn';
+      button.textContent = mariowOSI18n.t('settings.users.limits', 'Limits');
+      button.onclick = () => toggleLimits(wrap, user);
+      return button;
+    };
+    if (me.admin && user.guest) {
+      const actions = document.createElement('div'); actions.className = 'actions';
+      actions.append(limitsButton());
+      row.append(actions);
+    }
     // The owner is always an administrator; nobody removes the account they are using.
-    if (me.admin && !user.owner) {
+    if (me.admin && !user.owner && !user.guest) {
       const actions = document.createElement('div'); actions.className = 'actions';
       const select = document.createElement('select');
       [['admin', mariowOSI18n.t('settings.users.role-admin', 'Administrator')], ['standard', mariowOSI18n.t('settings.users.role-standard', 'Standard')]].forEach(([value, label]) => {
@@ -143,6 +212,7 @@ function render() {
         catch (e) { await mDialog.alert(e.message); }
       };
       actions.append(select, reset);
+      if (!user.admin) actions.append(limitsButton());
       if (user.id !== me.id) {
         const remove = document.createElement('button'); remove.type = 'button'; remove.className = 'btn danger'; remove.textContent = mariowOSI18n.t('settings.users.remove', 'Remove');
         remove.onclick = async () => {
@@ -157,10 +227,57 @@ function render() {
       }
       row.append(actions);
     }
-    return row;
+    return wrap;
   }));
   document.getElementById('addSection').hidden = !me.admin;
+  document.getElementById('guestSection').hidden = !me.admin;
   document.getElementById('standardNote').hidden = me.admin;
+  // The guest has no password to change, and nothing of theirs to keep.
+  document.getElementById('passwordSection').hidden = !!me.guest;
+}
+
+// The apps that can be blocked: the built-in ones, plus what is installed from the Store.
+const BUILT_IN_APPS = [['popup1', 'desktop.app.settings', 'Settings'], ['popup2', 'desktop.app.browser', 'Browser'], ['popup3', 'desktop.app.help', 'Help'],
+  ['popup4', 'desktop.app.music', 'Music'], ['popup5', 'desktop.app.notes', 'Notes'], ['popup6', 'desktop.app.messaging', 'Messaging'], ['popup7', 'desktop.app.store', 'Store'],
+  ['popup9', 'desktop.app.calculator', 'Calculator'], ['popup10', 'desktop.app.files', 'Files'], ['popup11', 'desktop.app.calendar', 'Calendar'],
+  ['popup12', 'desktop.app.pictures', 'Pictures'], ['popup13', 'desktop.app.videoplayer', 'Video Player']];
+let installedApps = [];
+function toggleLimits(wrap, user) {
+  const open = wrap.querySelector('.limits');
+  if (open) { open.remove(); return; }
+  const limits = user.limits || { blockedApps: [], from: null, to: null };
+  const box = document.createElement('div'); box.className = 'limits';
+  const appsTitle = document.createElement('h4'); appsTitle.textContent = mariowOSI18n.t('settings.users.blocked-apps', 'Apps they cannot open');
+  const checks = document.createElement('div'); checks.className = 'app-checks';
+  const apps = [...BUILT_IN_APPS.map(([id, key, fallback]) => [id, mariowOSI18n.t(key, fallback)]), ...installedApps.map(app => [app.appId, app.title || app.appId])];
+  apps.forEach(([id, label]) => {
+    const item = document.createElement('label');
+    const input = document.createElement('input'); input.type = 'checkbox'; input.value = id; input.checked = limits.blockedApps.includes(id);
+    item.append(input, document.createTextNode(label));
+    checks.append(item);
+  });
+  const hoursTitle = document.createElement('h4'); hoursTitle.textContent = mariowOSI18n.t('settings.users.hours', 'When they can use the computer');
+  const hours = document.createElement('div'); hours.className = 'hours';
+  const limitHours = document.createElement('input'); limitHours.type = 'checkbox'; limitHours.checked = !!limits.from;
+  const from = document.createElement('input'); from.type = 'time'; from.value = limits.from || '08:00';
+  const to = document.createElement('input'); to.type = 'time'; to.value = limits.to || '20:00';
+  const syncHours = () => { from.disabled = to.disabled = !limitHours.checked; };
+  limitHours.onchange = syncHours; syncHours();
+  const onlyLabel = document.createElement('label'); onlyLabel.style.display = 'flex'; onlyLabel.style.gap = '8px'; onlyLabel.style.alignItems = 'center';
+  onlyLabel.append(limitHours, document.createTextNode(mariowOSI18n.t('settings.users.hours-only', 'Only from')));
+  hours.append(onlyLabel, from, document.createTextNode(mariowOSI18n.t('settings.users.hours-to', 'to')), to);
+  const foot = document.createElement('div'); foot.className = 'form-foot';
+  const status = document.createElement('span'); status.className = 'status';
+  const save = document.createElement('button'); save.type = 'button'; save.className = 'btn primary'; save.textContent = mariowOSI18n.t('common.save', 'Save');
+  save.onclick = async () => {
+    if (!(await confirmWithPassword())) return;
+    const next = { blockedApps: [...checks.querySelectorAll('input:checked')].map(input => input.value), from: limitHours.checked ? from.value : null, to: limitHours.checked ? to.value : null };
+    try { await post('/api/users/limits', { id: user.id, limits: next }); load(); }
+    catch (e) { status.textContent = e.message; status.className = 'status error'; }
+  };
+  foot.append(status, save);
+  box.append(appsTitle, checks, hoursTitle, hours, foot);
+  wrap.append(box);
 }
 
 async function load() {
@@ -168,9 +285,36 @@ async function load() {
     const data = await (await fetch('/api/users', { cache: 'no-store' })).json();
     accounts = data.users || [];
     me = data.me || accounts[0];
+    document.getElementById('guestToggle').checked = !!data.guestEnabled;
     render();
   } catch (e) {}
 }
+fetch('/get-settings').then(response => response.json()).then(settings => { installedApps = Array.isArray(settings.installedApps) ? settings.installedApps : []; }).catch(() => {});
+
+document.getElementById('guestToggle').onchange = async event => {
+  const enabled = event.target.checked;
+  if (!(await confirmWithPassword())) { event.target.checked = !enabled; return; }
+  try { await post('/api/users/guest', { enabled }); }
+  catch (e) { event.target.checked = !enabled; await mDialog.alert(e.message); }
+  load();
+};
+
+// Backup: export is a plain download; restore sends the ZIP back as it is.
+document.getElementById('backupRestore').onclick = () => document.getElementById('backupFile').click();
+document.getElementById('backupFile').onchange = async event => {
+  const file = event.target.files[0];
+  event.target.value = '';
+  if (!file) return;
+  if (!(await mDialog.confirm(mariowOSI18n.t('settings.users.backup-confirm', 'Restore "{name}"? Files with the same name in your folders are replaced.', { name: file.name })))) return;
+  setStatus('backupStatus', mariowOSI18n.t('settings.users.backup-restoring', 'Restoring…'));
+  try {
+    const response = await fetch('/api/users/restore', { method: 'POST', headers: { 'Content-Type': 'application/zip' }, body: file });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.success) throw new Error(data.error || response.status);
+    setStatus('backupStatus', mariowOSI18n.t('settings.users.backup-restored', '{count} files restored. Restart the desktop to see your style.', { count: data.files }), 'ok');
+    window.top.postMessage({ type: 'apply-wallpaper' }, location.origin);
+  } catch (e) { setStatus('backupStatus', e.message, 'error'); }
+};
 
 document.getElementById('addForm').onsubmit = async e => {
   e.preventDefault();

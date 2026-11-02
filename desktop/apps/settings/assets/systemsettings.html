@@ -112,6 +112,15 @@
     .language-select { background: rgba(255, 255, 255, 0.08); color: inherit; border: 1px solid rgba(255, 255, 255, 0.12);
       border-radius: 8px; padding: 6px 10px; font: inherit; font-size: 13px; }
     .language-select option { background: #1c1c1e; }
+    .bg-keys { background: linear-gradient(180deg, #0a84ff, #409cff); }
+    .bg-sounds { background: linear-gradient(180deg, #ff375f, #ff6482); }
+    .bg-health { background: linear-gradient(180deg, #30d158, #34c759); }
+    .switch { position: relative; display: inline-block; width: 44px; height: 24px; flex-shrink: 0; }
+    .switch input { opacity: 0; width: 0; height: 0; }
+    .slider { position: absolute; cursor: pointer; inset: 0; background-color: rgba(255,255,255,0.2); transition: .3s; border-radius: 24px; }
+    .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+    input:checked + .slider { background-color: #34c759; }
+    input:checked + .slider:before { transform: translateX(20px); }
 
     .item-title { font-size: 14px; font-weight: 500; }
     .item-subtitle { font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
@@ -164,6 +173,45 @@
           <option value="auto" data-i18n="general.language.auto">Automatic</option>
           <option value="en">English</option>
         </select>
+      </div>
+
+      <div class="list-item language-item">
+        <div class="item-left">
+          <div class="icon-badge bg-keys"><span class="material-symbols-outlined">keyboard_command_key</span></div>
+          <div>
+            <div class="item-title" data-i18n="general.system-keys">Windows keys</div>
+            <div class="item-subtitle" data-i18n="general.system-keys.subtitle">Win, Win+D, Win+E, Win+L and Alt+F4 act on mariowOS</div>
+          </div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="systemKeysToggle" checked aria-label="Windows keys" data-i18n-aria-label="general.system-keys">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="list-item language-item">
+        <div class="item-left">
+          <div class="icon-badge bg-sounds"><span class="material-symbols-outlined">music_note</span></div>
+          <div>
+            <div class="item-title" data-i18n="general.sounds">System sounds</div>
+            <div class="item-subtitle" data-i18n="general.sounds.subtitle">Short sounds for notifications, startup, lock, screenshots and timers</div>
+          </div>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="systemSoundsToggle" aria-label="System sounds" data-i18n-aria-label="general.sounds">
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="list-item" onclick="window.location.href = 'health.html'">
+        <div class="item-left">
+          <div class="icon-badge bg-health"><span class="material-symbols-outlined">monitor_heart</span></div>
+          <div>
+            <div class="item-title" data-i18n="settings.health.title">System health</div>
+            <div class="item-subtitle" data-i18n="general.health.subtitle">Memory, disk, updates and recent problems explained</div>
+          </div>
+        </div>
+        <div class="item-right"><span class="material-symbols-outlined">chevron_right</span></div>
       </div>
 
       <div class="list-item" onclick="navigateToPage('reset')">
@@ -265,6 +313,31 @@ languageSelect.addEventListener('change', async () => {
   } catch (e) {
     languageSelect.value = mariowOSI18n.language;
   }
+});
+
+// Windows keys: saved in the system settings; the Electron shell follows it right away.
+const systemKeysToggle = document.getElementById('systemKeysToggle');
+fetch('/get-settings').then(response => response.json()).then(settings => {
+  systemKeysToggle.checked = settings.systemKeys !== false;
+}).catch(() => {});
+systemKeysToggle.addEventListener('change', async () => {
+  try {
+    const response = await fetch('/save-settings', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ systemKeys: systemKeysToggle.checked })
+    });
+    if (!response.ok) throw new Error(response.status);
+  } catch (e) {
+    systemKeysToggle.checked = !systemKeysToggle.checked;
+  }
+});
+
+// System sounds: kept on this computer (localStorage) and played by the desktop (desktop-extras.js).
+const systemSoundsToggle = document.getElementById('systemSoundsToggle');
+try { systemSoundsToggle.checked = JSON.parse(localStorage.getItem('systemSounds') || 'false') === true; } catch (e) {}
+systemSoundsToggle.addEventListener('change', () => {
+  try { localStorage.setItem('systemSounds', JSON.stringify(systemSoundsToggle.checked)); } catch (e) {}
+  if (systemSoundsToggle.checked) window.top.mwSounds?.pop();
 });
 
 function requirePassword(onSuccess, onCancel) {

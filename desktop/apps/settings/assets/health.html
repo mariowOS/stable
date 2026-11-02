@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <script src="/desktop/assets/i18n-data.js"></script>
+  <script src="/desktop/assets/i18n.js"></script>
+  <script src="/desktop/assets/accent.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title data-i18n="settings.health.title">System health</title>
+  <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
+  <style>
+    html, body { margin: 0; background: transparent; -webkit-font-smoothing: antialiased; }
+    body { font-family: 'Poppins', sans-serif; color: #fff; padding: 10px 20px 30px; box-sizing: border-box; }
+    html::-webkit-scrollbar { display: none; }
+    .back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: rgba(255,255,255,.7); font: 500 13px 'Poppins', sans-serif; cursor: pointer; padding: 6px 0; }
+    .back:hover { color: #fff; }
+    h1 { font-size: 22px; margin: 6px 0 2px; }
+    .sub { color: rgba(255,255,255,.55); font-size: 13px; margin-bottom: 18px; }
+    .hero { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 16px; background: rgba(30,30,30,.55); margin-bottom: 14px; animation: rise .5s cubic-bezier(.2, 1.2, .4, 1) both; }
+    .hero .dot { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; flex-shrink: 0; }
+    .hero.ok .dot { background: rgba(48,209,88,.18); color: #30d158; }
+    .hero.warn .dot { background: rgba(255,159,10,.18); color: #ff9f0a; }
+    .hero .dot .material-symbols-outlined { font-size: 26px; }
+    .hero b { display: block; font-size: 16px; }
+    .hero span { color: rgba(255,255,255,.6); font-size: 13px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
+    .card { padding: 16px 18px; border-radius: 14px; background: rgba(30,30,30,.55); animation: rise .5s cubic-bezier(.2, 1.2, .4, 1) both; }
+    .card .label { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.6); font-size: 12.5px; }
+    .card .label .material-symbols-outlined { font-size: 18px; }
+    .card .value { font-size: 18px; font-weight: 600; margin: 6px 0 8px; }
+    .bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--sys-accent, #0a84ff); transition: width 1s cubic-bezier(.2, .9, .3, 1); }
+    .bar i.high { background: #ff9f0a; } .bar i.full { background: #ff453a; }
+    .small { color: rgba(255,255,255,.5); font-size: 12px; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: rgba(255,255,255,.5); margin: 22px 4px 10px; }
+    .problem { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: rgba(30,30,30,.55); margin-bottom: 8px; animation: rise .45s cubic-bezier(.2, 1.2, .4, 1) both; }
+    .problem .material-symbols-outlined { color: #ff9f0a; }
+    .problem b { display: block; font-size: 13.5px; }
+    .problem p { margin: 2px 0 6px; font-size: 12.5px; color: rgba(255,255,255,.7); }
+    .problem code { display: block; font: 11px/1.45 'JetBrains Mono', Consolas, monospace; color: rgba(255,255,255,.45); white-space: pre-wrap; word-break: break-all; }
+    .problem .count { margin-left: auto; align-self: flex-start; padding: 1px 8px; border-radius: 99px; background: rgba(255,255,255,.1); font-size: 11px; }
+    .empty { padding: 18px; border-radius: 12px; background: rgba(30,30,30,.55); color: rgba(255,255,255,.6); font-size: 13px; text-align: center; }
+    .refresh { margin-top: 14px; border: 0; border-radius: 10px; padding: 9px 16px; background: rgba(255,255,255,.1); color: #fff; font: 500 13px 'Poppins', sans-serif; cursor: pointer; }
+    .refresh:hover { background: rgba(255,255,255,.16); }
+    @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
+  </style>
+</head>
+<body>
+  <button class="back" type="button" onclick="history.back()"><span class="material-symbols-outlined">arrow_back_ios_new</span><span data-i18n="common.back">Back</span></button>
+  <h1 data-i18n="settings.health.title">System health</h1>
+  <div class="sub" data-i18n="settings.health.subtitle">How mariowOS is doing right now, and what went wrong lately in plain words.</div>
+  <div id="report"><div class="empty" data-i18n="settings.health.loading">Checking…</div></div>
+  <button class="refresh" type="button" id="refresh"><span data-i18n="settings.health.refresh">Check again</span></button>
+
+<script>
+const EXPLAIN = {
+  'file-in-use': [mariowOSI18n.t('settings.health.kind.file-in-use', 'A file was in use'), mariowOSI18n.t('settings.health.kind.file-in-use.help', 'Windows did not let mariowOS change a file because another program was using it. Usually harmless: it is retried next time.')],
+  'restart-needed': [mariowOSI18n.t('settings.health.kind.restart-needed', 'A restart was needed'), mariowOSI18n.t('settings.health.kind.restart-needed.help', 'Part of mariowOS was updated while it was open. Close mariowOS completely and open it again.')],
+  'offline': [mariowOSI18n.t('settings.health.kind.offline', 'No connection'), mariowOSI18n.t('settings.health.kind.offline.help', 'A service on the internet could not be reached. Check the network; updates and the Store need it.')],
+  'port-in-use': [mariowOSI18n.t('settings.health.kind.port-in-use', 'mariowOS opened twice'), mariowOSI18n.t('settings.health.kind.port-in-use.help', 'Another copy of mariowOS was already running. Close every copy and start it once.')],
+  'missing-file': [mariowOSI18n.t('settings.health.kind.missing-file', 'A file was missing'), mariowOSI18n.t('settings.health.kind.missing-file.help', 'Something mariowOS looked for was not there. If it keeps happening, run the update again or repair from Recovery.')],
+  'keys': [mariowOSI18n.t('settings.health.kind.keys', 'Windows keys'), mariowOSI18n.t('settings.health.kind.keys.help', 'The helper that gives the Windows key to mariowOS had a problem. Windows keeps its own keys until the next start.')],
+  'update': [mariowOSI18n.t('settings.health.kind.update', 'Update'), mariowOSI18n.t('settings.health.kind.update.help', 'Something happened while updating. If the system starts fine, it was solved; otherwise Recovery can restore the previous version.')],
+  'other': [mariowOSI18n.t('settings.health.kind.other', 'Other message'), mariowOSI18n.t('settings.health.kind.other.help', 'A technical message from the system. Share it with the developers if something does not work.')]
+};
+const GB = 1024 ** 3;
+const size = bytes => bytes >= GB ? (bytes / GB).toFixed(1) + ' GB' : Math.round(bytes / 1024 ** 2) + ' MB';
+const duration = seconds => {
+  const d = Math.floor(seconds / 86400), h = Math.floor(seconds % 86400 / 3600), m = Math.floor(seconds % 3600 / 60);
+  return d ? `${d} d ${h} h` : h ? `${h} h ${m} min` : `${m} min`;
+};
+const el = (tag, className, text) => { const node = document.createElement(tag); if (className) node.className = className; if (text != null) node.textContent = text; return node; };
+function card(icon, label, value, note, used, delay) {
+  const box = el('div', 'card'); box.style.animationDelay = delay + 's';
+  const head = el('div', 'label'); head.append(el('span', 'material-symbols-outlined', icon), el('span', '', label));
+  box.append(head, el('div', 'value', value));
+  if (used != null) {
+    const bar = el('div', 'bar'), fill = el('i');
+    if (used > 0.9) fill.classList.add('full'); else if (used > 0.75) fill.classList.add('high');
+    bar.append(fill); box.append(bar);
+    requestAnimationFrame(() => requestAnimationFrame(() => { fill.style.width = Math.round(used * 100) + '%'; }));
+  }
+  if (note) box.append(el('div', 'small', note));
+  return box;
+}
+async function load() {
+  const target = document.getElementById('report');
+  let report;
+  try {
+    const response = await fetch('/api/system/health-report', { cache: 'no-store' });
+    if (response.status === 403) { target.replaceChildren(el('div', 'empty', mariowOSI18n.t('settings.health.admin-only', 'Only an administrator can see the system health.'))); return; }
+    report = await response.json();
+  } catch (e) {
+    target.replaceChildren(el('div', 'empty', mariowOSI18n.t('settings.health.failed', 'Could not read the system health.')));
+    return;
+  }
+  const problems = report.log.problems;
+  const diskUsed = report.disk ? 1 - report.disk.free / report.disk.total : null;
+  const memUsed = 1 - report.memory.free / report.memory.total;
+  const worrying = problems.length > 0 || (diskUsed != null && diskUsed > 0.9) || (report.lastUpdate && report.lastUpdate.rolledBack);
+  const hero = el('div', 'hero ' + (worrying ? 'warn' : 'ok'));
+  const dot = el('div', 'dot'); dot.append(el('span', 'material-symbols-outlined', worrying ? 'error' : 'check_circle'));
+  const words = el('div');
+  words.append(el('b', '', worrying ? mariowOSI18n.t('settings.health.needs-look', 'Worth a look') : mariowOSI18n.t('settings.health.all-good', 'Everything is fine')),
+    el('span', '', mariowOSI18n.t('settings.health.summary', 'mariowOS {version} · {channel} channel · on for {uptime}', { version: report.version || '?', channel: report.channel, uptime: duration(report.uptime) })));
+  hero.append(dot, words);
+
+  const grid = el('div', 'grid');
+  grid.append(card('memory', mariowOSI18n.t('settings.health.memory', 'Memory'), size(report.memory.total - report.memory.free) + ' / ' + size(report.memory.total),
+    mariowOSI18n.t('settings.health.kernel-memory', 'The kernel uses {size}', { size: size(report.memory.kernel) }), memUsed, 0.05));
+  if (report.disk) grid.append(card('hard_drive', mariowOSI18n.t('settings.health.disk', 'Disk'), mariowOSI18n.t('settings.health.disk-free', '{free} free', { free: size(report.disk.free) }),
+    mariowOSI18n.t('settings.health.disk-total', 'of {total}', { total: size(report.disk.total) }), diskUsed, 0.1));
+  const update = report.lastUpdate;
+  grid.append(card('system_update', mariowOSI18n.t('settings.health.last-update', 'Last update'),
+    update && update.to ? `${update.from || '?'} → ${update.to}` : mariowOSI18n.t('settings.health.no-update', 'None yet'),
+    update ? (update.rolledBack ? mariowOSI18n.t('settings.health.rolled-back', 'It did not start and was undone automatically') : (update.at ? new Date(update.at).toLocaleString(mariowOSI18n.locale) : '')) : '', null, 0.15));
+  grid.append(card('apps', mariowOSI18n.t('settings.health.apps', 'Store apps'), String(report.apps), report.platform + ' · Node ' + report.node, null, 0.2));
+
+  const heading = el('h2', '', mariowOSI18n.t('settings.health.problems', 'Recent problems'));
+  const list = el('div');
+  if (!report.log.available) list.append(el('div', 'empty', mariowOSI18n.t('settings.health.no-log', 'No log on this computer (mariowOS was not started with start-hidden.vbs).')));
+  else if (!problems.length) list.append(el('div', 'empty', mariowOSI18n.t('settings.health.no-problems', 'No problems in the log. 🎉')));
+  problems.forEach((problem, index) => {
+    const [title, help] = EXPLAIN[problem.kind] || EXPLAIN.other;
+    const row = el('div', 'problem'); row.style.animationDelay = (0.25 + index * 0.05) + 's';
+    const body = el('div');
+    body.append(el('b', '', title), el('p', '', help), el('code', '', problem.text));
+    row.append(el('span', 'material-symbols-outlined', 'warning'), body);
+    if (problem.count > 1) row.append(el('span', 'count', '×' + problem.count));
+    list.append(row);
+  });
+  target.replaceChildren(hero, grid, heading, list);
+}
+document.getElementById('refresh').onclick = load;
+mariowOSI18n.ready.then(load);
+</script>
+</body>
+</html>

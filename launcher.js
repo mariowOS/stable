@@ -1,6 +1,6 @@
 // mariowOS Electron entry point. The backend owns the web shell; Electron owns
 // the fullscreen window and supervises the backend's explicit lifecycle codes.
-const { app, BrowserWindow, ipcMain, shell } = require('electron');
+const { app, BrowserWindow, ipcMain, shell, powerMonitor, clipboard, ClipboardItem } = require('electron');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 const fs = require('fs');
@@ -52,7 +52,10 @@ function isVerboseBootEnabled() {
 }
 
 function getBootQuery() {
-    return isVerboseBootEnabled() ? { verbose: '1' } : {};
+    const query = isVerboseBootEnabled() ? { verbose: '1' } : {};
+    // Settings › Functions Lab › Boot animation; the boot page runs before the kernel, so it comes from here.
+    try { query.anim = String(JSON.parse(fs.readFileSync(path.join(__dirname, 'config.json'), 'utf8')).bootAnimation || 'fade'); } catch {}
+    return query;
 }
 
 function requestJson(pathname, { method = 'GET', headers = {}, timeoutMs = 1000 } = {}) {
@@ -426,7 +429,10 @@ function startBackend() {
             console.log('[sniffer]: kernel update verified; restarting...');
             backendRestartAttempt = 0;
             showBootScreen();
-            void restartAfterUpdate(updateMarker).catch(error => {
+            void restartAfterUpdate(updateMarker).then(() => {
+                // The update reached this process's own files: only a full restart loads them.
+                if (shellFilesChanged()) relaunchMariowOS('the update changed launcher.js or preload.js');
+            }, error => {
                 console.error('[sniffer]: could not complete kernel restart:', error);
                 fs.rmSync(updateMarker, { force: true });
                 scheduleBackendRestart();
@@ -563,6 +569,163 @@ function blockMouseHistoryNavigation(win) {
     });
 }
 
+// --- SYSTEM KEYS ---
+// The Windows key and its combinations (Start, Win+D, Win+E, Win+L...) act on mariowOS
+// while its window is in front, like on a real OS. On Windows they never reach the
+// window, so lib/system-keys.ps1 takes them with a keyboard hook; elsewhere the window
+// gets them and they are picked out in before-input-event. Settings > General > Windows
+// keys turns this off ("systemKeys": false in config.json).
+const SYSTEM_KEYS = new Set(['win', 'win+a', 'win+d', 'win+e', 'win+i', 'win+l', 'win+m', 'win+n',
+    'win+s', 'win+space', 'win+tab', 'win+up', 'win+down', 'win+left', 'win+right', 'alt+f4',
+    'win+v', 'win+period', 'win+shift+s', 'win+ctrl+left', 'win+ctrl+right', 'win+ctrl+d', 'win+ctrl+f4']);
+const configPath = path.join(__dirname, 'config.json');
+let systemKeysProcess = null;
+let systemKeysFailures = 0;
+
+function systemKeysEnabled() {
+    try { return JSON.parse(fs.readFileSync(configPath, 'utf8')).systemKeys !== false; } catch { return true; }
+}
+
+function sendSystemKey(name) {
+    if (SYSTEM_KEYS.has(name) && mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.send('system:key', name);
+}
+
+function startSystemKeys() {
+    if (process.platform !== 'win32' || systemKeysProcess || shuttingDown || !mainWindow || mainWindow.isDestroyed()) return;
+    const handle = mainWindow.getNativeWindowHandle();
+    const hwnd = (handle.length >= 8 ? handle.readBigUInt64LE(0) : BigInt(handle.readUInt32LE(0))).toString();
+    const child = spawn('powershell.exe', ['-NoProfile', '-NonInteractive', '-ExecutionPolicy', 'Bypass',
+        '-File', path.join(__dirname, 'lib', 'system-keys.ps1'), '-Window', hwnd, '-ParentPid', String(process.pid)],
+        { windowsHide: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    systemKeysProcess = child;
+    child.stdin.write(systemKeysEnabled() ? 'enable\n' : 'disable\n');
+    let pending = '';
+    child.stdout.on('data', chunk => {
+        const lines = (pending + chunk.toString('utf8')).split(/\r?\n/);
+        pending = lines.pop();
+        for (const line of lines) {
+            if (line.trim() === 'ready') systemKeysFailures = 0;
+            else sendSystemKey(line.trim());
+        }
+    });
+    child.stderr.on('data', chunk => console.error('[keys]:', chunk.toString('utf8').trim()));
+    child.on('error', error => console.error('[keys]: could not start the system keys:', error.message));
+    child.on('exit', code => {
+        if (systemKeysProcess === child) systemKeysProcess = null;
+        // A few quick retries; after that Windows keeps its own keys until the next boot.
+        if (!shuttingDown && code !== 0 && ++systemKeysFailures <= 3) setTimeout(startSystemKeys, 2000);
+    });
+}
+
+function stopSystemKeys() {
+    if (systemKeysProcess) systemKeysProcess.kill();
+    systemKeysProcess = null;
+}
+
+// The setting is saved by the kernel into config.json; the hook follows it without a restart.
+fs.watchFile(configPath, { interval: 1500 }, () => {
+    if (systemKeysProcess && systemKeysProcess.stdin.writable) systemKeysProcess.stdin.write(systemKeysEnabled() ? 'enable\n' : 'disable\n');
+});
+
+function systemKeyFor(input) {
+    if (input.type !== 'keyDown' || !input.meta || input.alt) return null;
+    const key = { ' ': 'space', arrowup: 'up', arrowdown: 'down', arrowleft: 'left', arrowright: 'right', '.': 'period' }[input.key.toLowerCase()] || input.key.toLowerCase();
+    const name = 'win+' + (input.control ? 'ctrl+' : '') + (input.shift ? 'shift+' : '') + key;
+    return SYSTEM_KEYS.has(name) ? name : null;
+}
+
+// --- FULL RESTART AFTER AN UPDATE ---
+// An update restarts only the kernel, so launcher.js and preload.js would stay the old ones
+// in memory (new IPC handlers missing, e.g. "No handler registered"). Their contents at start
+// are remembered: after a kernel update that changed them mariowOS restarts by itself, and a
+// change that needed no kernel restart asks the desktop to offer one.
+const SHELL_FILES = ['launcher.js', 'preload.js'].map(name => path.join(__dirname, name));
+const fileDigest = file => { try { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'); } catch { return ''; } };
+const shellDigests = SHELL_FILES.map(fileDigest);
+const shellFilesChanged = () => SHELL_FILES.some((file, index) => fileDigest(file) !== shellDigests[index]);
+let relaunching = false;
+let restartOffered = false;
+
+function relaunchMariowOS(reason) {
+    if (relaunching) return;
+    relaunching = true;
+    console.log(`[sniffer]: restarting mariowOS (${reason})...`);
+    shuttingDown = true;
+    clearTimeout(backendRestartTimer);
+    stopSystemKeys();
+    if (backendProcess) backendProcess.kill();
+    app.relaunch();
+    app.exit(0);
+}
+
+SHELL_FILES.forEach(file => fs.watchFile(file, { interval: 3000 }, () => {
+    if (relaunching || restartOffered || !shellFilesChanged() || !mainWindow || mainWindow.isDestroyed()) return;
+    restartOffered = true;
+    mainWindow.webContents.send('system:restart-needed');
+}));
+
+// --- SCREEN CAPTURE, CLIPBOARD HISTORY, TEXT INPUT ---
+// For the desktop's Win+Shift+S, Win+V and Win+. (emoji) panels. The history is text only
+// and lives in memory: it is gone when mariowOS closes. Electron's clipboard is asynchronous
+// (W3C-style readText/writeText/write), so every call is awaited.
+const CLIPBOARD_HISTORY_MAX = 25;
+let clipboardHistory = [];
+let lastClipboardText = '';
+let clipboardPolling = false;
+setInterval(async () => {
+    if (clipboardPolling) return;
+    clipboardPolling = true;
+    try {
+        const text = await clipboard.readText();
+        if (typeof text !== 'string' || !text || text === lastClipboardText) return;
+        lastClipboardText = text;
+        clipboardHistory = [{ text: text.slice(0, 20000), at: Date.now() }, ...clipboardHistory.filter(item => item.text !== text)].slice(0, CLIPBOARD_HISTORY_MAX);
+    } catch {
+        // Clipboard busy or holding no text: try again on the next tick.
+    } finally {
+        clipboardPolling = false;
+    }
+}, 800);
+
+const desktopHandler = (name, run) => ipcMain.handle('mariowos:' + name, async (event, ...args) => {
+    if (!isTrustedRendererEvent(event)) throw new Error(name + ' request rejected for an untrusted renderer');
+    return run(...args);
+});
+desktopHandler('capture', async rect => {
+    const area = rect && ['x', 'y', 'width', 'height'].every(key => Number.isFinite(rect[key]))
+        ? { x: Math.round(rect.x), y: Math.round(rect.y), width: Math.max(1, Math.round(rect.width)), height: Math.max(1, Math.round(rect.height)) }
+        : undefined;
+    const image = await mainWindow.webContents.capturePage(area);
+    try {
+        await clipboard.write([new ClipboardItem({ 'image/png': new Blob([image.toPNG()], { type: 'image/png' }) })]);
+    } catch (error) {
+        console.error('[capture]: could not copy the screenshot:', error.message);
+    }
+    return image.toDataURL();
+});
+desktopHandler('clipboard-history', () => clipboardHistory);
+desktopHandler('clipboard-clear', () => { clipboardHistory = []; return true; });
+desktopHandler('clipboard-paste', async text => {
+    lastClipboardText = String(text);
+    await clipboard.writeText(String(text));
+    mainWindow.webContents.paste();
+    return true;
+});
+desktopHandler('relaunch', () => { setTimeout(() => relaunchMariowOS('asked from the desktop'), 200); return true; });
+desktopHandler('insert-text', text => { mainWindow.webContents.insertText(String(text).slice(0, 100)); return true; });
+
+// Without the hook (other systems, or the hook could not start) the keys arrive here,
+// for the shell, its app frames and browser tabs alike.
+function catchSystemKeys(contents) {
+    contents.on('before-input-event', (event, input) => {
+        if ((process.platform === 'win32' && systemKeysProcess) || !systemKeysEnabled()) return;
+        const name = systemKeyFor(input);
+        if (!name) return;
+        event.preventDefault();
+        sendSystemKey(name);
+    });
+}
+
 function bootMariowOS() {
     if (mainWindow && !mainWindow.isDestroyed()) return;
     shuttingDown = false;
@@ -583,6 +746,8 @@ function bootMariowOS() {
     });
     mainWindow.webContents.on('context-menu', event => event.preventDefault());
     blockMouseHistoryNavigation(mainWindow);
+    catchSystemKeys(mainWindow.webContents);
+    startSystemKeys();
     // The shell must never navigate "back" (boot -> login -> desktop): Chromium can still
     // route the mouse back button from a browser tab to the shell, so the shell keeps no history.
     mainWindow.webContents.on('did-navigate', () => {
@@ -591,6 +756,7 @@ function bootMariowOS() {
         else mainWindow?.webContents?.clearHistory?.();
     });
     mainWindow.on('closed', () => {
+        stopSystemKeys();
         mainWindow = null;
     });
     mainWindow.loadFile(bootPage, { query: getBootQuery() }).then(() => {
@@ -626,8 +792,9 @@ app.on('web-contents-created', (_event, contents) => {
     // shortcuts are intercepted here and forwarded to it.
     if (isWebview) {
         contents.on('dom-ready', () => contents.executeJavaScript(WEBVIEW_MOUSE_NAV).catch(() => {}));
+        catchSystemKeys(contents);
         contents.on('before-input-event', (event, input) => {
-            if (input.type !== 'keyDown') return;
+            if (input.type !== 'keyDown' || systemKeyFor(input)) return;
             const shortcut = browserShortcutFor(input);
             if (!shortcut || !mainWindow || mainWindow.isDestroyed()) return;
             event.preventDefault();
@@ -652,6 +819,12 @@ app.whenReady().then(async () => {
     console.log('[sniffer]: booting...');
     await browserExtensions.init().catch(error => console.error('[browser]: extensions did not load:', error.message));
     bootMariowOS();
+    // Windows locked (Win+L can never be taken from Windows): mariowOS goes to its login
+    // too, so unlocking Windows lands there. The Win release went to Windows, so the hook
+    // forgets the held Win key on both sides of the lock.
+    const resetSystemKeys = () => { if (systemKeysProcess && systemKeysProcess.stdin.writable) systemKeysProcess.stdin.write('reset\n'); };
+    powerMonitor.on('lock-screen', () => { resetSystemKeys(); sendSystemKey('win+l'); });
+    powerMonitor.on('unlock-screen', resetSystemKeys);
 
     app.on('activate', () => {
         if (BrowserWindow.getAllWindows().length === 0) bootMariowOS();
@@ -665,6 +838,7 @@ app.on('window-all-closed', () => {
     clearTimeout(backendRestartTimer);
     backendRestartTimer = null;
     if (backendProcess) backendProcess.kill();
+    stopSystemKeys();
     if (process.platform !== 'darwin') app.quit();
 });
 
@@ -673,4 +847,5 @@ app.on('before-quit', () => {
     backendReady = false;
     clearTimeout(backendRestartTimer);
     if (backendProcess) backendProcess.kill();
+    stopSystemKeys();
 });

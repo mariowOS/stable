@@ -11,6 +11,7 @@ This project use open source and free fonts sourced from Google Fonts. Google Fo
 <head>
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
+<script src="/desktop/assets/live-wallpaper.js"></script>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet" id="default-font">
@@ -233,11 +234,10 @@ function applyCustomSettings() {
   dateEl.style.fontFamily = fontStr;
   timeEl.style.fontWeight = weight;
 
-  if (isLive) {
-    document.body.classList.add('live-wallpaper-active');
-  } else {
-    document.body.classList.remove('live-wallpaper-active');
-  }
+  // A live wallpaper video/GIF takes the place of the animated gradient.
+  const liveMedia = window.loginLiveWallpaper && window.loginLiveWallpaper.active();
+  document.body.classList.toggle('live-wallpaper-active', isLive && !liveMedia);
+  if (window.loginLiveWallpaper) window.loginLiveWallpaper.play();
 }
 
 window.addEventListener('storage', (e) => {
@@ -245,6 +245,8 @@ window.addEventListener('storage', (e) => {
     applyCustomSettings();
   }
 });
+window.loginLiveWallpaper = mariowOSLiveWallpaper.mount(document.getElementById('desktop-wallpaper'));
+window.loginLiveWallpaper.update().then(applyCustomSettings);
 applyCustomSettings();
 
 function updateDateTime() {
@@ -270,7 +272,8 @@ passwordInput.addEventListener('keydown', (e) => {
 let wrongTimeout = null;
 async function attemptUnlock() {
   const pass = passwordInput.value;
-  if (pass.length === 0) return;
+  const guest = loginUsers.find(u => u.id === selectedUserId)?.guest;
+  if (pass.length === 0 && !guest) return;
   passwordInput.disabled = true;
   loginStatus.textContent = '';
   try {
@@ -281,6 +284,14 @@ async function attemptUnlock() {
     });
     if (resp.status === 401) {
       showWrong();
+      return;
+    }
+    if (resp.status === 403) {
+      // Parental controls: outside the hours this account may sign in.
+      const hours = (await resp.text()).match(/(\d{2}:\d{2}).*?(\d{2}:\d{2})/);
+      loginStatus.textContent = hours
+        ? mariowOSI18n.t('login.outside-hours', 'This account can sign in from {from} to {to}.', { from: hours[1], to: hours[2] })
+        : mariowOSI18n.t('login.not-now', 'This account cannot sign in right now.');
       return;
     }
     if (!resp.ok) {
@@ -325,12 +336,16 @@ function selectUser(id, animate) {
   if (!user) return;
   selectedUserId = user.id;
   try { localStorage.setItem('loginLastUser', user.id); } catch (e) {}
-  document.getElementById('loginName').textContent = loginUsers.length > 1 ? user.username : '';
+  document.getElementById('loginName').textContent = loginUsers.length > 1 ? (user.guest ? mariowOSI18n.t('login.guest', 'Guest') : user.username) : '';
   const avatar = document.querySelector('.avatar');
   avatar.style.backgroundImage = `url("${avatarUrl(user.id)}")`;
   if (animate) { avatar.classList.remove('swap'); void avatar.offsetWidth; avatar.classList.add('swap'); }
   // Recovery resets the owner's password; other accounts ask an administrator.
   document.getElementById('forgotPassword').hidden = !user.owner;
+  // The guest has no password: Enter (or the pill) signs straight in.
+  passwordInput.placeholder = user.guest ? mariowOSI18n.t('login.guest-enter', 'Press Enter to sign in as guest') : mariowOSI18n.t('login.password-placeholder', 'Enter password');
+  passwordInput.type = user.guest ? 'text' : 'password';
+  passwordInput.readOnly = !!user.guest;
   document.querySelectorAll('.user-choice').forEach(b => { b.classList.toggle('active', b.dataset.id === user.id); b.setAttribute('aria-selected', String(b.dataset.id === user.id)); });
   passwordInput.value = '';
   loginStatus.textContent = '';
@@ -347,8 +362,8 @@ async function loadLoginUsers() {
     const b = document.createElement('button');
     b.type = 'button'; b.className = 'user-choice'; b.dataset.id = user.id; b.setAttribute('role', 'option');
     const img = document.createElement('img'); img.alt = ''; img.src = avatarUrl(user.id);
-    const text = document.createElement('span'); text.textContent = user.username;
-    const role = document.createElement('small'); role.textContent = user.admin ? mariowOSI18n.t('login.role-admin', 'Administrator') : mariowOSI18n.t('login.role-standard', 'Standard');
+    const text = document.createElement('span'); text.textContent = user.guest ? mariowOSI18n.t('login.guest', 'Guest') : user.username;
+    const role = document.createElement('small'); role.textContent = user.guest ? mariowOSI18n.t('login.role-guest', 'No password') : user.admin ? mariowOSI18n.t('login.role-admin', 'Administrator') : mariowOSI18n.t('login.role-standard', 'Standard');
     text.append(role);
     b.append(img, text);
     b.addEventListener('click', () => selectUser(user.id, true));

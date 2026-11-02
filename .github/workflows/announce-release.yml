@@ -1,4 +1,8 @@
-# Posts every new mariowOS release to Discord.
+# Posts a mariowOS release to Discord, only when asked: a change to version.json is not
+# announced by itself, so a mistake or a quick fix never reaches the channel. Either
+#  - run it by hand: Actions › Announce release › Run workflow, or
+#  - put [announce] in the message of the commit that changes version.json.
+# It also stops if version.json does not pass tools/check-version.js.
 # Setup (once, in this repository on GitHub): Settings › Secrets and variables › Actions ›
 # New repository secret, name DISCORD_WEBHOOK_URL, value = the webhook URL of the Discord
 # channel (Discord: Channel settings › Integrations › Webhooks › New webhook › Copy URL).
@@ -12,12 +16,17 @@ on:
 
 jobs:
   announce:
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[announce]')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Check version.json
+        run: node tools/check-version.js
       - name: Post to Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}

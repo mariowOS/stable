@@ -1,0 +1,28 @@
+# Checks version.json whenever it changes, before installs can see it: the version must
+# be X.Y.Z and newer than the previous one (or list it in "replaces"), with a changelog.
+# Runs tools/check-version.js, which needs no dependencies.
+name: Check version
+
+on:
+  pull_request:
+    paths: ['version.json', 'tools/check-version.js', 'lib/validation.js']
+  push:
+    branches: [main]
+    paths: ['version.json', 'tools/check-version.js', 'lib/validation.js']
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Previous version.json
+        # A pull request compares with its target branch; a push with the commit before it.
+        run: git show "${{ github.event.pull_request.base.sha || github.event.before || 'HEAD~1' }}:version.json" > "$RUNNER_TEMP/previous-version.json" || echo '{}' > "$RUNNER_TEMP/previous-version.json"
+      - name: Check version.json
+        run: node tools/check-version.js "$RUNNER_TEMP/previous-version.json"
