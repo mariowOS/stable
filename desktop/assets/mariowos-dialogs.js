@@ -19,7 +19,7 @@
   .mdlg-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
   .mdlg-icon { width: 36px; height: 36px; flex: 0 0 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
     font-size: 18px; font-weight: 700; }
-  .mdlg-icon.info { background: rgba(10, 132, 255, 0.18); color: #0a84ff; }
+  .mdlg-icon.info { background: color-mix(in srgb, var(--sys-accent) 18%, transparent); color: var(--sys-accent-text); }
   .mdlg-icon.success { background: rgba(48, 209, 88, 0.18); color: #30d158; }
   .mdlg-icon.error { background: rgba(255, 69, 58, 0.18); color: #ff453a; }
   .mdlg-icon.warning { background: rgba(255, 159, 10, 0.18); color: #ff9f0a; }
@@ -27,14 +27,14 @@
   .mdlg-msg { font-size: 13.5px; line-height: 1.55; color: rgba(242, 243, 247, 0.78); white-space: pre-wrap; word-break: break-word; }
   .mdlg-input { width: 100%; box-sizing: border-box; margin-top: 14px; padding: 10px 12px; border-radius: 10px; font: inherit; font-size: 14px;
     color: #fff; background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.14); outline: none; }
-  .mdlg-input:focus { border-color: #0a84ff; }
+  .mdlg-input:focus { border-color: var(--sys-accent-text); }
   .mdlg-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
   .mdlg-btn { border: none; border-radius: 10px; padding: 8px 16px; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; color: #fff;
     background: rgba(255, 255, 255, 0.1); transition: filter 0.15s ease; }
   .mdlg-btn:hover { filter: brightness(1.2); }
-  .mdlg-btn.primary { background: #0a84ff; }
+  .mdlg-btn.primary { background: var(--sys-accent); color: var(--sys-accent-on); }
   .mdlg-btn.danger { background: #ff453a; }
-  .mdlg-btn:focus-visible { outline: 2px solid rgba(10, 132, 255, 0.7); outline-offset: 2px; }`;
+  .mdlg-btn:focus-visible { outline: 2px solid color-mix(in srgb, var(--sys-accent) 70%, transparent); outline-offset: 2px; }`;
 
   function injectStyle() {
     if (document.getElementById('mdlg-style')) return;

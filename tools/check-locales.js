@@ -16,7 +16,7 @@ const fs = require("fs");
 const path = require("path");
 
 const systemDir = path.resolve(__dirname, "..");
-const SOURCE_DIRS = ["desktop", "loginui", "recovery"].map(dir => path.join(systemDir, dir));
+const SOURCE_DIRS = ["desktop", "loginui", "lockscreen", "recovery"].map(dir => path.join(systemDir, dir));
 const localesDir = path.join(systemDir, "desktop", "assets", "locales");
 const CODE = /^[a-z]{2,3}(-[a-z0-9]{2,4})?$/;
 const SKIP_DIRS = new Set(["vendor", "node_modules", "locales"]);

@@ -1,5 +1,5 @@
 {
-  "version": "1.4.2",
-  "changelog": "The whole system can now be translated, not just Settings: desktop, login, setup, Settings and every built-in app follow the language chosen in Settings > General, with a complete Italian translation. In Italian, dates and clocks use the Italian format. Volunteers can add new languages by translating a single file (see TRANSLATING.md).",
+  "version": "2.0.0",
+  "changelog": "mariowOS 2.0 arrives on Stable, bringing everything tested in the Insiders previews: multiple user accounts with their own password, home folder and notes (Settings > Users), a new lock screen, a redesigned setup with highlights, accent colors, refreshed built-in apps (Files, Music, Notes, Pictures, Videos, Calculator, Calendar, Terminal and Settings), Bluetooth device detection, battery status and quick settings, and an updated Store that supports the other update channels and can update the local repository with one button.",
   "_comment": "obb."
 }

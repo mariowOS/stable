@@ -1,14 +1,13 @@
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script src="/desktop/assets/i18n-data.js"></script>
-<script src="/desktop/assets/i18n.js"></script>
-<script src="/desktop/assets/mariowos-dialogs.js"></script>
+    <script src="/desktop/assets/i18n-data.js"></script>
+    <script src="/desktop/assets/i18n.js"></script>
+    <script src="/desktop/assets/mariowos-dialogs.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
+    <link href="/desktop/assets/setup.css" rel="stylesheet">
     <title data-i18n="setup.title">mariowOS Setup</title>
     <style>
         * {
@@ -26,37 +25,208 @@
             align-items: center;
             justify-content: center;
             overflow: hidden;
+            perspective: 1000px;
         }
 
-        .container {
-            width: 85%;
-            max-width: 1200px;
+        .anim-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            gap: 60px;
+            justify-content: center;
         }
 
-        .text-group {
+        /* Contenitore delle 3 stelle separate */
+        #stars-container {
+            position: absolute;
+            width: min(24vw, 144px);
+            height: min(24vw, 144px);
+            z-index: 5;
+        }
+
+        /* I singoli pezzi della stella */
+        .star-layer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            transform-origin: center center;
+            transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        /* L'animazione in cui il pezzo grande si "frantuma" */
+        .dissolve {
+            transform: scale(1.1) !important;
+            opacity: 0 !important;
+            filter: blur(8px);
+        }
+
+        /* Contenitore Yin-Yang particellare */
+        #yin-yang-wrapper {
+            position: absolute;
+            width: 0;
+            height: 0;
+            z-index: 2;
+            transition: transform 1s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        #yin-yang-rotator {
+            position: absolute;
+            width: 0; 
+            height: 0;
+        }
+
+        .rotating {
+            animation: spin 9s linear infinite;
+        }
+
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        /* Particelle stelline */
+        .particle-star {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            margin-top: -7.5px;
+            margin-left: -7.5px;
             display: flex;
-            flex-direction: column;
-            gap: 20px;
-            flex: 1;
-        }
-
-        h1 { font-size: 5.5rem; font-weight: 800; letter-spacing: -2px; line-height: 0.9; }
-        .gray-text { font-size: 3.8rem; font-weight: 700; color: #333; letter-spacing: -1.5px; line-height: 0.9; }
-
-        .letter {
-            display: inline-block;
+            align-items: center;
+            justify-content: center;
             opacity: 0;
-            filter: blur(15px);
-            transform: translateX(-30px);
-            animation: letterIn 1.2s cubic-bezier(0.19, 1, 0.22, 1) forwards;
+            transition: transform 1.5s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.8s ease-in;
+        }
+        
+        .particle-star svg {
+            width: 100%;
+            height: 100%;
         }
 
-        @keyframes letterIn {
-            to { opacity: 1; filter: blur(0px); transform: translateX(0); }
+        /* Screenshot di OS */
+        .screenshot {
+            position: absolute;
+            width: 640px;
+            height: 360px;
+            border-radius: 12px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.8), 0 0 30px rgba(255,255,255,0.15);
+            opacity: 0;
+            transform: scale(0.6);
+            transition: all 1.5s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 10;
+            object-fit: cover;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .screenshot.show {
+            opacity: 1;
+            transform: scale(1);
+        }
+
+        .screenshot.compress {
+            transform: scale(0.85);
+            filter: brightness(0.6);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .screenshot.hide {
+            opacity: 0;
+            transform: scale(1.3) translateY(-20px);
+            transition: all 0.5s cubic-bezier(0.5, 0, 0, 1);
+        }
+
+        /* Testi Overlays (riportati in basso e allineati perfettamente sullo stesso livello) */
+        .text-overlay {
+            position: absolute;
+            bottom: 12%; 
+            left: 0;
+            width: 100%;
+            height: 80px; /* Contenitore di altezza fissa per centrare tutto esattamente sullo stesso asse */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 2rem;
+            font-weight: 500;
+            letter-spacing: 1px;
+            opacity: 0;
+            transform: translateY(20px); /* Arrivano dal basso verso l'alto */
+            transition: opacity 1s ease, transform 1s ease;
+            z-index: 15;
+        }
+
+        .text-overlay.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        /* Effetto Warp / Copia-Incolla ultra smooth per le lingue */
+        .text-word {
+            position: absolute;
+            width: 100%;
+            left: 0;
+            top: 50%; /* Insieme al translateY(-50%) centra perfettamente questo testo di 4rem nel blocco di 80px */
+            font-size: var(--setup-title-size);
+            font-weight: 800;
+            text-transform: uppercase;
+            background: linear-gradient(270deg, #ff007f, #7f00ff, #00d4ff, #7f00ff, #ff007f);
+            background-size: 200% auto;
+            color: transparent;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: shine 3s linear infinite;
+            
+            /* Animazione per l'effetto Warp (Morphing testuale) */
+            transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                        opacity 0.6s cubic-bezier(0.16, 1, 0.3, 1),
+                        filter 0.6s ease,
+                        letter-spacing 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* Stato in entrata: parola sfocata, compressa */
+        .word-enter {
+            transform: translateY(-50%) scale(0.9);
+            opacity: 0;
+            filter: blur(12px);
+            letter-spacing: 0px;
+        }
+
+        /* Stato visibile perfetto (centrato) */
+        .word-active {
+            transform: translateY(-50%) scale(1);
+            opacity: 1;
+            filter: blur(0px);
+            letter-spacing: 4px;
+        }
+
+        /* Stato in uscita: la parola si allarga e si sfoca perdendo opacità */
+        .word-leave {
+            transform: translateY(-50%) scale(1.1);
+            opacity: 0;
+            filter: blur(12px);
+            letter-spacing: 8px;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* Bottoni inferiori */
+        .btn-link, .btn-restore {
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 1.2s ease, transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 20;
+            transform: translateY(15px);
+        }
+
+        .show-btn {
+            opacity: 1 !important;
+            transform: translateY(0) !important;
+            pointer-events: all !important;
         }
 
         .btn-link {
@@ -64,9 +234,6 @@
             bottom: 40px;
             right: 40px;
             text-decoration: none;
-            opacity: 0;
-            animation: fadeIn 0.8s ease forwards;
-            animation-delay: 1.8s;
         }
 
         .arrow-button {
@@ -79,11 +246,9 @@
             justify-content: center;
             transition: transform 0.3s;
         }
-
         .arrow-button:hover { transform: scale(1.1); }
         .arrow-button svg { width: 35px; height: 35px; fill: black; }
 
-        /* Restore Backup Button */
         .btn-restore {
             position: fixed;
             bottom: 40px;
@@ -101,31 +266,41 @@
             cursor: pointer;
             backdrop-filter: blur(10px);
             transition: all 0.2s;
-            opacity: 0;
-            animation: fadeIn 0.8s ease forwards;
-            animation-delay: 1.8s;
         }
-
         .btn-restore:hover { background: rgba(255, 255, 255, 0.2); transform: scale(1.05); }
         .btn-restore svg { width: 20px; height: 20px; fill: white; }
-
-        @keyframes fadeIn { to { opacity: 1; } }
-
-        @media (max-width: 900px) {
-            .container { flex-direction: column; align-items: flex-start; gap: 40px; }
-            h1 { font-size: 3.5rem; }
-            .gray-text { font-size: 2.2rem; }
-        }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <div class="text-group">
-            <h1 class="split-text" data-delay="0">Hello!</h1>
-            <div class="gray-text split-text" data-delay="0.2">Ciao!</div>
-            <div class="gray-text split-text" data-delay="0.4">Buna!</div>
-            <div class="gray-text split-text" data-delay="0.6">你好!</div>
+    <div class="anim-container">
+        <!-- I 3 pezzi divisi in 3 layer che si decomporranno -->
+        <div id="stars-container">
+            <svg id="star-1" class="star-layer" viewBox="0 0 459 449" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M72.9748 4.25183C75.5281 -1.41728 83.4575 -1.41728 86.0108 4.25183L106.728 50.2512C107.428 51.806 108.645 53.061 110.165 53.796L154.899 75.4297C160.347 78.0649 160.347 85.9423 154.899 88.5774L110.165 110.211C108.645 110.946 107.428 112.201 106.728 113.757L86.0108 159.756C83.4575 165.425 75.5281 165.425 72.9748 159.756L52.2574 113.757C51.5571 112.201 50.3404 110.946 48.8206 110.211L4.08662 88.5774C-1.36221 85.9423 -1.36221 78.0649 4.08662 75.4297L48.8206 53.796C50.3404 53.061 51.5571 51.806 52.2574 50.2512L72.9748 4.25183Z" fill="white"/>
+            </svg>
+            <svg id="star-2" class="star-layer" viewBox="0 0 459 449" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M98.1534 300.321C100.782 294.908 108.382 294.908 111.01 300.321L131.75 343.038C132.494 344.569 133.744 345.788 135.283 346.477L178.735 365.97C184.431 368.526 184.431 376.736 178.735 379.292L135.283 398.785C133.744 399.474 132.494 400.692 131.75 402.224L111.01 444.94C108.382 450.354 100.782 450.354 98.1534 444.94L77.4139 402.224C76.67 400.692 75.4196 399.474 73.8812 398.785L30.4288 379.292C24.7327 376.736 24.7328 368.526 30.4288 365.97L73.8812 346.477C75.4196 345.788 76.67 344.569 77.4139 343.038L98.1534 300.321Z" fill="white"/>
+            </svg>
+            <svg id="star-3" class="star-layer" viewBox="0 0 459 449" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M269.613 33.8688C275.108 21.4695 292.44 21.4695 297.935 33.8688L343.608 136.923C345.105 140.3 347.723 143.035 351.005 144.648L450.201 193.399C461.889 199.144 461.889 216.055 450.201 221.799L351.005 270.55C347.723 272.163 345.105 274.898 343.608 278.275L297.935 381.329C292.44 393.729 275.108 393.729 269.613 381.329L223.94 278.275C222.443 274.898 219.825 272.163 216.543 270.55L117.347 221.799C105.659 216.055 105.659 199.144 117.347 193.399L216.543 144.648C219.825 143.035 222.443 140.3 223.94 136.923L269.613 33.8688Z" fill="white"/>
+            </svg>
+        </div>
+
+        <!-- Yin Yang in stelline (formato dai cloni dei 3 pezzi) -->
+        <div id="yin-yang-wrapper">
+            <div id="yin-yang-rotator"></div>
+        </div>
+
+        <!-- Screenshots -->
+        <img id="old-os" class="screenshot" src="/desktop/assets/oldmwos.png" alt="mariowOS Old">
+        <img id="new-os" class="screenshot" src="/desktop/assets/newmwos.png" alt="mariowOS New">
+
+        <!-- Testi animati posizionati in basso sullo stesso esatto asse -->
+        <div id="text-old" class="text-overlay">The desktop you know and love</div>
+        
+        <div id="text-new-container" class="text-overlay">
+            <div class="text-word word-active">reimagined</div>
         </div>
     </div>
 
@@ -137,27 +312,177 @@
     <input type="file" id="backup-upload" accept=".json" style="display: none;" onchange="importBackup(event)">
 
     <!-- Next Button -->
-    <a href="/desktop/license.html" class="btn-link">
+    <a href="/desktop/license.html" class="btn-link" aria-label="Next" data-i18n-aria-label="setup.next">
         <div class="arrow-button">
             <svg viewBox="0 0 24 24"><path d="M12 4l-1.41 1.41L16.17 11H4v2h12.17l-5.58 5.59L12 20l8-8z"/></svg>
         </div>
     </a>
 
+    <script src="/desktop/assets/setup.js"></script>
     <script>
-        document.querySelectorAll('.split-text').forEach(element => {
-            const text = element.innerText;
-            const baseDelay = parseFloat(element.getAttribute('data-delay'));
-            element.innerHTML = ''; 
-            [...text].forEach((char, index) => {
-                const span = document.createElement('span');
-                span.innerText = char === " " ? "\u00A0" : char; 
-                span.classList.add('letter');
-                span.style.animationDelay = `${baseDelay + (index * 0.04)}s`;
-                element.appendChild(span);
-            });
+        document.addEventListener("DOMContentLoaded", () => {
+            const rotator = document.getElementById('yin-yang-rotator');
+            const numStars = 750; 
+            const R = 320; 
+
+            // Rotazione attiva fin da subito per l'effetto spirale vorticosa
+            rotator.classList.add('rotating');
+
+            const starPaths = [
+                "M72.9748 4.25183C75.5281 -1.41728 83.4575 -1.41728 86.0108 4.25183L106.728 50.2512C107.428 51.806 108.645 53.061 110.165 53.796L154.899 75.4297C160.347 78.0649 160.347 85.9423 154.899 88.5774L110.165 110.211C108.645 110.946 107.428 112.201 106.728 113.757L86.0108 159.756C83.4575 165.425 75.5281 165.425 72.9748 159.756L52.2574 113.757C51.5571 112.201 50.3404 110.946 48.8206 110.211L4.08662 88.5774C-1.36221 85.9423 -1.36221 78.0649 4.08662 75.4297L48.8206 53.796C50.3404 53.061 51.5571 51.806 52.2574 50.2512L72.9748 4.25183Z",
+                "M98.1534 300.321C100.782 294.908 108.382 294.908 111.01 300.321L131.75 343.038C132.494 344.569 133.744 345.788 135.283 346.477L178.735 365.97C184.431 368.526 184.431 376.736 178.735 379.292L135.283 398.785C133.744 399.474 132.494 400.692 131.75 402.224L111.01 444.94C108.382 450.354 100.782 450.354 98.1534 444.94L77.4139 402.224C76.67 400.692 75.4196 399.474 73.8812 398.785L30.4288 379.292C24.7327 376.736 24.7328 368.526 30.4288 365.97L73.8812 346.477C75.4196 345.788 76.67 344.569 77.4139 343.038L98.1534 300.321Z",
+                "M269.613 33.8688C275.108 21.4695 292.44 21.4695 297.935 33.8688L343.608 136.923C345.105 140.3 347.723 143.035 351.005 144.648L450.201 193.399C461.889 199.144 461.889 216.055 450.201 221.799L351.005 270.55C347.723 272.163 345.105 274.898 343.608 278.275L297.935 381.329C292.44 393.729 275.108 393.729 269.613 381.329L223.94 278.275C222.443 274.898 219.825 272.163 216.543 270.55L117.347 221.799C105.659 216.055 105.659 199.144 117.347 193.399L216.543 144.648C219.825 143.035 222.443 140.3 223.94 136.923L269.613 33.8688Z"
+            ];
+
+            const startOffsets = [
+                { x: -30, y: -30 }, 
+                { x: -15, y: 35 },  
+                { x: 35, y: -5 }    
+            ];
+
+            for (let i = 0; i < numStars; i++) {
+                let x, y, r2;
+                do {
+                    x = (Math.random() * 2 - 1);
+                    y = (Math.random() * 2 - 1);
+                    r2 = x * x + y * y;
+                } while (r2 > 1);
+
+                let dTop2 = x * x + (y + 0.5) * (y + 0.5);
+                let dBot2 = x * x + (y - 0.5) * (y - 0.5);
+
+                let isWhite = false;
+                if (dTop2 <= 0.025) isWhite = true; 
+                else if (dBot2 <= 0.025) isWhite = false; 
+                else if (dTop2 <= 0.25) isWhite = false; 
+                else if (dBot2 <= 0.25) isWhite = true; 
+                else if (x <= 0) isWhite = true; 
+                else isWhite = false; 
+
+                const groupIndex = i % 3;
+                const star = document.createElement('div');
+                star.className = 'particle-star';
+                star.dataset.group = groupIndex;
+                
+                star.style.transform = `translate(${startOffsets[groupIndex].x}px, ${startOffsets[groupIndex].y}px) scale(0.2)`;
+                
+                const fillColor = isWhite ? '#ffffff' : 'rgba(255, 255, 255, 0.25)';
+                const piecePath = starPaths[groupIndex]; 
+                star.innerHTML = `<svg viewBox="0 0 459 449"><path fill="${fillColor}" d="${piecePath}"/></svg>`;
+                
+                star.dataset.tx = x * R;
+                star.dataset.ty = y * R;
+                
+                rotator.appendChild(star);
+            }
+
+            function shatterStar(groupIndex) {
+                document.getElementById(`star-${groupIndex + 1}`).classList.add('dissolve');
+                
+                const particles = document.querySelectorAll(`.particle-star[data-group="${groupIndex}"]`);
+                particles.forEach(p => {
+                    const delay = (Math.random() * 0.3).toFixed(2); 
+                    p.style.transitionDelay = `${delay}s, 0s`; 
+                    p.style.opacity = '1';
+                    p.style.transform = `translate(${p.dataset.tx}px, ${p.dataset.ty}px) scale(1)`;
+                });
+            }
+
+            // --- TIMELINE DELL'ANIMAZIONE ---
+
+            setTimeout(() => shatterStar(0), 500);  
+            setTimeout(() => shatterStar(1), 1100); 
+            setTimeout(() => shatterStar(2), 1700); 
+
+            setTimeout(() => {
+                document.getElementById('old-os').classList.add('show');
+                document.getElementById('text-old').classList.add('show');
+            }, 4500);
+
+            setTimeout(() => {
+                document.getElementById('old-os').classList.add('compress');
+                document.getElementById('yin-yang-wrapper').style.transform = 'scale(0.85)';
+                
+                const textOld = document.getElementById('text-old');
+                textOld.style.transition = 'all 0.5s ease';
+                textOld.style.opacity = '0';
+                textOld.style.transform = 'translateY(20px)'; // Scivola e sparisce verso il basso
+            }, 7500);
+
+            setTimeout(() => {
+                document.getElementById('old-os').classList.add('hide');
+                
+                const particles = document.querySelectorAll('.particle-star');
+                particles.forEach(p => {
+                    const exX = p.dataset.tx * (4 + Math.random() * 2);
+                    const exY = p.dataset.ty * (4 + Math.random() * 2);
+                    p.style.transition = 'transform 1.2s cubic-bezier(0.1, 0.8, 0.2, 1), opacity 0.8s ease-out';
+                    p.style.transitionDelay = '0s'; 
+                    p.style.transform = `translate(${exX}px, ${exY}px) scale(3)`;
+                    p.style.opacity = '0';
+                });
+
+                setTimeout(() => {
+                    document.getElementById('new-os').classList.add('show');
+                    document.getElementById('text-new-container').classList.add('show');
+                }, 300);
+            }, 8200);
+
+            setTimeout(() => {
+                document.querySelector('.btn-restore').classList.add('show-btn');
+                document.querySelector('.btn-link').classList.add('show-btn');
+            }, 9500);
+
+            // FASE 6: Animazione del testo Warp (Copy/Paste Smooth Replace)
+            let greetingTimer;
+            const greetingStart = setTimeout(() => {
+                const greetings = ["Hello", "Ciao", "Buna", "你好", "Hola", "Bonjour", "こんにちは", "Привет"];
+                let greetingIndex = 0;
+                const textContainer = document.getElementById('text-new-container');
+                
+                greetingTimer = setInterval(() => {
+                    const currentWord = textContainer.querySelector('.word-active');
+                    
+                    // Creiamo la nuova parola in stato "enter"
+                    const newWord = document.createElement('div');
+                    newWord.className = 'text-word word-enter';
+                    newWord.innerText = greetings[greetingIndex];
+                    textContainer.appendChild(newWord);
+                    
+                    // Forza il reflow affinché il CSS applichi lo stato "enter" prima della transizione
+                    void newWord.offsetWidth;
+                    
+                    // La vecchia parola fa un Warp out (si allarga e sfuma all'infuori)
+                    if (currentWord) {
+                        currentWord.classList.remove('word-active');
+                        currentWord.classList.add('word-leave');
+                        
+                        // Pulizia dal DOM quando l'animazione termina
+                        setTimeout(() => currentWord.remove(), 800);
+                    }
+                    
+                    // La nuova parola fa un Warp in (si stringe e mette a fuoco al centro)
+                    newWord.classList.remove('word-enter');
+                    newWord.classList.add('word-active');
+                    
+                    greetingIndex = (greetingIndex + 1) % greetings.length;
+                }, MWSetup.CYCLE_MS);
+            }, 11000);
+
+            // FASE 7: La parola sale in alto a sinistra e diventa il titolo della schermata successiva
+            document.querySelector('.btn-link').addEventListener('click', async (event) => {
+                event.preventDefault();
+                const nextPage = event.currentTarget.getAttribute('href');
+                clearTimeout(greetingStart);
+                clearInterval(greetingTimer);
+                document.getElementById('new-os').classList.add('hide');
+                document.querySelector('.btn-restore').classList.remove('show-btn');
+                await MWSetup.flyToTitle(document.querySelector('#text-new-container .word-active'));
+                MWSetup.go(nextPage);
+            }, { once: true });
         });
 
-        // Backup restore logic
+        // Logica Restore
         function importBackup(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -168,7 +493,7 @@
                 .then(r => r.json())
                 .then(res => {
                     if(res.success) {
-                        window.location.href = '/'; // Skips OOBE instantly and reloads system
+                        window.location.href = '/'; 
                     } else {
                         mDialog.alert(mariowOSI18n.t("setup.welcome.restore-failed", "Restore failed: {error}", { error: res.error }));
                     }

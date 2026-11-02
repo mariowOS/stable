@@ -1,0 +1,270 @@
+/* Shared look of the first-run setup screens: the same black stage, gradient word,
+   warp and star marks as the welcome screen. Behaviour lives in setup.js. */
+:root {
+    --setup-edge: clamp(24px, 4vw, 48px);
+    --setup-title-size: clamp(2.25rem, 6vw, 4rem);
+    --setup-glide: cubic-bezier(0.16, 1, 0.3, 1);
+    --setup-accent: #00d4ff;
+}
+
+html { background: #000; }
+
+body.setup-page {
+    background: #000;
+    color: #fff;
+    height: 100dvh;
+    overflow: hidden;
+}
+
+/* The word in the top left corner */
+.setup-title {
+    position: fixed;
+    top: var(--setup-edge);
+    left: var(--setup-edge);
+    height: calc(var(--setup-title-size) * 1.3);
+    width: calc(100vw - var(--setup-edge) * 2);
+    z-index: 15;
+    pointer-events: none;
+    transform-origin: left center;
+}
+
+.setup-word {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    white-space: nowrap;
+    font-size: var(--setup-title-size);
+    font-weight: 800;
+    line-height: 1.3;
+    text-transform: uppercase;
+    color: #fff;
+    transform-origin: left center;
+    transition: transform 0.7s var(--setup-glide),
+                opacity 0.6s var(--setup-glide),
+                filter 0.6s ease,
+                letter-spacing 0.7s var(--setup-glide);
+}
+
+.setup-word.enter { transform: translateY(-50%) scale(0.9); opacity: 0; filter: blur(12px); letter-spacing: 0; }
+.setup-word.active { transform: translateY(-50%) scale(1); opacity: 1; filter: blur(0); letter-spacing: 4px; }
+.setup-word.leave { transform: translateY(-50%) scale(1.1); opacity: 0; filter: blur(12px); letter-spacing: 8px; }
+
+/* Only while the greeting flies up: it arrives in colour and settles to white */
+.setup-word.rainbow {
+    background: linear-gradient(270deg, #ff007f, #7f00ff, #00d4ff, #7f00ff, #ff007f);
+    background-size: 200% auto;
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    animation: setup-shine 3s linear infinite;
+}
+
+@keyframes setup-shine { to { background-position: 200% center; } }
+
+/* The star yin-yang from the welcome screen, grown into a night sky behind every step.
+   As wide as the screen's diagonal, so the corners stay covered as it turns. */
+.setup-stars {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: hypot(100vw, 100vh);
+    height: hypot(100vw, 100vh);
+    translate: -50% -50%;
+    opacity: 0.6;
+    z-index: 1;
+    pointer-events: none;
+    animation: setup-spin 180s linear infinite;
+    transition: opacity 0.9s ease;
+}
+
+.setup-stars.fade-in { animation: setup-spin 180s linear infinite, setup-appear 1.4s ease backwards; }
+/* Same curve as the welcome particles, run in reverse: slow to leave, fast to arrive */
+.setup-stars.collapsing {
+    will-change: translate, scale, opacity;
+    transition: translate 1.5s cubic-bezier(0.55, 0, 0.7, 0.2),
+                scale 1.5s cubic-bezier(0.55, 0, 0.7, 0.2),
+                opacity 0.3s ease;
+}
+
+.setup-stars.collapse { opacity: 0; }
+
+@keyframes setup-spin { to { transform: rotate(360deg); } }
+@keyframes setup-appear { from { opacity: 0; } }
+
+/* Step content, on the same centre as the welcome screenshots */
+.setup-stage {
+    position: relative;
+    z-index: 5;
+    height: 100%;
+    overflow-y: auto;
+    display: grid;
+    place-items: center;
+    padding: calc(var(--setup-edge) * 2 + var(--setup-title-size) * 1.3) 16px 130px;
+}
+
+.setup-content {
+    width: min(100%, 520px);
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    animation: setup-content-in 0.9s var(--setup-glide) 0.3s backwards;
+    transition: opacity 0.3s ease, transform 0.35s cubic-bezier(0.5, 0, 0, 1), filter 0.3s ease;
+}
+
+.setup-leaving .setup-content { opacity: 0; transform: scale(1.06); filter: blur(8px); }
+
+@keyframes setup-content-in {
+    from { opacity: 0; transform: scale(0.95) translateY(20px); filter: blur(10px); }
+}
+
+.setup-panel {
+    background: rgba(24, 24, 28, 0.82);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 24px;
+    padding: 32px;
+    -webkit-backdrop-filter: blur(24px);
+    backdrop-filter: blur(24px);
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: rgba(255, 255, 255, 0.78);
+}
+
+.setup-panel h2 { font-size: 1.3rem; font-weight: 600; line-height: 1.3; color: #fff; margin-bottom: 10px; }
+.setup-panel strong { color: #fff; font-weight: 600; }
+.setup-panel a, .setup-help a { color: var(--setup-accent); }
+.setup-lede { font-size: 1.05rem; color: #fff; margin-bottom: 18px; }
+.setup-fine { font-size: 0.85rem; }
+.setup-help { font-size: 0.85rem; color: rgba(255, 255, 255, 0.8); padding: 0 8px; text-shadow: 0 0 6px #000, 0 0 12px #000; }
+
+/* Toggle row at the foot of a panel */
+.toggle-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    cursor: pointer;
+    user-select: none;
+    border-radius: 2px;
+}
+
+.toggle-label { font-weight: 500; color: #fff; }
+
+.switch {
+    flex: 0 0 50px;
+    height: 28px;
+    border-radius: 20px;
+    position: relative;
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.switch::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #7f00ff, #00d4ff);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.circle {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.3s var(--setup-glide);
+}
+
+.toggle-container.active .switch::before { opacity: 1; }
+.toggle-container.active .circle { transform: translateX(22px); }
+
+/* Corners: steps on the left where Restore sits on the welcome screen, arrow on the right */
+.setup-steps {
+    position: fixed;
+    bottom: 62px;
+    left: var(--setup-edge);
+    display: flex;
+    gap: 10px;
+    z-index: 20;
+}
+
+.setup-steps svg { width: 22px; height: 22px; fill: rgba(255, 255, 255, 0.18); transition: fill 0.4s ease; }
+.setup-steps svg.done { fill: #fff; }
+.setup-steps svg.current { fill: var(--setup-accent); }
+
+.setup-next {
+    position: fixed;
+    bottom: 40px;
+    right: 40px;
+    z-index: 20;
+    width: 70px;
+    height: 70px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+    color: #000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    text-decoration: none;
+    transition: transform 0.3s, background 0.3s, color 0.3s;
+}
+
+.setup-next:hover { transform: scale(1.1); }
+.setup-next svg { width: 35px; height: 35px; fill: currentColor; }
+
+.setup-next[aria-disabled="true"] {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.3);
+    cursor: not-allowed;
+    transform: none;
+}
+
+:is(.setup-next, .toggle-container, .setup-panel a, .setup-help a):focus-visible,
+.user-icon:focus-visible {
+    outline: 2px solid var(--setup-accent);
+    outline-offset: 4px;
+}
+
+/* The final step: the yin-yang closes back into the logo it came from */
+.setup-logo {
+    position: relative;
+    width: min(24vw, 144px);
+    aspect-ratio: 1;
+    margin: 0 auto 28px;
+}
+
+/* Starts as the welcome screen's dissolved state, so each piece un-shatters */
+.setup-logo svg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    fill: #fff;
+    opacity: 0;
+    transform: scale(1.1);
+    filter: blur(8px);
+    transition: opacity 0.5s ease, transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.5s ease;
+}
+
+.setup-logo svg.show { opacity: 1; transform: none; filter: none; }
+.setup-done { text-align: center; font-size: 1.3rem; font-weight: 500; opacity: 0; transition: opacity 0.8s ease 0.3s; }
+.setup-logo.show + .setup-done { opacity: 1; }
+
+@media (max-width: 600px) {
+    .setup-steps { bottom: 46px; gap: 8px; }
+    .setup-steps svg { width: 18px; height: 18px; }
+    .setup-next { width: 60px; height: 60px; bottom: 24px; right: 24px; }
+    .setup-panel { padding: 24px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .setup-word, .setup-stars, .setup-content, .setup-logo svg, .setup-done { animation: none; transition: none; }
+}

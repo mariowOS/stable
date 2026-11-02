@@ -5,6 +5,7 @@
 <head>
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
+<script src="/desktop/assets/accent.js"></script>
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -100,7 +101,7 @@
       transition: border-color 0.2s;
     }
     
-    .edit-panel input:focus { border-color: #0a84ff; }
+    .edit-panel input:focus { border-color: var(--sys-accent-text); }
 
     .btn-row {
       display: flex;
@@ -113,15 +114,15 @@
       padding: 8px 16px; 
       border-radius: 6px; 
       border: none; 
-      background: #0a84ff; 
-      color: white; 
+      background: var(--sys-accent); 
+      color: var(--sys-accent-on); 
       font-weight: 500; 
       font-size: 13px;
       cursor: pointer; 
       font-family: inherit; 
       transition: background 0.2s; 
     }
-    .btn:hover { background: #007aff; }
+    .btn:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
 
     html::-webkit-scrollbar { display: none; }
   </style>

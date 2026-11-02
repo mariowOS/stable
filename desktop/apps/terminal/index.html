@@ -13,6 +13,7 @@ This project use open source and free fonts sourced from Google Fonts. Google Fo
   <meta charset="UTF-8">
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
+  <script src="/desktop/assets/accent.js"></script>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
@@ -309,8 +310,8 @@ This project use open source and free fonts sourced from Google Fonts. Google Fo
             .notes-tab-btn { display: flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.12); border-bottom: none; border-radius: 12px 12px 0 0; padding: 6px 14px; color: rgba(255, 255, 255, 0.55); font-size: 12px; font-weight: 500; cursor: pointer; position: relative; height: 28px; box-sizing: border-box; transition: all 0.2s; font-family: 'Poppins', sans-serif !important; user-select: none; overflow: hidden; margin-top: 8px; }
             .notes-tab-btn span { font-family: 'Poppins', sans-serif !important; }
             .notes-tab-btn:hover { background: rgba(255, 255, 255, 0.1); color: #fff; }
-            .notes-tab-btn.active { background: rgba(10, 132, 255, 0.18); color: #fff; height: 34px; border-color: rgba(10, 132, 255, 0.3); margin-top: 2px; }
-            .notes-tab-btn.active::before { content: ''; position: absolute; inset: 0; border-radius: 12px 12px 0 0; border: 2px solid #0a84ff; border-bottom: none; pointer-events: none; }
+            .notes-tab-btn.active { background: color-mix(in srgb, var(--sys-accent) 18%, transparent); color: #fff; height: 34px; border-color: color-mix(in srgb, var(--sys-accent) 30%, transparent); margin-top: 2px; }
+            .notes-tab-btn.active::before { content: ''; position: absolute; inset: 0; border-radius: 12px 12px 0 0; border: 2px solid var(--sys-accent-text); border-bottom: none; pointer-events: none; }
             .tab-color-line { position: absolute; top: 0; left: 0; right: 0; height: 3px; transition: background 0.2s; z-index: 2; pointer-events: none; }
             .notes-tab-close { background: none; border: none; color: inherit; opacity: 0.6; cursor: pointer; padding: 0; font-size: 15px; font-weight: bold; display: flex; align-items: center; justify-content: center; margin-left: 2px; z-index: 3; position: relative;}
             .notes-tab-close:hover { opacity: 1; color: #ff453a; }
@@ -538,6 +539,15 @@ This project use open source and free fonts sourced from Google Fonts. Google Fo
 
     // --- INITIALIZATION ---
     fetch("/get-settings").then(res => res.json()).then(config => {
+        // Terminal is for administrators (Settings > Users); the server refuses commands too.
+        if (config.currentUser && !config.currentUser.admin) {
+            terminalsContainer.innerHTML = `
+                <div style="padding: 20px; font-size: 14px;">
+                    ${escapeHtml(mariowOSI18n.t("terminal.admin-only", "Terminal is only available to administrators. Ask an administrator to change your account type in Settings > Users."))}
+                </div>
+            `;
+            return;
+        }
         // Developer Options Verification
         if (config.developer === false) {
             terminalsContainer.innerHTML = `
