@@ -128,6 +128,7 @@ const {
 const { createRollbackPoint, readRollbackPoint } = require("./lib/rollback");
 const { createMailClient } = require("./lib/mail");
 const { createSessions, createPasswordGuard } = require("./lib/session");
+const { createUsers, OWNER_ID } = require("./lib/users");
 
 function readStagedVersion(stagePath) {
   try { return JSON.parse(fs.readFileSync(path.join(stagePath, "version.json"), "utf8")).version || null; }
@@ -337,12 +338,31 @@ const checkCode = (purpose, email, code) => mail.checkCode(purpose, email, code)
 const LEAKED_SESSION_KEY_HASHES = new Set([
   "2feed71c3d843835e71c2a9963de5c671cd0ed0ab4da984466210bf7e2f0b9b2"
 ]);
-const { issueSession, clearSession, hasValidSession, signAppToken, verifyAppToken } = createSessions({
+const { issueSession, clearSession, hasValidSession, readSession, signAppToken, verifyAppToken } = createSessions({
   keyFile: path.join(__dirname, "session.key"),
   leakedKeyHashes: LEAKED_SESSION_KEY_HASHES,
   secureCookie: process.env.MARIOWOS_SECURE_COOKIE === "1"
 });
 const { comparePassword, lockSeconds: passwordLockSeconds } = createPasswordGuard((candidate, hash) => bcrypt.compare(candidate, hash));
+const users = createUsers({ baseDir: __dirname, getConfig: () => config, saveConfig });
+
+// Standard (non-admin) accounts: whatever installs software, runs commands or changes the
+// system for everyone belongs to administrators. Enforced here, whatever the UI shows.
+const ADMIN_ONLY_ROUTES = [
+  /^\/api\/store\/(install|uninstall|do-upgrade|publish|eula)\b/,
+  /^\/api\/remote\/exec\b/, /^\/api\/sandbox\//, /^\/api\/recovery\//,
+  /^\/api\/system\/(factory-reset|reset-settings|reset-desktop|restore|backup|boot-logo|update-channel|keyring|ota-update|sota-update)\b/,
+  /^\/api\/users\/(create|update|delete|reset-password)\b/,
+  /^\/api\/rules\/(save|enabled)\b/,
+  /^\/(save-settings|clear-settings|set-password|clear-password|upload-wallpaper)$/
+];
+// Reading is fine, except where the read itself acts or hands out secrets.
+const ADMIN_ONLY_READS = /^\/api\/system\/(backup|keyring|ota-update|sota-update)\b/;
+function requireAdminFor(req, res, next) {
+  if (req.user?.admin || !ADMIN_ONLY_ROUTES.some(route => route.test(req.path))) return next();
+  if ((req.method === "GET" || req.method === "HEAD") && !ADMIN_ONLY_READS.test(req.path)) return next();
+  res.status(403).json({ success: false, code: "ADMIN_ONLY", error: "Only an administrator can do this." });
+}
 
 // Routes that must stay reachable WITHOUT a session: the login/recovery flow itself,
 // health checks, and the Electron shell's own token-authenticated power controls.
@@ -430,6 +450,8 @@ const jsonParser = express.json();
 const OWN_BODY_PARSER = new Set(["/api/system/notes", "/api/system/files/upload", "/api/system/files/upload-raw"]);
 app.use((req, res, next) => OWN_BODY_PARSER.has(req.path) ? next() : jsonParser(req, res, next));
 app.use(requireSession);
+app.use(users.middleware(readSession, clearSession));
+app.use(requireAdminFor);
 app.use(enforceAppPermissions);
 
 require("./spotify").registerSpotifyRoutes(app, {
@@ -438,6 +460,7 @@ require("./spotify").registerSpotifyRoutes(app, {
 const requireAuthJson = (req, res, next) => (!config.passwordHash || hasValidSession(req))
   ? next() : res.status(401).json({ success: false, error: "Authentication required. Please log in again." });
 require("./media-session").registerMediaSessionRoutes(app, { requireAuth: requireAuthJson });
+require("./bluetooth-watch").registerBluetoothWatchRoutes(app, { requireAuth: requireAuthJson });
 require("./online-services").registerOnlineServiceRoutes(app, { getConfig: () => config, saveConfig, requireAuth: requireAuthJson });
 
 app.get('/api/system/health', (req, res) => {
@@ -575,8 +598,11 @@ app.get("/desktop/assets/i18n-data.js", (req, res) => {
 // are served as normal web assets from the filesystem, which keeps the OS feel web-based and easy to tweak.
 // The notes database lives under desktop/ for historical reasons: never serve it as a static file.
 app.get("/desktop/notes-db.json", (req, res) => res.status(404).end());
+// Home folders are read through the file API, as their owner: never as plain static files.
+app.use("/desktop/home", (req, res) => res.status(404).end());
 app.use("/desktop", express.static(path.join(__dirname, "desktop")));
 app.use("/loginui", express.static(path.join(__dirname, "loginui")));
+app.use("/lockscreen", express.static(path.join(__dirname, "lockscreen")));
 
 app.get('/desktop/apps/settings/assets/you.html', (req, res, next) => {
   next();
@@ -589,8 +615,9 @@ const IMAGE_UPLOAD_LIMIT = { fileSize: 8 * 1024 * 1024 };
 const avatarUpload = multer({
   limits: IMAGE_UPLOAD_LIMIT,
   storage: multer.diskStorage({
-    destination: (req, file, cb) => cb(null, path.join(__dirname, "desktop/assets")),
-    filename: (req, file, cb) => cb(null, "avatar.user.png")
+    // Each account has its own picture (the owner's is desktop/assets/avatar.user.png).
+    destination: (req, file, cb) => { const target = users.avatarOf(users.find(req.user?.id)); fs.mkdirSync(path.dirname(target), { recursive: true }); cb(null, path.dirname(target)); },
+    filename: (req, file, cb) => cb(null, path.basename(users.avatarOf(users.find(req.user?.id))))
   }),
   fileFilter: (req, file, cb) => cb(null, ["image/png", "image/jpeg"].includes(file.mimetype))
 });
@@ -601,7 +628,7 @@ app.post("/upload-avatar", avatarUpload.single("avatar"), (req, res) => {
 });
 
 app.post("/reset-avatar", (req, res) => {
-  const avatarPath = path.join(__dirname, "desktop/assets/avatar.user.png");
+  const avatarPath = users.avatarOf(users.find(req.user?.id));
   if (fs.existsSync(avatarPath)) { fs.unlinkSync(avatarPath); }
   res.json({ success: true, message: "Avatar reset!" });
 });
@@ -766,32 +793,97 @@ app.get("/api/system/quick-settings", (req, res) => {
   });
 });
 
-app.post("/api/system/quick-settings", (req, res) => {
+// Windows: Wi-Fi and Bluetooth go through lib/windows-radios.ps1, which needs no admin rights.
+function runWindowsRadios(args, env = {}) {
+  const script = path.join(__dirname, "lib", "windows-radios.ps1");
+  return new Promise((resolve, reject) => {
+    childProcess.execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-File", script, ...args],
+      { windowsHide: true, timeout: 30000, env: { ...process.env, ...env } }, (err, stdout) => {
+        if (err) return reject(err);
+        try {
+          const result = JSON.parse(stdout);
+          return result.success ? resolve(result) : reject(new Error(result.error || "Radio command failed"));
+        } catch (parseError) { reject(parseError); }
+      });
+  });
+}
+
+function runCommand(cmd) {
+  return new Promise((resolve, reject) => exec(cmd, err => (err ? reject(err) : resolve())));
+}
+
+function setWifiPower(on) {
+  if (currentOS === "win32") return runWindowsRadios(["-Action", "set", "-Kind", "WiFi", "-On", on ? "1" : "0"]);
+  if (currentOS === "darwin") return runCommand(`networksetup -setairportpower en0 ${on ? 'on' : 'off'}`);
+  return runCommand(`nmcli radio wifi ${on ? 'on' : 'off'}`);
+}
+
+function setBluetoothPower(on) {
+  if (currentOS === "win32") return runWindowsRadios(["-Action", "set", "-Kind", "Bluetooth", "-On", on ? "1" : "0"]);
+  if (currentOS === "darwin") return runCommand(`blueutil -p ${on ? '1' : '0'}`);
+  return runCommand(`rfkill ${on ? 'unblock' : 'block'} bluetooth`);
+}
+
+// Airplane mode turns every radio off and remembers how they were, to put them back after.
+async function setAirplaneMode(on) {
+  const qs = config.quickSettings;
+  if (on) {
+    qs.radiosBeforeAirplane = { wifi: qs.wifi !== false, bluetooth: qs.bluetooth !== false };
+    await Promise.allSettled([setWifiPower(false), setBluetoothPower(false)]);
+    qs.wifi = false;
+    qs.bluetooth = false;
+    return;
+  }
+  const before = qs.radiosBeforeAirplane || { wifi: true, bluetooth: true };
+  await Promise.allSettled([setWifiPower(before.wifi), setBluetoothPower(before.bluetooth)]);
+  qs.wifi = before.wifi;
+  qs.bluetooth = before.bluetooth;
+  delete qs.radiosBeforeAirplane;
+}
+
+app.post("/api/system/quick-settings", async (req, res) => {
   const { setting, value } = req.body;
   if (!setting || value === undefined) {
     return res.status(400).json({ success: false, error: "Dati mancanti" });
   }
 
-  config.quickSettings[setting] = value;
-  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
-
   // --- HARDWARE POWER TOGGLES ---
-  if (setting === 'wifi') {
-    let cmd = "";
-    if (currentOS === "linux") cmd = `nmcli radio wifi ${value ? 'on' : 'off'}`;
-    else if (currentOS === "darwin") cmd = `networksetup -setairportpower en0 ${value ? 'on' : 'off'}`;
-    else if (currentOS === "win32") cmd = `netsh interface set interface name="Wi-Fi" admin=${value ? 'enabled' : 'disabled'}`;
-    exec(cmd, (err) => { if (err) console.error("Wi-Fi Hardware Toggle Error:", err.message); });
-  } 
-  else if (setting === 'bluetooth') {
-    let cmd = "";
-    if (currentOS === "linux") cmd = `rfkill ${value ? 'unblock' : 'block'} bluetooth`;
-    else if (currentOS === "darwin") cmd = `blueutil -p ${value ? '1' : '0'}`;
-    else if (currentOS === "win32") cmd = `powershell -command "${value ? 'Enable' : 'Disable'}-PnpDevice -Class Bluetooth -Confirm:$false"`;
-    exec(cmd, (err) => { if (err) console.error("BT Hardware Toggle Error:", err.message); });
+  // The saved state only changes once the hardware did, so the panel can't show a state it isn't in.
+  const hardware = { wifi: setWifiPower, bluetooth: setBluetoothPower, airplane: setAirplaneMode }[setting];
+  if (hardware) {
+    try {
+      await hardware(Boolean(value));
+    } catch (error) {
+      console.error(`${setting} toggle error:`, error.message);
+      return res.status(500).json({ success: false, error: error.message, quickSettings: config.quickSettings });
+    }
   }
 
+  config.quickSettings[setting] = value;
+  fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
   res.json({ success: true, quickSettings: config.quickSettings });
+});
+
+// Whether this machine has a battery at all: a plugged-in desktop and a fully charged laptop
+// look the same to the page. The level and charging state then come live from the page.
+let batteryPresence = null;
+function detectBattery() {
+  return new Promise(resolve => {
+    if (currentOS === "linux") {
+      try { return resolve(fs.readdirSync("/sys/class/power_supply").some(name => name.startsWith("BAT"))); }
+      catch { return resolve(false); }
+    }
+    if (currentOS === "darwin") return exec("pmset -g batt", (err, stdout) => resolve(!err && stdout.includes("InternalBattery")));
+    if (currentOS === "win32") {
+      return childProcess.execFile("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", "(Get-CimInstance Win32_Battery | Measure-Object).Count"],
+        { windowsHide: true, timeout: 15000 }, (err, stdout) => resolve(!err && parseInt(stdout, 10) > 0));
+    }
+    resolve(false);
+  });
+}
+app.get("/api/system/battery", async (req, res) => {
+  batteryPresence ??= detectBattery();
+  res.json({ present: await batteryPresence });
 });
 
 
@@ -865,30 +957,21 @@ app.get("/api/system/networks", (req, res) => {
     });
 
   } else if (currentOS === "win32") {
-    exec("netsh wlan show networks mode=bssid", (err, stdout) => {
-      if (err) return res.json({ success: true, networks: [] });
-      const networks = [];
-      const lines = stdout.split("\r\n");
-      let currentSsid = "";
-
-      lines.forEach(line => {
-        if (line.includes("SSID")) {
-          const parts = line.split(":");
-          if (parts[1]) currentSsid = parts[1].trim();
-        } else if (line.includes("Signal") || line.includes("Segnale")) {
-          const parts = line.split(":");
-          const signal = parseInt(parts[1], 10) || 50;
-          if (currentSsid && !networks.find(n => n.ssid === currentSsid)) {
-            networks.push({
-              ssid: currentSsid,
-              signal: signal,
-              secured: true,
-              connected: config.quickSettings.connectedWifi === currentSsid
-            });
-          }
-        }
+    // A live scan: netsh only reads the list Windows last cached.
+    runWindowsRadios(["-Action", "scan"]).then(scan => {
+      exec("netsh wlan show interfaces", (err, stdout) => {
+        const match = !err && stdout.match(/^\s*SSID\s*:\s*(.+)$/m);
+        const connectedSsid = match ? match[1].trim() : null;
+        const networks = [].concat(scan.networks || [])
+          .map(network => ({ ...network, connected: network.ssid === connectedSsid }))
+          .sort((a, b) => b.connected - a.connected || b.signal - a.signal);
+        config.quickSettings.wifi = scan.wifi !== false;
+        config.quickSettings.bluetooth = scan.bluetooth !== false;
+        res.json({ success: true, networks, wifi: config.quickSettings.wifi, bluetooth: config.quickSettings.bluetooth });
       });
-      res.json({ success: true, networks });
+    }).catch(error => {
+      console.error("Wi-Fi scan error:", error.message);
+      res.json({ success: true, networks: [] });
     });
 
   } else if (currentOS === "darwin") {
@@ -933,6 +1016,18 @@ app.post("/api/system/connect-wifi", (req, res) => {
   // quoted argument and inject commands. (See also the spawn() helper at the top of
   // this file for the preferred no-shell approach.)
   const SHELL_UNSAFE = /["'`$\\;&|<>\n\r]/;
+  // Windows: a password goes through no shell at all, so any character is fine in it.
+  if (currentOS === "win32" && password) {
+    if (typeof ssid !== "string" || typeof password !== "string") {
+      return res.status(400).json({ success: false, error: "Invalid SSID or password." });
+    }
+    return runWindowsRadios(["-Action", "connect", "-Ssid", ssid], { MARIOWOS_WIFI_PASSWORD: password }).then(() => {
+      config.quickSettings.connectedWifi = ssid;
+      config.quickSettings.wifi = true;
+      fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
+      res.json({ success: true, connectedWifi: ssid });
+    }).catch(() => res.status(500).json({ success: false, error: "Unable to connect to the network." }));
+  }
   if (typeof ssid !== "string" || SHELL_UNSAFE.test(ssid) ||
       (password !== undefined && password !== null &&
         (typeof password !== "string" || SHELL_UNSAFE.test(password)))) {
@@ -949,7 +1044,8 @@ app.post("/api/system/connect-wifi", (req, res) => {
   }
 
   exec(cmd, (err) => {
-    if (err) return res.status(500).json({ success: false, error: "Unable to connect to the network." });
+    // On Windows a network without a saved profile fails here: ask the user for its password.
+    if (err) return res.status(500).json({ success: false, needsPassword: currentOS === "win32", error: "Unable to connect to the network." });
     config.quickSettings.connectedWifi = ssid;
     config.quickSettings.wifi = true;
     fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -988,24 +1084,14 @@ app.get("/api/system/bt-devices", (req, res) => {
     });
 
   } else if (currentOS === "win32") {
-    const psCmd = `powershell "Get-PnpDevice -Class Bluetooth | Select-Object FriendlyName, Status | ConvertTo-Json"`;
-    exec(psCmd, (err, stdout) => {
-      if (err) return res.json({ success: true, devices: [] });
-      try {
-        const parsed = JSON.parse(stdout);
-        const list = Array.isArray(parsed) ? parsed : [parsed];
-        const devices = list
-          .filter(d => d.FriendlyName && !d.FriendlyName.includes("Enumerator") && !d.FriendlyName.includes("Adapter"))
-          .map(d => ({
-            name: d.FriendlyName,
-            mac: d.FriendlyName,
-            type: "bluetooth",
-            connected: d.Status === "OK" && config.quickSettings.connectedBt === d.FriendlyName
-          }));
-        res.json({ success: true, devices });
-      } catch (e) {
-        res.json({ success: true, devices: [] });
-      }
+    // The driver's "OK" only means paired: ask Windows what is connected right now.
+    runWindowsRadios(["-Action", "bluetooth"]).then(result => {
+      const devices = [].concat(result.devices || []);
+      config.quickSettings.connectedBt = (devices.find(device => device.connected) || {}).name || null;
+      res.json({ success: true, devices });
+    }).catch(error => {
+      console.error("Bluetooth devices error:", error.message);
+      res.json({ success: true, devices: [] });
     });
 
   } else if (currentOS === "darwin") {
@@ -1040,10 +1126,12 @@ app.post("/api/system/connect-bt", (req, res) => {
     return res.status(400).json({ success: false, error: "Invalid Bluetooth target." });
   }
 
+  // Windows has no public way to connect an audio device from an app: say so, never pretend.
+  if (currentOS === "win32") return res.status(501).json({ success: false, unsupported: true });
+
   const isConnected = config.quickSettings.connectedBt === name;
   let cmd = "";
-
-  if (currentOS === "linux") {
+if (currentOS === "linux") {
     cmd = `bluetoothctl ${isConnected ? "disconnect" : "connect"} ${target}`;
   } else if (currentOS === "darwin") {
     cmd = `blueutil --${isConnected ? "disconnect" : "connect"} ${target}`;
@@ -1070,10 +1158,12 @@ app.post("/api/system/connect-bt", (req, res) => {
 // In practice, it is one of the most important pieces for anyone building a custom mariowOS image.
 const backupUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024 } }); // M-04
 
-app.get("/api/system/backup", (req, res) => {
-  // Send current config, but explicitly remove the passwordHash for security
+app.get("/api/system/backup", requireAuthJson, (req, res) => {
+  // Send current config, but explicitly remove the passwordHash for security.
+  // Accounts are not settings: their names and password hashes never leave in a backup.
   const safeConfig = { ...config };
   delete safeConfig.passwordHash;
+  delete safeConfig.users;
   res.json(safeConfig);
 });
 
@@ -1094,7 +1184,8 @@ app.post("/api/system/restore", backupUpload.single("backupFile"), async (req, r
     
     // Preserve the user's current password hash, don't overwrite it with the backup's missing one
     const currentPass = config.passwordHash;
-    config = { ...importedConfig, passwordHash: currentPass };
+    // A backup can never add or change accounts: the ones on this machine stay.
+    config = { ...importedConfig, passwordHash: currentPass, users: config.users || [] };
     
     fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
     res.json({ success: true, message: "Backup restored successfully" });
@@ -1326,6 +1417,9 @@ app.post("/login", async (req, res) => {
   const { password } = req.body;
   const currentConfig = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, "utf8")) : {};
   if (!currentConfig.passwordHash) return res.status(409).send("No password is configured.");
+  // Which account: the login screen sends its id; without one it is the owner, as before.
+  const account = users.find(typeof req.body.userId === "string" && req.body.userId ? req.body.userId : OWNER_ID);
+  if (!account || !account.passwordHash) return res.status(401).send("Unknown account.");
   if (typeof password !== "string" || password.length === 0) {
     return res.status(400).send("Password is required.");
   }
@@ -1333,9 +1427,10 @@ app.post("/login", async (req, res) => {
   if (passwordLockSeconds() > 0) {
     return res.status(429).send(`Too many attempts. Try again in ${passwordLockSeconds()} seconds.`);
   }
-  const match = await comparePassword(password, currentConfig.passwordHash);
+  const match = await comparePassword(password, account.passwordHash);
   if (!match) return res.status(401).send("Incorrect password.");
-  issueSession(res); // A-02: start an authenticated session for subsequent API calls.
+  users.ensureHome(account);
+  issueSession(res, account.id); // A-02: start an authenticated session for subsequent API calls.
   res.sendFile(path.join(__dirname, "desktop/com.mariowos.desktop.html"));
 });
 
@@ -1349,7 +1444,11 @@ const DESKTOP_STYLE_SCHEMA = {
   fit: v => ["cover", "contain", "stretch", "center", "tile"].includes(v) ? v : undefined,
   uiFont: v => ["Poppins", "Inter", "Nunito", "Roboto Slab", "Lora", "JetBrains Mono", "system-ui"].includes(v) ? v : undefined,
   brightness: v => clampNumber(v, 30, 130), saturation: v => clampNumber(v, 0, 200), blur: v => clampNumber(v, 0, 30),
-  radius: v => clampNumber(v, 0, 28), glass: v => clampNumber(v, 30, 100), iconScale: v => clampNumber(v, 70, 150)
+  radius: v => clampNumber(v, 0, 28), glass: v => clampNumber(v, 30, 100), iconScale: v => clampNumber(v, 70, 150),
+  nightWarmth: v => clampNumber(v, 10, 60),
+  nightSchedule: v => ["off", "sunset", "custom"].includes(v) ? v : undefined,
+  nightFrom: v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : undefined,
+  nightTo: v => /^([01]\d|2[0-3]):[0-5]\d$/.test(v) ? v : undefined
 };
 function clampNumber(value, min, max) {
   const n = Number(value);
@@ -1361,8 +1460,9 @@ app.post("/api/desktop-style", (req, res) => {
     const value = validate(req.body?.[key]);
     if (value !== undefined) style[key] = value;
   }
-  config.desktopStyle = style;
-  saveConfig();
+  // Personalisation is per account; the owner's stays where it always was.
+  if (req.user && !req.user.owner) users.update(req.user.id, { desktopStyle: style });
+  else { config.desktopStyle = style; saveConfig(); }
   res.json({ success: true, desktopStyle: style });
 });
 
@@ -1377,7 +1477,16 @@ app.get("/get-settings", (req, res) => {
       : installed);
   }
   delete safe.passwordHash;
+  delete safe.users;
   if (safe.lastfm) safe.lastfm = { username: safe.lastfm.username }; // the API key stays server-side
+  // Who is signed in; another account sees its own name and personalisation, not the owner's.
+  safe.currentUser = req.user || users.toPublic(users.find(OWNER_ID));
+  if (!safe.currentUser.owner) {
+    const account = users.find(safe.currentUser.id);
+    safe.username = account.username;
+    delete safe.email;
+    safe.desktopStyle = account.desktopStyle || {};
+  }
   res.json(safe);
 });
 
@@ -1446,6 +1555,83 @@ app.post("/clear-password", async (req, res) => {
   res.send("Password cleared! You can now log in without a password.");
 });
 
+// --- ACCOUNTS (lib/users.js) ---
+// The login screen lists accounts before anyone signs in, like any desktop OS.
+app.get("/api/users/login-list", (req, res) => {
+  if (!config.passwordHash) return res.json({ success: true, users: [] });
+  res.json({ success: true, users: users.all().map(users.toPublic) });
+});
+app.get("/api/users/me", (req, res) => res.json({ success: true, user: req.user }));
+// The same, as a script pages load before their own: what they keep in the browser's
+// storage (recent files, history, tabs) is kept apart per account from the first line.
+app.get("/api/users/me.js", (req, res) => {
+  res.set({ "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" });
+  const user = req.user || {};
+  const data = JSON.stringify({ id: user.id || OWNER_ID, owner: user.owner !== false, admin: user.admin !== false }).replace(/</g, "\\u003c");
+  res.send(`window.mariowOSUser = ${data};
+window.mariowOSUserKey = key => window.mariowOSUser.owner ? key : key + "@" + window.mariowOSUser.id;
+`);
+});
+app.get("/api/users", requireAuthJson, (req, res) => res.json({ success: true, users: users.all().map(users.toPublic), me: req.user }));
+app.get("/api/users/avatar/:id", (req, res) => {
+  const account = req.params.id === "me" ? users.find(req.user?.id) : users.find(req.params.id);
+  const file = account && users.avatarOf(account);
+  res.set("Cache-Control", "no-store");
+  res.sendFile(file && fs.existsSync(file) ? file : path.join(__dirname, "desktop", "assets", "avatar.png"));
+});
+app.post("/api/users/create", async (req, res) => {
+  const named = users.validateName(req.body?.username);
+  if (named.error) return res.status(400).json({ success: false, error: named.error });
+  const password = String(req.body?.password || "");
+  if (password.length < 4) return res.status(400).json({ success: false, error: "Use a password of at least 4 characters." });
+  const user = users.create({ username: named.name, passwordHash: await bcrypt.hash(password, 10), admin: !!req.body?.admin });
+  res.json({ success: true, user });
+});
+app.post("/api/users/update", (req, res) => {
+  const account = users.find(req.body?.id);
+  if (!account) return res.status(404).json({ success: false, error: "Unknown account." });
+  if (account.owner) return res.status(403).json({ success: false, error: "The owner account is always an administrator. Change its name from your account page." });
+  const patch = {};
+  if (req.body.username !== undefined) {
+    const named = users.validateName(req.body.username, account.id);
+    if (named.error) return res.status(400).json({ success: false, error: named.error });
+    patch.username = named.name;
+  }
+  if (req.body.admin !== undefined) {
+    if (!req.body.admin && account.admin && users.adminCount() <= 1) return res.status(400).json({ success: false, error: "Keep at least one administrator." });
+    patch.admin = !!req.body.admin;
+  }
+  res.json({ success: true, user: users.update(account.id, patch) });
+});
+app.post("/api/users/reset-password", async (req, res) => {
+  const account = users.find(req.body?.id);
+  if (!account || account.owner) return res.status(400).json({ success: false, error: "Change the owner's password from its own account." });
+  const password = String(req.body?.password || "");
+  if (password.length < 4) return res.status(400).json({ success: false, error: "Use a password of at least 4 characters." });
+  users.update(account.id, { passwordHash: await bcrypt.hash(password, 10) });
+  res.json({ success: true });
+});
+// Anyone can change their own password, knowing the current one.
+app.post("/api/users/password", async (req, res) => {
+  const account = users.find(req.user?.id);
+  if (!account) return res.status(401).json({ success: false, error: "Sign in first." });
+  if (passwordLockSeconds() > 0) return res.status(429).json({ success: false, error: `Too many attempts. Try again in ${passwordLockSeconds()} seconds.` });
+  if (!(await comparePassword(String(req.body?.currentPassword || ""), account.passwordHash))) return res.status(403).json({ success: false, error: "Your current password is not correct." });
+  const password = String(req.body?.newPassword || "");
+  if (password.length < 4) return res.status(400).json({ success: false, error: "Use a password of at least 4 characters." });
+  const hash = await bcrypt.hash(password, 10);
+  if (account.owner) { config.passwordHash = hash; saveConfig(); } else users.update(account.id, { passwordHash: hash });
+  res.json({ success: true });
+});
+app.post("/api/users/delete", (req, res) => {
+  const account = users.find(req.body?.id);
+  if (!account) return res.status(404).json({ success: false, error: "Unknown account." });
+  if (account.owner) return res.status(403).json({ success: false, error: "The owner account cannot be removed." });
+  if (account.id === req.user?.id) return res.status(400).json({ success: false, error: "You cannot remove the account you are using." });
+  users.remove(account.id, { deleteFiles: !!req.body?.deleteFiles });
+  res.json({ success: true });
+});
+
 // A-02: explicit logout so the desktop can drop the session on sign-out / lock.
 app.post("/api/system/logout", (req, res) => {
   clearSession(res);
@@ -1495,6 +1681,7 @@ app.post("/api/system/factory-reset", async (req, res) => {
     catch (e) { errors.push(path.basename(target) + ": " + e.message); }
   };
   removePath(path.join(__dirname, "spotify-token.json"));
+  removePath(users.homesDir);
 
   // Apps installed from the store (folders, downloaded icons, tiles desktop)
   (config.installedApps || []).forEach(app => {
@@ -1791,6 +1978,8 @@ app.post("/api/store/install", async (req, res) => {
     // Record repoUrl + installed version so the store can offer version.json-based
     // upgrades later (see /api/store/check-upgrades).
     const installedVersion = readInstalledAppVersion(appId);
+    // Tiles is a desktop, not an app: it lives in desktop/ only, never in desktop/apps.
+    if (appId === "tiles") fs.rmSync(absolutePath, { recursive: true, force: true });
     const existing = config.installedApps.find(app => app.appId === appId);
     if (existing) {
       existing.repoUrl = repoUrl;
@@ -2751,7 +2940,7 @@ function launchServerReplacement(stagePath, serverMode) {
 // The build date is the newest modification time of the OS's own files, so the
 // About page reports when the system was really last changed instead of a date
 // somebody has to remember to edit by hand.
-const BUILD_ROOTS = ["server.js", "launcher.js", "preload.js", "boot.html", "desktop", "loginui", "recovery"];
+const BUILD_ROOTS = ["server.js", "launcher.js", "preload.js", "boot.html", "desktop", "loginui", "lockscreen", "recovery"];
 const BUILD_SKIP_NAMES = new Set(["node_modules", "config.json", "keys.json", "spotify-token.json", "sota-installed.json", "mail-error.log", ".env"]);
 const BUILD_CACHE_MS = 60 * 1000;
 let buildDateCache = { value: 0, computedAt: 0 };
@@ -3047,14 +3236,15 @@ app.post("/api/system/keyring/delete", requireAuthJson, (req, res) => {
 // endpoint covers the middle one, so dropping a file in Home/Music is enough to
 // make it playable with no import step.
 const AUDIO_EXTENSIONS = new Set([".mp3", ".wav", ".ogg", ".oga", ".m4a", ".aac", ".flac", ".opus", ".weba", ".webm"]);
+// The signed-in account's own Music folder (lib/users.js).
 const MUSIC_LIBRARY_DIRECTORIES = [
-  { virtual: "/home/Music", real: ["desktop", "home", "Music"], url: "/api/music/file?name=" }
+  { virtual: "/home/Music", dir: () => path.join(users.homeOf(users.current()), "Music"), url: "/api/music/file?name=" }
 ];
 
 function readMusicLibrary() {
   const tracks = [];
   for (const source of MUSIC_LIBRARY_DIRECTORIES) {
-    const directory = path.join(__dirname, ...source.real);
+    const directory = source.dir();
     try {
       if (!fs.existsSync(directory)) fs.mkdirSync(directory, { recursive: true });
       for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
@@ -3080,7 +3270,7 @@ app.get("/api/music/library", requireAuthJson, (req, res) => {
 // listing rather than joined blindly, so no traversal can reach another folder.
 app.get("/api/music/file", requireAuthJson, (req, res) => {
   const requested = typeof req.query.name === "string" ? req.query.name : "";
-  const directory = path.join(__dirname, "desktop", "home", "Music");
+  const directory = path.join(users.homeOf(users.current()), "Music");
   const match = readMusicLibrary().find(track => track.name === requested);
   if (!match) return res.status(404).json({ success: false, error: "Track not found" });
   res.sendFile(path.join(directory, match.name));
@@ -3098,10 +3288,12 @@ app.get("/api/system/storage", (req, res) => {
   }
 });
 
-const notesFile = path.join(__dirname, "desktop/notes-db.json");
+// Each account has its own notes (lib/users.js).
+const notesFileNow = () => users.notesFileOf(users.current());
 const NOTE_FIELDS = ["id", "name", "content", "color", "pinned", "createdAt", "updatedAt", "deletedAt",
   "sourcePath", "sourceName", "sourceFormat", "sourceTemplate"];
 app.get("/api/system/notes", requireAuthJson, (req, res) => {
+  const notesFile = notesFileNow();
   if (fs.existsSync(notesFile)) {
     try { res.json(JSON.parse(fs.readFileSync(notesFile, "utf8"))); } catch (e) { res.json([]); }
   } else { res.json([]); }
@@ -3124,6 +3316,8 @@ app.post("/api/system/notes", requireAuthJson, express.json({ limit: "25mb" }), 
       return out;
     });
   // Write to a temporary file first, so a crash never leaves a half-written database.
+  const notesFile = notesFileNow();
+  fs.mkdirSync(path.dirname(notesFile), { recursive: true });
   const temporary = `${notesFile}.${process.pid}.tmp`;
   try {
     fs.writeFileSync(temporary, JSON.stringify(clean));
@@ -3141,8 +3335,9 @@ app.post("/api/system/verify-password", async (req, res) => {
   const { password } = req.body;
   const currentConfig = fs.existsSync(configFile) ? JSON.parse(fs.readFileSync(configFile, "utf8")) : {};
   if (!currentConfig.passwordHash) return res.json({ success: true });
-  
-  const match = await comparePassword(password, currentConfig.passwordHash);
+  // Confirms the signed-in account's own password (the lock screen, Settings prompts).
+  const account = users.find(req.user?.id) || users.find(OWNER_ID);
+  const match = await comparePassword(password, account.passwordHash);
   res.json({ success: match });
 });
 
@@ -3218,15 +3413,23 @@ function resolveVirtualPath(targetPath) {
   const virtualPath = path.posix.normalize(requestedPath.replace(/\\/g, '/'));
   if (!virtualPath.startsWith('/')) return null;
 
+  const user = users.current();
+  const isHome = virtualPath === '/home' || virtualPath.startsWith('/home/');
+  // A standard account only ever sees its own home.
+  if (!isHome && !user.admin) return null;
+
   if (virtualPath === DEVICE_ROOT || virtualPath.startsWith(DEVICE_ROOT + '/')) {
     return resolveDevicePath(virtualPath);
   }
 
-  const isHome = virtualPath === '/home' || virtualPath.startsWith('/home/');
-  const rootPath = path.resolve(__dirname, ...(isHome ? ['desktop', 'home'] : []));
+  // "/home" is the signed-in user's own folder (lib/users.js).
+  const rootPath = isHome ? path.resolve(users.homeOf(user)) : path.resolve(__dirname);
   const subPath = isHome ? virtualPath.slice('/home'.length) : virtualPath.slice(1);
   const realPath = path.resolve(rootPath, `.${subPath}`);
   if (realPath !== rootPath && !realPath.startsWith(`${rootPath}${path.sep}`)) return null;
+  // Browsing the system tree never leads into someone else's home.
+  const inside = dir => realPath === dir || realPath.startsWith(dir + path.sep);
+  if (!isHome && (inside(path.resolve(users.homesDir)) || (user.id !== OWNER_ID && inside(path.resolve(users.homeOf(null)))))) return null;
 
   return { realPath, isReadOnly: !isHome };
 }
@@ -3329,7 +3532,7 @@ function resolveHomeEntry(dirPath, name) {
   const clean = validEntryName(name);
   if (!resolved || resolved.isReadOnly || resolved.isVolumeList || !clean) return null;
   const full = path.join(resolved.realPath, clean);
-  const homeRoot = path.resolve(__dirname, "desktop", "home");
+  const homeRoot = path.resolve(users.homeOf(users.current()));
   if (!full.startsWith(homeRoot + path.sep)) return null;
   return { dir: resolved.realPath, full, name: clean };
 }
@@ -3508,7 +3711,7 @@ app.get("/api/system/files/search", requireAuthJson, (req, res) => {
   const query = String(req.query.q || "").trim().toLowerCase();
   if (!resolved || resolved.isReadOnly || resolved.isVolumeList) return res.status(403).json({ success: false, error: "Search works inside your home folders" });
   if (query.length < 1) return res.json({ success: true, results: [] });
-  const homeRoot = path.resolve(__dirname, "desktop", "home");
+  const homeRoot = path.resolve(users.homeOf(users.current()));
   const results = [];
   const walk = (dir, depth) => {
     if (results.length >= 300 || depth > 12) return;
@@ -3530,28 +3733,29 @@ app.get("/api/system/files/search", requireAuthJson, (req, res) => {
 });
 
 // ── Trash: deleted items go to home/.Trash and can be restored ──
-const trashDir = path.join(__dirname, "desktop", "home", ".Trash");
-const trashIndexFile = path.join(trashDir, "index.json");
+// Each account has its own trash, inside its home.
+const trashDirNow = () => path.join(users.homeOf(users.current()), ".Trash");
+const trashIndexNow = () => path.join(trashDirNow(), "index.json");
 function readTrashIndex() {
-  try { return JSON.parse(fs.readFileSync(trashIndexFile, "utf8")); } catch (e) { return []; }
+  try { return JSON.parse(fs.readFileSync(trashIndexNow(), "utf8")); } catch (e) { return []; }
 }
 function writeTrashIndex(list) {
-  fs.mkdirSync(trashDir, { recursive: true });
-  fs.writeFileSync(trashIndexFile, JSON.stringify(list));
+  fs.mkdirSync(trashDirNow(), { recursive: true });
+  fs.writeFileSync(trashIndexNow(), JSON.stringify(list));
 }
 app.post("/api/system/files/trash", requireAuthJson, (req, res) => {
   const names = Array.isArray(req.body?.names) ? req.body.names : [req.body?.name];
   const index = readTrashIndex();
   const moved = [];
   try {
-    fs.mkdirSync(trashDir, { recursive: true });
+    fs.mkdirSync(trashDirNow(), { recursive: true });
     for (const raw of names) {
       const target = resolveHomeEntry(req.body?.path, raw);
-      if (!target || !fs.existsSync(target.full) || target.full.startsWith(trashDir)) continue;
+      if (!target || !fs.existsSync(target.full) || target.full.startsWith(trashDirNow())) continue;
       const id = crypto.randomBytes(8).toString("hex");
-      fs.renameSync(target.full, path.join(trashDir, id));
+      fs.renameSync(target.full, path.join(trashDirNow(), id));
       const virtualDir = path.posix.normalize(String(req.body.path).replace(/\\/g, "/"));
-      index.push({ id, name: target.name, from: virtualDir, deletedAt: Date.now(), isFolder: fs.statSync(path.join(trashDir, id)).isDirectory() });
+      index.push({ id, name: target.name, from: virtualDir, deletedAt: Date.now(), isFolder: fs.statSync(path.join(trashDirNow(), id)).isDirectory() });
       moved.push(target.name);
     }
     writeTrashIndex(index);
@@ -3559,7 +3763,7 @@ app.post("/api/system/files/trash", requireAuthJson, (req, res) => {
   } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 app.get("/api/system/files/trash", requireAuthJson, (req, res) => {
-  const index = readTrashIndex().filter(item => fs.existsSync(path.join(trashDir, item.id)));
+  const index = readTrashIndex().filter(item => fs.existsSync(path.join(trashDirNow(), item.id)));
   res.json({ success: true, items: index.sort((a, b) => b.deletedAt - a.deletedAt) });
 });
 app.post("/api/system/files/trash/restore", requireAuthJson, (req, res) => {
@@ -3573,7 +3777,7 @@ app.post("/api/system/files/trash/restore", requireAuthJson, (req, res) => {
     if (!destination || destination.isReadOnly || !fs.existsSync(destination.realPath)) destination = resolveVirtualPath("/home");
     try {
       const finalName = uniqueName(destination.realPath, item.name);
-      fs.renameSync(path.join(trashDir, id), path.join(destination.realPath, finalName));
+      fs.renameSync(path.join(trashDirNow(), id), path.join(destination.realPath, finalName));
       index.splice(index.indexOf(item), 1);
       restored.push(finalName);
     } catch (e) {}
@@ -3587,7 +3791,7 @@ app.post("/api/system/files/trash/empty", requireAuthJson, (req, res) => {
   const keep = [];
   for (const item of index) {
     if (ids && !ids.includes(item.id)) { keep.push(item); continue; }
-    try { fs.rmSync(path.join(trashDir, item.id), { recursive: true, force: true }); } catch (e) { keep.push(item); }
+    try { fs.rmSync(path.join(trashDirNow(), item.id), { recursive: true, force: true }); } catch (e) { keep.push(item); }
   }
   writeTrashIndex(keep);
   res.json({ success: true });

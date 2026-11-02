@@ -5,6 +5,7 @@
 <head>
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
+<script src="/desktop/assets/accent.js"></script>
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -64,7 +65,7 @@
       transition: border-color 0.2s;
     }
     
-    .panel input[type="time"]:focus { border-color: #0a84ff; }
+    .panel input[type="time"]:focus { border-color: var(--sys-accent-text); }
     
     ::-webkit-calendar-picker-indicator {
       filter: invert(1);
@@ -79,15 +80,15 @@
       padding: 14px; 
       border-radius: 8px; 
       border: none; 
-      background: #0a84ff; 
-      color: white; 
+      background: var(--sys-accent); 
+      color: var(--sys-accent-on); 
       font-weight: 500; 
       font-size: 14px;
       cursor: pointer; 
       font-family: inherit; 
       transition: background 0.2s; 
     }
-    .btn:hover { background: #007aff; }
+    .btn:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
 
     html::-webkit-scrollbar { display: none; }
   </style>
@@ -103,15 +104,15 @@
       padding: 7px 14px;
       border: none;
       border-radius: 8px;
-      background: #0a84ff;
-      color: #fff;
+      background: var(--sys-accent);
+      color: var(--sys-accent-on);
       font: 500 13px 'Poppins', sans-serif;
     }
-    .container > .btn:hover { background: #007aff; border-color: transparent; }
-    .container > .btn:focus-visible { outline: none; box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.4); }
+    .container > .btn:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); border-color: transparent; color: var(--sys-accent-on); }
+    .container > .btn:focus-visible { outline: none; box-shadow: 0 0 0 2px color-mix(in srgb, var(--sys-accent) 40%, transparent); }
     .container > .btn:active { transform: scale(0.99); }
     input:not([type='checkbox']):not([type='radio']), select { border-radius: 8px; cursor: pointer; color-scheme: dark; }
-    input:focus, select:focus { box-shadow: 0 0 0 2px rgba(10, 132, 255, 0.4); }
+    input:focus, select:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--sys-accent) 40%, transparent); }
     
   </style>
 </head>

@@ -3,6 +3,7 @@
 <head>
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
+  <script src="/desktop/assets/accent.js"></script>
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -191,7 +192,7 @@
       transition: border-color 0.2s;
     }
     
-    .edit-panel input:focus { border-color: #0a84ff; }
+    .edit-panel input:focus { border-color: var(--sys-accent-text); }
 
     .btn-row {
       display: flex;
@@ -204,15 +205,15 @@
       padding: 8px 16px; 
       border-radius: 6px; 
       border: none; 
-      background: #0a84ff; 
-      color: white; 
+      background: var(--sys-accent); 
+      color: var(--sys-accent-on); 
       font-weight: 500; 
       font-size: 13px;
       cursor: pointer; 
       font-family: inherit; 
       transition: background 0.2s; 
     }
-    .btn:hover { background: #007aff; }
+    .btn:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
 
     .btn-danger-text {
       background: transparent;
@@ -230,7 +231,7 @@
     .verify-badge { font-size:12px; padding:3px 10px; border-radius:999px; font-weight:600; }
     .verify-badge.ok { background:rgba(48,209,88,0.2); color:#30d158; }
     .verify-badge.no { background:rgba(255,159,10,0.2); color:#ff9f0a; }
-    .verify-link { background:none; border:none; color:#0a84ff; cursor:pointer; font-size:13px; padding:0; }
+    .verify-link { background:none; border:none; color: var(--sys-accent-text); cursor:pointer; font-size:13px; padding:0; }
     .verify-link:hover { text-decoration:underline; }
     .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
     .modal-backdrop.show { display:flex; }
@@ -238,7 +239,7 @@
     .modal h3 { margin:0; font-size:16px; font-weight:600; }
     .modal p { margin:0; font-size:13px; opacity:0.75; }
     .code-input { font-size:26px; letter-spacing:10px; text-align:center; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; outline:none; }
-    .code-input:focus { border-color:#0a84ff; }
+    .code-input:focus { border-color: var(--sys-accent-text); }
     .modal-msg { font-size:13px; min-height:18px; }
     .modal-msg.err { color:#ff453a; } .modal-msg.ok { color:#30d158; }
     .btn:disabled { opacity:0.5; cursor:default; }
@@ -251,7 +252,7 @@
   <!-- Header: Avatar, Name, Email -->
   <div class="header-panel">
     <div class="avatar-wrapper" onclick="document.getElementById('pfpUpload').click()">
-      <img src="/desktop/assets/avatar.user.png" id="pfpPreview" class="avatar-img" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTEyIDJDMiAxMiA2LjQ4IDEyIDEyIDEyIDEyczEwLTQuNDggMTAtMTAgMTAuNDgtMTAgMTItMTB6IiBvcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNMTIgMTJjMi4yMSAwIDQtMS43OSA0LTRzLTEuNzktNC00LTQtNCAxLjc5LTQgNCAxLjc5IDQgNCA0em0wIDJjLTIuNjcgMC04IDEuMzQtOCA0djJoMTZ2LTJjMC0yLjY2LTUuMzMtNC04LTR6Ii8+PC9zdmc+'">
+      <img src="/api/users/avatar/me" id="pfpPreview" class="avatar-img" onerror="this.src='data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0iI2ZmZmZmZiI+PHBhdGggZD0iTTEyIDJDMiAxMiA2LjQ4IDEyIDEyIDEyIDEyczEwLTQuNDggMTAtMTAgMTAuNDgtMTAgMTItMTB6IiBvcGFjaXR5PSIwLjMiLz48cGF0aCBkPSJNMTIgMTJjMi4yMSAwIDQtMS43OSA0LTRzLTEuNzktNC00LTQtNCAxLjc5LTQgNCAxLjc5IDQgNCA0em0wIDJjLTIuNjcgMC04IDEuMzQtOCA0djJoMTZ2LTJjMC0yLjY2LTUuMzMtNC04LTR6Ii8+PC9zdmc+'">
       <div class="avatar-edit-overlay" data-i18n="common.edit">Edit</div>
       <input type="file" id="pfpUpload" accept="image/png, image/jpeg" style="display: none;" onchange="previewAvatar(this)">
     </div>
@@ -480,7 +481,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderVerified(cfg.email, cfg.verified === true);
 
     // Cache-bust the avatar preview
-    document.getElementById('pfpPreview').src = `/desktop/assets/avatar.user.png?t=${new Date().getTime()}`;
+    document.getElementById('pfpPreview').src = `/api/users/avatar/me?t=${new Date().getTime()}`;
 
   } catch (err) {
     console.warn('Settings check failed:', err);
@@ -558,7 +559,7 @@ async function saveAvatarOnly() {
       const result = await response.json();
       if (!response.ok || !result.success) throw new Error(result.error || mariowOSI18n.t("settings.you.avatar-upload-failed", "Avatar upload failed"));
       avatarChanged = false;
-      document.getElementById('pfpPreview').src = `/desktop/assets/avatar.user.png?t=${Date.now()}`;
+      document.getElementById('pfpPreview').src = `/api/users/avatar/me?t=${Date.now()}`;
       if (window.parent && typeof window.parent.fetchServerInfo === 'function') {
         window.parent.fetchServerInfo(); 
       }

@@ -10,12 +10,13 @@ Licensed under the Apache License, Version 2.0
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
+  <script src="/desktop/assets/accent.js"></script>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   <title data-i18n="music.window-title">mariowOS Music</title>
   <style>
     :root {
-      --accent: #0a84ff;
+      --accent: var(--sys-accent);
       --text: #ffffff;
       --text-muted: rgba(255, 255, 255, 0.5);
       --text-dim: rgba(255, 255, 255, 0.35);
@@ -87,7 +88,7 @@ Licensed under the Apache License, Version 2.0
     }
 
     .nav-item:hover:not(.active) { background: rgba(255, 255, 255, 0.1); }
-    .nav-item.active { background: var(--accent); }
+    .nav-item.active { background: var(--accent); color: var(--sys-accent-on); }
 
     .nav-count {
       margin-left: auto;
@@ -131,7 +132,7 @@ Licensed under the Apache License, Version 2.0
       padding: 0 14px; height: 38px; border-radius: 999px; background: rgba(0, 0, 0, 0.3);
       border: 1px solid var(--glass-border);
     }
-    .svc-search:focus-within { border-color: var(--accent); }
+    .svc-search:focus-within { border-color: var(--sys-accent-text); }
     .svc-search .material-symbols-outlined { font-size: 18px; color: var(--text-muted); }
     .svc-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font: 13px 'Poppins', sans-serif; user-select: text; }
     .svc-chip {
@@ -158,8 +159,9 @@ Licensed under the Apache License, Version 2.0
       width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
       background: rgba(255, 255, 255, 0.1); color: #fff; transition: transform 0.15s;
     }
+    .pc-controls button { flex: 0 0 40px; padding: 0; }
     .pc-controls button:hover { transform: scale(1.08); }
-    .pc-controls button.main { background: var(--accent); }
+    .pc-controls button.main { background: var(--accent); color: var(--sys-accent-on); }
     .pc-controls .material-symbols-outlined { font-size: 22px; font-variation-settings: 'FILL' 1; }
 
     /* ─────────────── Spotify ─────────────── */
@@ -198,6 +200,9 @@ Licensed under the Apache License, Version 2.0
     .sp-badge.warn { background: rgba(255, 159, 10, 0.18); color: #ff9f0a; }
     .sp-account .sp-btn { margin-left: auto; padding: 6px 14px; font-size: 12px; }
     .sp-now { display: flex; align-items: center; gap: 22px; }
+    .sp-now > .sp-now-art { flex-shrink: 0; }
+    .sp-now > div:not(.sp-now-art) { flex: 1; min-width: 0; }
+    .sp-now-title, .sp-now-artist { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .sp-now-art {
       width: 132px; height: 132px; flex: 0 0 132px; border-radius: 14px; object-fit: cover;
       background: linear-gradient(145deg, #1ed760, #0f5f2c); box-shadow: 0 14px 36px rgba(0, 0, 0, 0.5);
@@ -250,8 +255,8 @@ Licensed under the Apache License, Version 2.0
     }
 
     .sidebar-upload:hover {
-      background: rgba(10, 132, 255, 0.16);
-      border-color: var(--accent);
+      background: color-mix(in srgb, var(--sys-accent) 16%, transparent);
+      border-color: var(--sys-accent-text);
       color: var(--text);
     }
 
@@ -307,7 +312,7 @@ Licensed under the Apache License, Version 2.0
     @keyframes rowIn { to { opacity: 1; } }
 
     .track-row:hover { background: var(--hover); }
-    .track-row.active { background: rgba(10, 132, 255, 0.16); }
+    .track-row.active { background: color-mix(in srgb, var(--sys-accent) 16%, transparent); }
 
     .track-index {
       color: var(--text-dim);
@@ -316,7 +321,7 @@ Licensed under the Apache License, Version 2.0
       font-variant-numeric: tabular-nums;
     }
 
-    .track-row.active .track-index { color: var(--accent); }
+    .track-row.active .track-index { color: var(--sys-accent-text); }
 
     /* The equaliser replaces the row number while that row is the one playing. */
     .equaliser { display: none; justify-content: flex-end; align-items: flex-end; gap: 2px; height: 13px; }
@@ -327,6 +332,7 @@ Licensed under the Apache License, Version 2.0
       background: var(--accent);
       border-radius: 1px;
       animation: bounce 0.9s ease-in-out infinite;
+  color: var(--sys-accent-on);
     }
     .equaliser span:nth-child(1) { height: 50%; animation-delay: -0.5s; }
     .equaliser span:nth-child(2) { height: 100%; animation-delay: -0.2s; }
@@ -353,7 +359,7 @@ Licensed under the Apache License, Version 2.0
       overflow: hidden;
       text-overflow: ellipsis;
     }
-    .track-row.active .track-name { color: var(--accent); }
+    .track-row.active .track-name { color: var(--sys-accent-text); }
     .track-artist {
       margin-top: 1px;
       color: var(--text-muted);
@@ -463,17 +469,17 @@ Licensed under the Apache License, Version 2.0
     .deck-btn:hover:not(:disabled) { color: #fff; transform: scale(1.1); }
     .deck-btn:active:not(:disabled) { transform: scale(0.92); }
     .deck-btn:disabled { opacity: 0.3; cursor: not-allowed; }
-    .deck-btn.active { color: var(--accent); }
+    .deck-btn.active { color: var(--sys-accent-text); }
     .deck-btn .material-symbols-outlined { font-size: 22px; }
 
     .btn-play {
       width: 42px;
       height: 42px;
       background: var(--accent);
-      color: #fff;
-      box-shadow: 0 4px 14px rgba(10, 132, 255, 0.4);
+      color: var(--sys-accent-on);
+      box-shadow: 0 4px 14px color-mix(in srgb, var(--sys-accent) 40%, transparent);
     }
-    .btn-play:hover:not(:disabled) { background: #007aff; color: #fff; }
+    .btn-play:hover:not(:disabled) { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
     .btn-play .material-symbols-outlined { font-size: 26px; font-variation-settings: 'FILL' 1; }
 
     .seek-row { display: flex; align-items: center; gap: 10px; width: 100%; max-width: 520px; }
@@ -497,6 +503,7 @@ Licensed under the Apache License, Version 2.0
       border-radius: 4px;
       background: var(--accent);
       transition: width 0.1s linear;
+  color: var(--sys-accent-on);
     }
     .seek-thumb {
       position: absolute;
@@ -1134,8 +1141,9 @@ Licensed under the Apache License, Version 2.0
       type: 'media-update',
       title: el('now-title').textContent,
       artist: el('now-artist').textContent,
-      art: spotify.active ? (spotify.player?.track?.image || '') : '',
-      isPlaying: spotify.active ? Boolean(spotify.player?.isPlaying) : isPlaying
+      art: spotify.active ? (spotify.player?.track?.image || '') : (el('now-art').querySelector('img')?.src || ''),
+      isPlaying: spotify.active ? Boolean(spotify.player?.isPlaying) : isPlaying,
+      hasMedia: spotify.active || Boolean(currentTrack)
     }, '*');
   }
 
@@ -1827,7 +1835,7 @@ Licensed under the Apache License, Version 2.0
     const app = (ses?.app || '').replace(/\.exe$/i, '').replace(/^.*[!\\]/, '');
     const art = ses?.image ? h('img', { class: 'sp-now-art', src: ses.image, alt: '' }) : h('div', { class: 'sp-now-art', style: 'background:linear-gradient(145deg,#636366,#2c2c2e)' }, icon('computer'));
     return h('div', { class: 'sp-card sp-now', id: 'pc-card' }, art, h('div', {},
-      h('div', { class: 'sp-now-label', style: 'color:var(--accent)', text: ses ? (ses.isPlaying ? mariowOSI18n.t('music.pc.playing', 'Playing on this PC') : mariowOSI18n.t('music.pc.paused', 'Paused on this PC')) : mariowOSI18n.t('music.pc.nothing', 'Nothing playing on this PC') }),
+      h('div', { class: 'sp-now-label', style: 'color: var(--sys-accent-text)', text: ses ? (ses.isPlaying ? mariowOSI18n.t('music.pc.playing', 'Playing on this PC') : mariowOSI18n.t('music.pc.paused', 'Paused on this PC')) : mariowOSI18n.t('music.pc.nothing', 'Nothing playing on this PC') }),
       h('div', { class: 'sp-now-title', text: ses?.title || mariowOSI18n.t('music.pc.open-player', 'Open a web player below') }),
       h('div', { class: 'sp-now-artist', text: ses ? [ses.artist, app].filter(Boolean).join(' · ') : mariowOSI18n.t('music.pc.hint', 'Whatever plays here, in a browser tab or another app, can be controlled from this card.') }),
       ses ? h('div', { class: 'pc-controls' },

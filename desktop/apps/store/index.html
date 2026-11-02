@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
+  <script src="/desktop/assets/accent.js"></script>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   
@@ -12,7 +13,7 @@
     /* Shared mariowOS app language: the same glass sidebar, accent, radii and
        type scale used by Files and Music, so the Store feels part of the system. */
     :root {
-      --accent: #0a84ff;
+      --accent: var(--sys-accent);
       --text: #ffffff;
       --text-secondary: rgba(255, 255, 255, 0.5);
       --text-dim: rgba(255, 255, 255, 0.35);
@@ -91,7 +92,7 @@
     }
 
     .nav-item:hover:not(.active) { background: rgba(255, 255, 255, 0.1); }
-    .nav-item.active { background: var(--accent); font-weight: 500; }
+    .nav-item.active { background: var(--accent); font-weight: 500; color: var(--sys-accent-on); }
 
     .icon-bg {
       display: flex;
@@ -163,7 +164,12 @@
       background: rgba(255, 255, 255, 0.05);
       transition: border-color 0.2s;
     }
-    .search-bar:focus-within { border-color: var(--accent); }
+    .search-bar:focus-within { border-color: var(--sys-accent-text); }
+    /* Your account: opens Settings on its page. */
+    .account-btn { width: 32px; height: 32px; flex: 0 0 32px; margin-left: 8px; padding: 0; border: none; border-radius: 50%; overflow: hidden; background: rgba(255,255,255,0.08); cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+    .account-btn:hover { box-shadow: 0 0 0 2px var(--sys-accent-text); }
+    .account-btn:active { transform: scale(0.92); }
+    .account-btn img { width: 100%; height: 100%; object-fit: cover; display: block; }
     .search-bar .material-symbols-outlined { font-size: 17px; color: var(--text-secondary); }
     .search-bar input {
       flex: 1;
@@ -200,7 +206,7 @@
       transition: background 0.2s, transform 0.2s var(--spring);
     }
     .hero-card:hover { background: var(--surface-hover); transform: translateY(-2px); }
-    .hero-card:nth-child(1) { background: linear-gradient(135deg, rgba(10, 132, 255, 0.22), transparent 70%), var(--surface); }
+    .hero-card:nth-child(1) { background: linear-gradient(135deg, color-mix(in srgb, var(--sys-accent) 22%, transparent), transparent 70%), var(--surface); }
     .hero-card:nth-child(2) { background: linear-gradient(135deg, rgba(255, 159, 10, 0.18), transparent 70%), var(--surface); }
     .hero-card h1 { margin: 0; font-size: 17px; font-weight: 600; letter-spacing: -0.3px; z-index: 2; }
     .hero-card p { margin: 6px 0 0; max-width: 85%; font-size: 12.5px; line-height: 1.45; color: var(--text-secondary); z-index: 2; }
@@ -247,7 +253,7 @@
       border: none;
       border-radius: 100px;
       background: rgba(255, 255, 255, 0.1);
-      color: var(--accent);
+      color: var(--sys-accent-text);
       font-family: inherit;
       font-size: 11.5px;
       font-weight: 600;
@@ -305,7 +311,7 @@
 
     .lp-info { flex: 1; min-width: 0; }
     .lp-title { margin: 0 0 4px; font-size: 25px; font-weight: 600; letter-spacing: -0.4px; }
-    .lp-dev { margin: 0 0 18px; color: var(--accent); font-size: 13px; font-weight: 500; }
+    .lp-dev { margin: 0 0 18px; color: var(--sys-accent-text); font-size: 13px; font-weight: 500; }
     .lp-actions { display: flex; align-items: center; gap: 10px; }
 
     .btn-action {
@@ -319,8 +325,8 @@
       transition: background 0.2s, transform 0.1s;
     }
     .btn-action:active { transform: scale(0.96); }
-    .btn-action.primary { background: var(--accent); color: #fff; }
-    .btn-action.primary:hover { background: #007aff; }
+    .btn-action.primary { background: var(--accent); color: var(--sys-accent-on); }
+    .btn-action.primary:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
     .btn-action.primary:disabled { background: rgba(255, 255, 255, 0.1); color: var(--text-secondary); cursor: not-allowed; }
 
     .btn-uninstall {
@@ -370,7 +376,7 @@
       font-size: 13px;
       transition: border-color 0.2s;
     }
-    .pub-input:focus { border-color: var(--accent); }
+    .pub-input:focus { border-color: var(--sys-accent-text); }
     .pub-input::placeholder { color: var(--text-dim); }
     textarea.pub-input { resize: vertical; min-height: 96px; }
 
@@ -461,6 +467,9 @@
         <span class="material-symbols-outlined">search</span>
         <input type="text" id="searchInput" placeholder="Search apps and games..." data-i18n-placeholder="store.search">
       </div>
+      <button class="account-btn" id="accountBtn" type="button" title="Account" data-i18n-title="store.account">
+        <img id="accountAvatar" alt="" src="/api/users/avatar/me" onerror="this.onerror=null;this.src='/desktop/assets/avatar.png'">
+      </button>
     </div>
 
     <div class="main">
@@ -572,7 +581,7 @@
   <div id="store-eula-overlay">
     <div class="store-eula-modal">
       <h2 data-i18n="store.eula.title">License Agreement</h2>
-      <p id="eula-intro" style="font-size: 12.5px; color: var(--text-secondary); margin: 0;">Please review the terms for <strong id="eula-app-title" style="color: var(--text);"></strong> by <span id="eula-app-dev" style="color: var(--accent);"></span>.</p>
+      <p id="eula-intro" style="font-size: 12.5px; color: var(--text-secondary); margin: 0;">Please review the terms for <strong id="eula-app-title" style="color: var(--text);"></strong> by <span id="eula-app-dev" style="color: var(--sys-accent-text);"></span>.</p>
       <div class="store-eula-box">
         <!-- EULA dynamic text will be injected here -->
       </div>
@@ -588,6 +597,13 @@
     let installedAppsList = [];
     let currentAppOpen = null;
     let searchTimeout = null;
+    // Installing and removing apps is for administrators (Settings > Users).
+    let storeCanInstall = true;
+    fetch('/api/users/me', { cache: 'no-store' }).then(r => r.json()).then(({ user }) => { storeCanInstall = !user || !!user.admin; if (typeof currentAppOpen !== 'undefined' && currentAppOpen) updateInstallBtn(); }).catch(() => {});
+    document.getElementById('accountBtn').addEventListener('click', () => {
+      if (window.parent !== window) window.parent.postMessage({ type: 'open-settings-page', page: 'you' }, location.origin);
+    });
+    fetch('/get-settings').then(r => r.json()).then(cfg => { if (typeof cfg.username === 'string' && cfg.username.trim()) document.getElementById('accountBtn').title = cfg.username.trim(); }).catch(() => {});
 
     // Texts that the scripts below change at runtime start translated too.
     document.getElementById('gridTitle').textContent = mariowOSI18n.t("store.grid.new", "New & Updated");
@@ -719,12 +735,18 @@
       btnI.style.color = isInst ? 'var(--text)' : '';
       
       btnI.disabled = false;
-      
+      btnI.title = '';
+      if (!storeCanInstall && !isInst) {
+        btnI.textContent = mariowOSI18n.t("store.admin-only", "Ask an administrator");
+        btnI.title = mariowOSI18n.t("store.admin-only-hint", "Only administrators can install apps on this computer.");
+        btnI.disabled = true;
+      }
+
       btnI.onclick = isInst
         ? () => window.parent.postMessage({ type: 'open-app-from-store', appId: currentAppOpen.id }, '*')
         : () => promptEula();
 
-      btnU.style.display = isInst ? 'inline-block' : 'none';
+      btnU.style.display = isInst && storeCanInstall ? 'inline-block' : 'none';
       btnU.textContent = mariowOSI18n.t("store.uninstall", "Uninstall");
       btnU.onclick = () => actOnApp('uninstall');
     }

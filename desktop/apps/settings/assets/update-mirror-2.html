@@ -3,13 +3,14 @@
 <head>
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
+  <script src="/desktop/assets/accent.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
 <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css">
 <style>
 :root {
-  --accent: #0a84ff;
+  --accent: var(--sys-accent);
   --menu: rgba(26, 28, 34, 0.96);
   --spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
@@ -61,10 +62,11 @@ body {
 .progress-fill {
   height: 100%;
   width: 0%;
-  background: linear-gradient(90deg, #0a84ff, #0a84ff);
+  background: var(--sys-accent);
   border-radius: 4px;
   transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  box-shadow: 0 0 10px rgba(10,132,255,0.4);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--sys-accent) 40%, transparent);
+  color: var(--sys-accent-on);
 }
 
 .progress-fill.complete {
@@ -74,8 +76,8 @@ body {
 
 /* ── Button ── */
 .btn {
-  background: #0a84ff;
-  color: #fff;
+  background: var(--sys-accent);
+  color: var(--sys-accent-on);
   border: none;
   padding: 14px 32px;
   font-size: 15px;
@@ -87,13 +89,14 @@ body {
   display: none;
   margin: 0 auto;
   width: 100%;
-  box-shadow: 0 4px 20px rgba(10,132,255, 0.3);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--sys-accent) 30%, transparent);
 }
 
 .btn:hover {
-  background: #007aff;
+  background: color-mix(in srgb, var(--sys-accent) 85%, black);
   transform: translateY(-2px);
-  box-shadow: 0 8px 30px rgba(10,132,255, 0.4);
+  box-shadow: 0 8px 30px color-mix(in srgb, var(--sys-accent) 40%, transparent);
+  color: var(--sys-accent-on);
 }
 .btn:active { transform: scale(0.97); }
 
@@ -105,7 +108,7 @@ body {
 }
 
 .links a {
-  color: #0a84ff;
+  color: var(--sys-accent-text);
   text-decoration: none;
   font-size: 13px;
   transition: color 0.2s;
@@ -237,9 +240,10 @@ body {
 
 .update-action.primary {
   border-color: transparent;
-  background: #0a84ff;
+  background: var(--sys-accent);
+  color: var(--sys-accent-on);
 }
-.update-action.primary:hover { background: #007aff; }
+.update-action.primary:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
 
 .apps-footer {
   display: flex;
@@ -275,8 +279,9 @@ body {
 
 .progress-fill {
   border-radius: inherit;
-  background: #0a84ff;
+  background: var(--sys-accent);
   box-shadow: none;
+  color: var(--sys-accent-on);
 }
 .progress-fill.complete { background: #34c759; box-shadow: none; }
 
