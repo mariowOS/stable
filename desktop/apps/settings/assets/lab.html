@@ -127,6 +127,8 @@
     .dev-stats-grid b.bad { color: #ff6961; }
     html { scrollbar-width: none; }
     html::-webkit-scrollbar { display: none; }
+    .boot-animation-select { flex-shrink: 0; padding: 7px 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.12); background: rgba(255,255,255,0.08); color: inherit; font: inherit; font-size: 13px; }
+    .boot-animation-select option { background: #1c1c1e; }
   </style>
 </head>
 <body>
@@ -160,6 +162,20 @@
           <div class="boot-logo-status" id="bootLogoStatus" role="status" aria-live="polite"></div>
         </div>
       </div>
+    </div>
+    <div class="list-item">
+      <div class="item-left">
+        <div>
+          <div class="item-title" data-i18n="settings.lab.boot-animation">Boot animation</div>
+          <div class="item-subtitle" data-i18n="settings.lab.boot-animation.subtitle">How the logo appears on the startup screen. Applies on the next startup.</div>
+        </div>
+      </div>
+      <select id="bootAnimation" class="boot-animation-select">
+        <option value="fade" data-i18n="settings.lab.boot-animation.fade">Fade (default)</option>
+        <option value="zoom" data-i18n="settings.lab.boot-animation.zoom">Zoom</option>
+        <option value="pulse" data-i18n="settings.lab.boot-animation.pulse">Pulse</option>
+        <option value="orbit" data-i18n="settings.lab.boot-animation.orbit">Orbit</option>
+      </select>
     </div>
   </div>
 
@@ -431,6 +447,20 @@ resetBootLogoButton.addEventListener('click', async () => {
 
 refreshBootLogoPreview().catch(error => {
   bootLogoStatus.textContent = mariowOSI18n.t("settings.lab.boot-logo.load-failed", "Could not load boot logo preview: {message}", { message: error.message });
+});
+
+// Boot animation: read by the launcher from config.json on the next startup.
+const bootAnimationSelect = document.getElementById('bootAnimation');
+fetch('/get-settings').then(response => response.json()).then(settings => {
+  bootAnimationSelect.value = settings.bootAnimation || 'fade';
+}).catch(() => {});
+bootAnimationSelect.addEventListener('change', async () => {
+  try {
+    const response = await fetch('/save-settings', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ bootAnimation: bootAnimationSelect.value }) });
+    if (!response.ok) throw new Error(response.status);
+  } catch (error) {
+    mDialog.alert(mariowOSI18n.t("settings.lab.boot-animation.failed", "Could not save the boot animation."));
+  }
 });
 </script>
 </body>

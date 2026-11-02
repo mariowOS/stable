@@ -142,6 +142,24 @@ select:focus { border-color: var(--sys-accent-text); box-shadow: 0 0 0 3px color
 select option { background: #1c1e24; }
 .saved { font-size: 11.5px; color: rgba(255,255,255,0.45); text-align: right; min-height: 16px; margin: -12px 4px 0 0; }
 .mode-panel[hidden] { display: none; }
+.mode-panel[data-for="live"] { display: flex; flex-direction: column; gap: 14px; animation: liveIn .45s cubic-bezier(.2,1.1,.4,1); }
+.mode-panel[data-for="live"][hidden] { display: none; }
+@keyframes liveIn { from { opacity: 0; transform: translateY(8px) scale(.98); } }
+.live-preview { position: relative; height: 190px; border-radius: 12px; overflow: hidden; background: #000; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
+.live-preview[hidden] { display: none; }
+.live-preview video, .live-preview img { width: 100%; height: 100%; object-fit: cover; display: block; animation: livePop .6s ease; }
+@keyframes livePop { from { opacity: 0; transform: scale(1.06); filter: blur(6px); } }
+.live-preview .live-badge { position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 99px;
+  background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+.live-preview .live-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 0 0 rgba(255,69,58,.7); animation: livePulse 1.6s infinite; }
+.live-preview.still .live-badge::before { background: rgba(255,255,255,.5); animation: none; }
+@keyframes livePulse { 70% { box-shadow: 0 0 0 7px rgba(255,69,58,0); } 100% { box-shadow: 0 0 0 0 rgba(255,69,58,0); } }
+.live-drop { padding: 22px 20px; position: relative; overflow: hidden; }
+.live-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.08); }
+.live-progress[hidden] { display: none; }
+.live-progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; box-shadow: 0 0 10px var(--accent); }
+.btn-text { justify-self: end; grid-column: 3; border: 0; background: transparent; color: #ff453a; font: 500 13px 'Poppins', sans-serif; cursor: pointer; padding: 6px 4px; }
+.btn-text:hover { text-decoration: underline; }
 .row[hidden] { display: none; }
 .switch { position: relative; display: inline-block; width: 44px; height: 24px; justify-self: end; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -179,7 +197,22 @@ html::-webkit-scrollbar { display: none; }
   <div class="section-title" data-i18n="settings.wallpaper.background">Background</div>
   <div class="panel">
     <div class="seg" id="modeSeg">
-      <span class="seg-pill" id="segPill"></span><button data-mode="image"><span class="material-symbols-outlined">image</span><span data-i18n="settings.wallpaper.mode-picture">Picture</span></button><button data-mode="color"><span class="material-symbols-outlined">format_color_fill</span><span data-i18n="settings.wallpaper.mode-color">Solid color</span></button><button data-mode="gradient"><span class="material-symbols-outlined">gradient</span><span data-i18n="settings.wallpaper.mode-gradient">Gradient</span></button>
+      <span class="seg-pill" id="segPill"></span><button data-mode="image"><span class="material-symbols-outlined">image</span><span data-i18n="settings.wallpaper.mode-picture">Picture</span></button><button data-mode="color"><span class="material-symbols-outlined">format_color_fill</span><span data-i18n="settings.wallpaper.mode-color">Solid color</span></button><button data-mode="gradient"><span class="material-symbols-outlined">gradient</span><span data-i18n="settings.wallpaper.mode-gradient">Gradient</span></button><button data-mode="live"><span class="material-symbols-outlined">motion_photos_on</span><span data-i18n="settings.wallpaper.mode-live">Live</span></button>
+    </div>
+    <div class="mode-panel" data-for="live">
+      <div class="live-preview" id="livePreview" hidden></div>
+      <div class="upload-area live-drop" id="liveDrop" onclick="document.getElementById('liveInput').click()">
+        <div class="upload-icon"><span class="material-symbols-outlined" style="font-size: 32px;">movie</span></div>
+        <div class="upload-text" data-i18n="settings.wallpaper.live-drop">Click or drop a video or GIF here</div>
+        <div class="upload-hint" data-i18n="settings.wallpaper.live-hint">MP4, WebM or animated GIF, up to 200 MB. Videos play without sound.</div>
+        <input type="file" id="liveInput" class="file-input" accept="video/mp4,video/webm,image/gif">
+        <div class="live-progress" id="liveProgress" hidden><span></span></div>
+      </div>
+      <div class="row"><label for="liveAnimate"><span class="material-symbols-outlined">animation</span><span data-i18n="settings.lockscreen.live">Live Wallpaper</span></label><span class="hint" data-i18n="settings.wallpaper.live-animate-hint">Off: the first frame stays still</span>
+        <label class="switch"><input type="checkbox" id="liveAnimate"><span class="slider"></span></label></div>
+      <div class="row" id="liveRemoveRow" hidden><label><span class="material-symbols-outlined">delete</span><span data-i18n="settings.wallpaper.live-remove">Remove live wallpaper</span></label>
+        <button class="btn-text" id="liveRemove" type="button" data-i18n="common.remove">Remove</button></div>
+      <div id="liveStatus" class="status"></div>
     </div>
     <div class="mode-panel" data-for="image">
       <div class="row"><label for="fit"><span class="material-symbols-outlined">fit_screen</span><span data-i18n="settings.wallpaper.fit-label">Fit</span></label>
@@ -208,6 +241,8 @@ html::-webkit-scrollbar { display: none; }
   <div class="section-title" data-i18n="settings.wallpaper.desktop">Desktop</div>
   <div class="panel">
     <div class="row"><label for="iconScale"><span class="material-symbols-outlined">apps</span><span data-i18n="settings.wallpaper.icon-size">Icon size</span></label><input type="range" id="iconScale" min="70" max="150" step="5"><output data-for="iconScale"></output></div>
+    <div class="row"><label for="parallax"><span class="material-symbols-outlined">3d_rotation</span><span data-i18n="settings.wallpaper.parallax">Wallpaper depth</span></label><span class="hint" data-i18n="settings.wallpaper.parallax-hint">Moves gently with the pointer</span>
+      <label class="switch"><input type="checkbox" id="parallax"><span class="slider"></span></label></div>
     <div class="row"><label for="uiFont"><span class="material-symbols-outlined">text_fields</span><span data-i18n="settings.wallpaper.font">System font</span></label>
       <select id="uiFont">
         <option value="Poppins" data-i18n="settings.wallpaper.font-default">Poppins (default)</option><option value="Inter">Inter</option><option value="Nunito">Nunito</option>
@@ -345,7 +380,7 @@ dropArea.addEventListener('drop', (e) => {
 const STYLE_DEFAULTS = {
   accent: '#0a84ff', wallpaperMode: 'image', wallpaperColor: '#1c2333', gradient: 'aurora', fit: 'cover',
   brightness: 100, saturation: 100, blur: 0, radius: 16, glass: 75, iconScale: 100, uiFont: 'Poppins',
-  nightWarmth: 35, nightSchedule: 'off', nightFrom: '21:00', nightTo: '07:00'
+  nightWarmth: 35, nightSchedule: 'off', nightFrom: '21:00', nightTo: '07:00', parallax: false
 };
 const ACCENTS = ['#0a84ff', '#5e5ce6', '#bf5af2', '#ff375f', '#ff453a', '#ff9f0a', '#ffd60a', '#30d158', '#40c8e0', '#8e8e93'];
 const BG_COLORS = ['#1c2333', '#000000', '#2c2c2e', '#0b3d2e', '#3a1c4a', '#4a1c1c', '#1c3a4a', '#f2f2f7'];
@@ -355,7 +390,9 @@ const GRADIENTS = {
   ocean: [mariowOSI18n.t('settings.wallpaper.gradient-ocean', 'Ocean'), 'linear-gradient(160deg, #000428 0%, #004e92 100%)'],
   forest: [mariowOSI18n.t('settings.wallpaper.gradient-forest', 'Forest'), 'linear-gradient(160deg, #0b3d2e 0%, #1d6b4f 55%, #a8e063 100%)'],
   candy: [mariowOSI18n.t('settings.wallpaper.gradient-candy', 'Candy'), 'linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%)'],
-  midnight: [mariowOSI18n.t('settings.wallpaper.gradient-midnight', 'Midnight'), 'radial-gradient(circle at 30% 20%, #3a3f73 0%, #141629 60%, #07080f 100%)']
+  midnight: [mariowOSI18n.t('settings.wallpaper.gradient-midnight', 'Midnight'), 'radial-gradient(circle at 30% 20%, #3a3f73 0%, #141629 60%, #07080f 100%)'],
+  // Follows the time of day on the desktop; the swatch shows the colors of right now.
+  daylight: [mariowOSI18n.t('settings.wallpaper.gradient-daylight', 'Time of day'), (window.top.mwDaylightGradient || (() => 'linear-gradient(160deg, #ff7e5f, #2f80ed)'))()]
 };
 const UNITS = { brightness: '%', saturation: '%', blur: 'px', radius: 'px', glass: '%', iconScale: '%', nightWarmth: '%' };
 
@@ -428,6 +465,7 @@ function renderStyle() {
   document.querySelectorAll('.mode-panel').forEach(p => { p.hidden = p.dataset.for !== style.wallpaperMode; });
   document.getElementById('fit').value = style.fit;
   document.getElementById('uiFont').value = style.uiFont;
+  document.getElementById('parallax').checked = !!style.parallax;
   document.getElementById('nightSchedule').value = style.nightSchedule;
   document.getElementById('nightHours').hidden = style.nightSchedule !== 'custom';
   document.getElementById('nightFrom').value = style.nightFrom;
@@ -457,6 +495,7 @@ function renderStyle() {
 document.querySelectorAll('#modeSeg button').forEach(b => b.onclick = () => saveStyle({ wallpaperMode: b.dataset.mode }));
 document.getElementById('fit').onchange = e => saveStyle({ fit: e.target.value });
 document.getElementById('uiFont').onchange = e => saveStyle({ uiFont: e.target.value });
+document.getElementById('parallax').onchange = e => saveStyle({ parallax: e.target.checked });
 document.getElementById('nightSchedule').onchange = e => saveStyle({ nightSchedule: e.target.value });
 document.getElementById('nightFrom').onchange = e => { if (e.target.value) saveStyle({ nightFrom: e.target.value }); };
 document.getElementById('nightTo').onchange = e => { if (e.target.value) saveStyle({ nightTo: e.target.value }); };
@@ -482,6 +521,99 @@ document.getElementById('nightOn').onchange = async e => {
   } catch (err) { e.target.checked = !on; showNightState(); }
 };
 loadNightLight();
+
+// --- Live wallpaper: a video or animated GIF (see /desktop/assets/live-wallpaper.js). The switch
+// is the same "Live wallpaper" one as in Settings › Lock screen (localStorage "liveWallpaper").
+const liveAnimate = document.getElementById('liveAnimate');
+const liveStatus = document.getElementById('liveStatus');
+function readLiveAnimate() { try { return localStorage.getItem('liveWallpaper') === 'true'; } catch (e) { return false; } }
+function showLiveState() {
+  liveAnimate.checked = readLiveAnimate();
+  const preview = document.getElementById('livePreview');
+  preview.classList.toggle('still', !liveAnimate.checked);
+  const media = preview.querySelector('video');
+  if (media) { if (liveAnimate.checked) media.play().catch(() => {}); else { media.pause(); media.currentTime = 0; } }
+}
+async function loadLivePreview() {
+  let info = null;
+  try { info = await (await fetch('/api/wallpaper/live', { cache: 'no-store' })).json(); } catch (e) {}
+  const preview = document.getElementById('livePreview');
+  document.getElementById('liveRemoveRow').hidden = !(info && info.url);
+  if (!info || !info.url) { preview.hidden = true; preview.replaceChildren(); return; }
+  const url = `${info.url}?v=${encodeURIComponent(info.version || '')}`;
+  const media = info.type === 'video'
+    ? Object.assign(document.createElement('video'), { src: url, muted: true, loop: true, playsInline: true, autoplay: readLiveAnimate() })
+    : Object.assign(document.createElement('img'), { src: url, alt: '' });
+  const badge = document.createElement('span');
+  badge.className = 'live-badge';
+  badge.textContent = mariowOSI18n.t('settings.wallpaper.live-badge', 'LIVE');
+  preview.replaceChildren(media, badge);
+  preview.hidden = false;
+  showLiveState();
+}
+function uploadLiveWallpaper(file) {
+  if (!file) return;
+  if (!['video/mp4', 'video/webm', 'image/gif'].includes(file.type)) {
+    liveStatus.textContent = mariowOSI18n.t('settings.wallpaper.live-wrong-type', 'Choose an MP4, WebM or GIF file.');
+    liveStatus.style.color = '#ff453a';
+    return;
+  }
+  const progress = document.getElementById('liveProgress');
+  const bar = progress.firstElementChild;
+  const form = new FormData();
+  form.append('wallpaper', file);
+  const request = new XMLHttpRequest();
+  request.open('POST', '/upload-live-wallpaper');
+  progress.hidden = false; bar.style.width = '0%';
+  liveStatus.textContent = mariowOSI18n.t('settings.wallpaper.uploading', 'Uploading…');
+  liveStatus.style.color = 'rgba(255,255,255,0.5)';
+  request.upload.onprogress = event => { if (event.lengthComputable) bar.style.width = (event.loaded / event.total * 100) + '%'; };
+  request.onload = () => {
+    progress.hidden = true;
+    let data = {};
+    try { data = JSON.parse(request.responseText); } catch (e) {}
+    if (request.status !== 200 || !data.success) {
+      liveStatus.textContent = mariowOSI18n.t('settings.wallpaper.error', 'Error: {message}', { message: data.error || request.status });
+      liveStatus.style.color = '#ff453a';
+      return;
+    }
+    liveStatus.textContent = mariowOSI18n.t('settings.wallpaper.live-applied', 'Live wallpaper applied!');
+    liveStatus.style.color = '#34c759';
+    // A new live wallpaper starts moving: that is why it was picked.
+    try { localStorage.setItem('liveWallpaper', 'true'); } catch (e) {}
+    saveStyle({ wallpaperMode: 'live' });
+    window.top.postMessage({ type: 'apply-wallpaper' }, location.origin);
+    loadLivePreview();
+  };
+  request.onerror = () => {
+    progress.hidden = true;
+    liveStatus.textContent = mariowOSI18n.t('settings.wallpaper.error', 'Error: {message}', { message: 'network' });
+    liveStatus.style.color = '#ff453a';
+  };
+  request.send(form);
+}
+document.getElementById('liveInput').onchange = e => uploadLiveWallpaper(e.target.files[0]);
+const liveDrop = document.getElementById('liveDrop');
+liveDrop.addEventListener('dragover', e => { e.preventDefault(); liveDrop.classList.add('dragover'); });
+liveDrop.addEventListener('dragleave', () => liveDrop.classList.remove('dragover'));
+liveDrop.addEventListener('drop', e => { e.preventDefault(); liveDrop.classList.remove('dragover'); uploadLiveWallpaper(e.dataTransfer.files[0]); });
+liveAnimate.onchange = () => {
+  try { localStorage.setItem('liveWallpaper', liveAnimate.checked ? 'true' : 'false'); } catch (e) {}
+  showLiveState();
+};
+document.getElementById('liveRemove').onclick = async () => {
+  if (!(await mDialog.confirm(mariowOSI18n.t('settings.wallpaper.live-remove-confirm', 'Remove the live wallpaper? The picture wallpaper comes back.')))) return;
+  try {
+    const response = await fetch('/api/wallpaper/live/remove', { method: 'POST' });
+    if (!response.ok) throw new Error(response.status);
+  } catch (e) { return; }
+  saveStyle({ wallpaperMode: 'image' });
+  window.top.postMessage({ type: 'apply-wallpaper' }, location.origin);
+  loadLivePreview();
+};
+window.addEventListener('storage', e => { if (e.key === 'liveWallpaper') showLiveState(); });
+loadLivePreview();
+
 Object.keys(UNITS).forEach(id => {
   document.getElementById(id).oninput = e => saveStyle({ [id]: Number(e.target.value) });
 });

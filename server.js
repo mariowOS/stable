@@ -120,15 +120,28 @@ const {
   comparePrerelease,
   compareVersions,
   isNewerVersion,
+  updateOffer,
+  rolloutBucket,
   getRawGithubUrl,
   isAllowedRepoUrl,
   getRepoRawUrls
 } = require("./lib/validation");
 
+// A random id for this install, kept in config.json. Only used to place the install in a
+// staged rollout (see updateOffer); it never leaves the computer.
+function getInstallId() {
+  if (typeof config.installId !== "string" || !/^[0-9a-f]{32}$/.test(config.installId)) {
+    config.installId = crypto.randomBytes(16).toString("hex");
+    saveConfig();
+  }
+  return config.installId;
+}
+
 const { createRollbackPoint, readRollbackPoint } = require("./lib/rollback");
 const { createMailClient } = require("./lib/mail");
 const { createSessions, createPasswordGuard } = require("./lib/session");
-const { createUsers, OWNER_ID } = require("./lib/users");
+const { createUsers, OWNER_ID, withinHours } = require("./lib/users");
+const { createZip, readZip } = require("./lib/zip");
 
 function readStagedVersion(stagePath) {
   try { return JSON.parse(fs.readFileSync(path.join(stagePath, "version.json"), "utf8")).version || null; }
@@ -349,15 +362,16 @@ const users = createUsers({ baseDir: __dirname, getConfig: () => config, saveCon
 // Standard (non-admin) accounts: whatever installs software, runs commands or changes the
 // system for everyone belongs to administrators. Enforced here, whatever the UI shows.
 const ADMIN_ONLY_ROUTES = [
-  /^\/api\/store\/(install|uninstall|do-upgrade|publish|eula)\b/,
+  /^\/api\/store\/(install|uninstall|do-upgrade|publish|eula|auto-update)\b/,
   /^\/api\/remote\/exec\b/, /^\/api\/sandbox\//, /^\/api\/recovery\//,
-  /^\/api\/system\/(factory-reset|reset-settings|reset-desktop|restore|backup|boot-logo|update-channel|keyring|ota-update|sota-update)\b/,
-  /^\/api\/users\/(create|update|delete|reset-password)\b/,
+  /^\/api\/system\/(factory-reset|reset-settings|reset-desktop|restore|backup|boot-logo|update-channel|keyring|ota-update|sota-update|health-report)\b/,
+  /^\/api\/users\/(create|update|delete|reset-password|guest|limits)\b/,
   /^\/api\/rules\/(save|enabled)\b/,
-  /^\/(save-settings|clear-settings|set-password|clear-password|upload-wallpaper)$/
+  /^\/(save-settings|clear-settings|set-password|clear-password|upload-wallpaper|upload-live-wallpaper)$/,
+  /^\/api\/wallpaper\/live\/remove$/
 ];
 // Reading is fine, except where the read itself acts or hands out secrets.
-const ADMIN_ONLY_READS = /^\/api\/system\/(backup|keyring|ota-update|sota-update)\b/;
+const ADMIN_ONLY_READS = /^\/api\/system\/(backup|keyring|ota-update|sota-update|health-report)\b/;
 function requireAdminFor(req, res, next) {
   if (req.user?.admin || !ADMIN_ONLY_ROUTES.some(route => route.test(req.path))) return next();
   if ((req.method === "GET" || req.method === "HEAD") && !ADMIN_ONLY_READS.test(req.path)) return next();
@@ -447,7 +461,7 @@ app.use("/desktop/apps/:appId", (req, res, next) => thirdPartyAppIds().has(req.p
 app.use(bodyParser.urlencoded({ extended: true }));
 // Notes can hold pasted images, so their route gets its own larger body limit (below).
 const jsonParser = express.json();
-const OWN_BODY_PARSER = new Set(["/api/system/notes", "/api/system/files/upload", "/api/system/files/upload-raw"]);
+const OWN_BODY_PARSER = new Set(["/api/system/notes", "/api/system/files/upload", "/api/system/files/upload-raw", "/api/users/restore"]);
 app.use((req, res, next) => OWN_BODY_PARSER.has(req.path) ? next() : jsonParser(req, res, next));
 app.use(requireSession);
 app.use(users.middleware(readSession, clearSession));
@@ -466,6 +480,67 @@ require("./online-services").registerOnlineServiceRoutes(app, { getConfig: () =>
 app.get('/api/system/health', (req, res) => {
   res.set('Cache-Control', 'no-store');
   res.json({ status: 'ok', instanceId: BACKEND_INSTANCE_ID });
+});
+
+// --- SYSTEM HEALTH (Settings › General › System health) ---
+// One read-only report: version and update state, memory, disk, and the recent problems
+// from the log, each tagged with a `kind` the page explains in plain words.
+const HEALTH_LOG_FILE = path.join(__dirname, "mariowos.log");
+const HEALTH_PROBLEMS = [
+  ["file-in-use", /\bEPERM\b|\bEBUSY\b|resource busy|operation not permitted/i],
+  ["restart-needed", /No handler registered/i],
+  ["offline", /ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|fetch failed|getaddrinfo/i],
+  ["port-in-use", /EADDRINUSE/i],
+  ["missing-file", /\bENOENT\b|Cannot find module/i],
+  ["keys", /^\[keys\]/i],
+  ["update", /update|rollback/i]
+];
+function recentLogProblems(limit = 12) {
+  let text = "";
+  try {
+    const stat = fs.statSync(HEALTH_LOG_FILE);
+    const start = Math.max(0, stat.size - 256 * 1024);
+    const fd = fs.openSync(HEALTH_LOG_FILE, "r");
+    const buffer = Buffer.alloc(stat.size - start);
+    fs.readSync(fd, buffer, 0, buffer.length, start);
+    fs.closeSync(fd);
+    text = buffer.toString("utf8");
+  } catch { return { available: false, problems: [] }; }
+  const problems = [];
+  for (const line of text.split(/\r?\n/)) {
+    const clean = line.trim();
+    if (!clean || !/error|fail|warn|EPERM|ENOENT|EADDRINUSE|ECONN|ETIMEDOUT|No handler/i.test(clean) || /^\s*at\s/.test(clean)) continue;
+    const kind = (HEALTH_PROBLEMS.find(([, pattern]) => pattern.test(clean)) || ["other"])[0];
+    const last = problems[problems.length - 1];
+    if (last && last.text === clean.slice(0, 300)) { last.count++; continue; }
+    problems.push({ kind, text: clean.slice(0, 300), count: 1 });
+  }
+  return { available: true, problems: problems.slice(-limit).reverse() };
+}
+app.get("/api/system/health-report", (req, res) => {
+  let version = null;
+  try { version = JSON.parse(fs.readFileSync(path.join(__dirname, "version.json"), "utf8")).version; } catch {}
+  let disk = null;
+  try { const s = fs.statfsSync(__dirname); disk = { free: s.bavail * s.bsize, total: s.blocks * s.bsize }; } catch {}
+  const rollback = readRollbackPoint(__dirname);
+  res.set("Cache-Control", "no-store");
+  res.json({
+    version, channel: getUpdateChannel(), platform: `${os.type()} ${os.release()}`, node: process.version,
+    uptime: Math.round(process.uptime()), systemUptime: Math.round(os.uptime()),
+    memory: { kernel: process.memoryUsage().rss, free: os.freemem(), total: os.totalmem() },
+    disk,
+    lastUpdate: rollback ? { from: rollback.fromVersion || null, to: rollback.toVersion || null, at: rollback.createdAt || null, rolledBack: !!rollback.rolledBack } : null,
+    apps: Array.isArray(config.installedApps) ? config.installedApps.length : 0,
+    log: recentLogProblems()
+  });
+});
+
+// The installed version and its notes, for the desktop's "what's new" cards after an update.
+app.get('/api/system/version', (req, res) => {
+  try {
+    const { version, changelog } = JSON.parse(fs.readFileSync(path.join(__dirname, 'version.json'), 'utf8'));
+    res.json({ version: String(version || ''), changelog: String(changelog || '') });
+  } catch { res.status(404).json({ version: null }); }
 });
 
 app.get('/api/system/boot-assets', (req, res) => {
@@ -641,6 +716,27 @@ const wallpaperUpload = multer({
   }),
   fileFilter: (req, file, cb) => cb(null, ["image/png", "image/jpeg"].includes(file.mimetype))
 });
+
+// Live wallpaper (Settings › Wallpaper & Style › Live): one video or animated GIF, kept as
+// desktop/assets/wallpaper.live.user.<ext>. Saved under a temporary name first, so a
+// failed upload never removes the wallpaper already in use.
+const LIVE_WALLPAPER_TYPES = { "video/mp4": "mp4", "video/webm": "webm", "image/gif": "gif" };
+const LIVE_WALLPAPER_PATTERN = /^wallpaper\.live\.user\.(mp4|webm|gif)$/;
+const liveWallpaperUpload = multer({
+  limits: { fileSize: 200 * 1024 * 1024 },
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, path.join(__dirname, "desktop/assets")),
+    filename: (req, file, cb) => cb(null, `wallpaper.live.upload-${process.pid}.${LIVE_WALLPAPER_TYPES[file.mimetype]}`)
+  }),
+  fileFilter: (req, file, cb) => cb(null, Object.hasOwn(LIVE_WALLPAPER_TYPES, file.mimetype))
+});
+function liveWallpaperFiles() {
+  try { return fs.readdirSync(path.join(__dirname, "desktop/assets")).filter(file => LIVE_WALLPAPER_PATTERN.test(file)); }
+  catch { return []; }
+}
+function removeLiveWallpaper() {
+  for (const file of liveWallpaperFiles()) fs.rmSync(path.join(__dirname, "desktop/assets", file), { force: true });
+}
 
 const bootLogoUpload = multer({
   storage: multer.memoryStorage(),
@@ -1419,11 +1515,20 @@ app.post("/login", async (req, res) => {
   if (!currentConfig.passwordHash) return res.status(409).send("No password is configured.");
   // Which account: the login screen sends its id; without one it is the owner, as before.
   const account = users.find(typeof req.body.userId === "string" && req.body.userId ? req.body.userId : OWNER_ID);
-  if (!account || !account.passwordHash) return res.status(401).send("Unknown account.");
+  if (!account || (!account.passwordHash && !account.guest)) return res.status(401).send("Unknown account.");
+  // Parental controls: outside the allowed hours the account cannot sign in.
+  const limits = account.admin ? null : users.toPublic(account).limits;
+  if (!withinHours(limits)) return res.status(403).send(`This account can sign in from ${limits.from} to ${limits.to}.`);
+  if (account.guest) {
+    // The guest has no password and always starts from an empty home.
+    users.resetGuest();
+    issueSession(res, account.id);
+    return res.sendFile(path.join(__dirname, "desktop/com.mariowos.desktop.html"));
+  }
   if (typeof password !== "string" || password.length === 0) {
     return res.status(400).send("Password is required.");
   }
-  
+
   if (passwordLockSeconds() > 0) {
     return res.status(429).send(`Too many attempts. Try again in ${passwordLockSeconds()} seconds.`);
   }
@@ -1439,8 +1544,9 @@ app.post("/login", async (req, res) => {
 const DESKTOP_STYLE_SCHEMA = {
   accent: v => /^#[0-9a-f]{6}$/i.test(v) ? v : undefined,
   wallpaperColor: v => /^#[0-9a-f]{6}$/i.test(v) ? v : undefined,
-  wallpaperMode: v => ["image", "color", "gradient"].includes(v) ? v : undefined,
-  gradient: v => ["aurora", "sunset", "ocean", "forest", "candy", "midnight"].includes(v) ? v : undefined,
+  wallpaperMode: v => ["image", "color", "gradient", "live"].includes(v) ? v : undefined,
+  gradient: v => ["aurora", "sunset", "ocean", "forest", "candy", "midnight", "daylight"].includes(v) ? v : undefined,
+  parallax: v => typeof v === "boolean" ? v : undefined,
   fit: v => ["cover", "contain", "stretch", "center", "tile"].includes(v) ? v : undefined,
   uiFont: v => ["Poppins", "Inter", "Nunito", "Roboto Slab", "Lora", "JetBrains Mono", "system-ui"].includes(v) ? v : undefined,
   brightness: v => clampNumber(v, 30, 130), saturation: v => clampNumber(v, 0, 200), blur: v => clampNumber(v, 0, 30),
@@ -1497,8 +1603,9 @@ app.get("/get-settings", (req, res) => {
 // may be written here; everything else is ignored.
 const SAVE_SETTINGS_ALLOWED = new Set([
   "darkMode", "performance", "animations", "developer",
-  "sendReports", "wallpaper", "theme", "accentColor", "language"
+  "sendReports", "wallpaper", "theme", "accentColor", "language", "systemKeys", "bootAnimation"
 ]);
+const BOOT_ANIMATIONS = ["fade", "zoom", "pulse", "orbit"];
 app.post("/save-settings", (req, res) => {
   const { username, email, ...extra } = req.body;
   if (username !== undefined || email !== undefined) {
@@ -1516,6 +1623,8 @@ app.post("/save-settings", (req, res) => {
   }
   Object.keys(extra).forEach(key => {
     if (key === "language" && !isAvailableLanguage(extra[key])) return;
+    if (key === "systemKeys" && typeof extra[key] !== "boolean") return;
+    if (key === "bootAnimation" && !BOOT_ANIMATIONS.includes(extra[key])) return;
     if (SAVE_SETTINGS_ALLOWED.has(key)) config[key] = extra[key];
   });
   fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
@@ -1559,7 +1668,8 @@ app.post("/clear-password", async (req, res) => {
 // The login screen lists accounts before anyone signs in, like any desktop OS.
 app.get("/api/users/login-list", (req, res) => {
   if (!config.passwordHash) return res.json({ success: true, users: [] });
-  res.json({ success: true, users: users.all().map(users.toPublic) });
+  // Before signing in, only what the login screen shows: no limits.
+  res.json({ success: true, users: users.all().map(users.toPublic).map(({ limits, ...user }) => user) });
 });
 app.get("/api/users/me", (req, res) => res.json({ success: true, user: req.user }));
 // The same, as a script pages load before their own: what they keep in the browser's
@@ -1567,12 +1677,12 @@ app.get("/api/users/me", (req, res) => res.json({ success: true, user: req.user 
 app.get("/api/users/me.js", (req, res) => {
   res.set({ "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "no-store" });
   const user = req.user || {};
-  const data = JSON.stringify({ id: user.id || OWNER_ID, owner: user.owner !== false, admin: user.admin !== false }).replace(/</g, "\\u003c");
+  const data = JSON.stringify({ id: user.id || OWNER_ID, owner: user.owner !== false, admin: user.admin !== false, guest: !!user.guest, limits: user.limits || null }).replace(/</g, "\\u003c");
   res.send(`window.mariowOSUser = ${data};
 window.mariowOSUserKey = key => window.mariowOSUser.owner ? key : key + "@" + window.mariowOSUser.id;
 `);
 });
-app.get("/api/users", requireAuthJson, (req, res) => res.json({ success: true, users: users.all().map(users.toPublic), me: req.user }));
+app.get("/api/users", requireAuthJson, (req, res) => res.json({ success: true, users: users.all().map(users.toPublic), me: req.user, guestEnabled: config.guestEnabled === true }));
 app.get("/api/users/avatar/:id", (req, res) => {
   const account = req.params.id === "me" ? users.find(req.user?.id) : users.find(req.params.id);
   const file = account && users.avatarOf(account);
@@ -1587,9 +1697,23 @@ app.post("/api/users/create", async (req, res) => {
   const user = users.create({ username: named.name, passwordHash: await bcrypt.hash(password, 10), admin: !!req.body?.admin });
   res.json({ success: true, user });
 });
+// The guest account (no password, emptied on sign-out) is switched on and off here.
+app.post("/api/users/guest", (req, res) => {
+  users.setGuest(req.body?.enabled === true);
+  res.json({ success: true, enabled: req.body?.enabled === true });
+});
+// Parental controls for a standard account (or the guest): blocked apps and allowed hours.
+app.post("/api/users/limits", (req, res) => {
+  const account = users.find(req.body?.id);
+  if (!account) return res.status(404).json({ success: false, error: "Unknown account." });
+  if (account.admin) return res.status(400).json({ success: false, error: "Administrators have no limits. Make the account standard first." });
+  const user = users.setLimits(account.id, req.body?.limits);
+  res.json({ success: true, user: users.toPublic(user) });
+});
 app.post("/api/users/update", (req, res) => {
   const account = users.find(req.body?.id);
   if (!account) return res.status(404).json({ success: false, error: "Unknown account." });
+  if (account.guest) return res.status(400).json({ success: false, error: "The guest account cannot be changed: turn it off and on instead." });
   if (account.owner) return res.status(403).json({ success: false, error: "The owner account is always an administrator. Change its name from your account page." });
   const patch = {};
   if (req.body.username !== undefined) {
@@ -1606,6 +1730,7 @@ app.post("/api/users/update", (req, res) => {
 app.post("/api/users/reset-password", async (req, res) => {
   const account = users.find(req.body?.id);
   if (!account || account.owner) return res.status(400).json({ success: false, error: "Change the owner's password from its own account." });
+  if (account.guest) return res.status(400).json({ success: false, error: "The guest account has no password." });
   const password = String(req.body?.password || "");
   if (password.length < 4) return res.status(400).json({ success: false, error: "Use a password of at least 4 characters." });
   users.update(account.id, { passwordHash: await bcrypt.hash(password, 10) });
@@ -1623,10 +1748,86 @@ app.post("/api/users/password", async (req, res) => {
   if (account.owner) { config.passwordHash = hash; saveConfig(); } else users.update(account.id, { passwordHash: hash });
   res.json({ success: true });
 });
+// --- PER-ACCOUNT BACKUP (Settings › Your account) ---
+// Everything that is one person's, in a plain ZIP: their home folder, notes, profile
+// picture and desktop style. Restoring puts it back into the account that is signed in.
+const BACKUP_LIMIT = 1024 * 1024 * 1024;
+function accountStyle(user) {
+  return user.owner ? config.desktopStyle || null : (users.find(user.id) || {}).desktopStyle || null;
+}
+app.get("/api/users/backup", (req, res) => {
+  const account = users.find(req.user?.id) || users.find(OWNER_ID);
+  const home = users.homeOf(account);
+  const entries = [];
+  let total = 0;
+  const walk = (dir, prefix) => {
+    let items = [];
+    try { items = fs.readdirSync(dir, { withFileTypes: true }); } catch { return; }
+    for (const item of items) {
+      const full = path.join(dir, item.name);
+      if (item.isDirectory()) { walk(full, `${prefix}${item.name}/`); continue; }
+      if (!item.isFile()) continue;
+      total += fs.statSync(full).size;
+      if (total > BACKUP_LIMIT) throw Object.assign(new Error("Your files are larger than 1 GB: copy the big ones from Files instead."), { status: 413 });
+      entries.push({ name: `home/${prefix}${item.name}`, data: fs.readFileSync(full), date: fs.statSync(full).mtime });
+    }
+  };
+  try { walk(home, ""); }
+  catch (error) { return res.status(error.status || 500).json({ success: false, error: error.message }); }
+  const notesFile = users.notesFileOf(account);
+  if (fs.existsSync(notesFile) && !notesFile.startsWith(home + path.sep)) entries.push({ name: "notes.json", data: fs.readFileSync(notesFile) });
+  const avatar = users.avatarOf(account);
+  if (fs.existsSync(avatar) && !avatar.startsWith(home + path.sep)) entries.push({ name: "avatar.png", data: fs.readFileSync(avatar) });
+  let version = null;
+  try { version = JSON.parse(fs.readFileSync(path.join(__dirname, "version.json"), "utf8")).version; } catch {}
+  entries.push({ name: "account.json", data: Buffer.from(JSON.stringify({ mariowOSBackup: 1, username: account.username, exportedAt: new Date().toISOString(), version, desktopStyle: accountStyle(account) }, null, 2)) });
+  const stamp = new Date().toISOString().slice(0, 10);
+  const safeName = String(account.username).replace(/[^\p{L}\p{N}._-]+/gu, "-");
+  res.set({ "Content-Type": "application/zip", "Content-Disposition": `attachment; filename="mariowOS-backup-${safeName}-${stamp}.zip"`, "Cache-Control": "no-store" });
+  res.send(createZip(entries));
+});
+app.post("/api/users/restore", express.raw({ type: "*/*", limit: BACKUP_LIMIT }), (req, res) => {
+  const account = users.find(req.user?.id) || users.find(OWNER_ID);
+  let entries;
+  try { entries = readZip(Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0)); }
+  catch (error) { return res.status(400).json({ success: false, error: "This is not a mariowOS backup (" + error.message + ")." }); }
+  const manifest = entries.find(entry => entry.name === "account.json");
+  let info = null;
+  try { info = manifest && JSON.parse(manifest.data.toString("utf8")); } catch {}
+  if (!info || info.mariowOSBackup !== 1) return res.status(400).json({ success: false, error: "This is not a mariowOS backup." });
+  const home = path.resolve(users.ensureHome(account));
+  let restored = 0;
+  for (const entry of entries) {
+    if (entry.name.startsWith("home/")) {
+      // Only inside this account's home: no "..", no absolute paths.
+      const target = path.resolve(home, ...entry.name.slice(5).split("/").filter(part => part && part !== "." && part !== ".."));
+      if (!target.startsWith(home + path.sep)) continue;
+      fs.mkdirSync(path.dirname(target), { recursive: true });
+      fs.writeFileSync(target, entry.data);
+      restored++;
+    } else if (entry.name === "notes.json") {
+      fs.writeFileSync(users.notesFileOf(account), entry.data);
+    } else if (entry.name === "avatar.png") {
+      fs.mkdirSync(path.dirname(users.avatarOf(account)), { recursive: true });
+      fs.writeFileSync(users.avatarOf(account), entry.data);
+    }
+  }
+  if (info.desktopStyle && typeof info.desktopStyle === "object") {
+    const style = {};
+    for (const [key, validate] of Object.entries(DESKTOP_STYLE_SCHEMA)) {
+      const value = validate(info.desktopStyle[key]);
+      if (value !== undefined) style[key] = value;
+    }
+    if (account.owner) { config.desktopStyle = style; saveConfig(); } else if (!account.guest) users.update(account.id, { desktopStyle: style });
+  }
+  res.json({ success: true, files: restored, from: info.username, exportedAt: info.exportedAt });
+});
+
 app.post("/api/users/delete", (req, res) => {
   const account = users.find(req.body?.id);
   if (!account) return res.status(404).json({ success: false, error: "Unknown account." });
   if (account.owner) return res.status(403).json({ success: false, error: "The owner account cannot be removed." });
+  if (account.guest) return res.status(400).json({ success: false, error: "Turn the guest account off instead." });
   if (account.id === req.user?.id) return res.status(400).json({ success: false, error: "You cannot remove the account you are using." });
   users.remove(account.id, { deleteFiles: !!req.body?.deleteFiles });
   res.json({ success: true });
@@ -1635,6 +1836,8 @@ app.post("/api/users/delete", (req, res) => {
 // A-02: explicit logout so the desktop can drop the session on sign-out / lock.
 app.post("/api/system/logout", (req, res) => {
   clearSession(res);
+  // Nothing the guest did stays on the computer.
+  if (req.user?.guest) users.resetGuest();
   res.json({ success: true });
 });
 
@@ -1691,7 +1894,7 @@ app.post("/api/system/factory-reset", async (req, res) => {
   const assetsDir = path.join(__dirname, "desktop", "assets");
   try {
     fs.readdirSync(assetsDir)
-      .filter(file => /^icon_.+\.png$/.test(file) || /\.user\.png$/.test(file))
+      .filter(file => /^icon_.+\.png$/.test(file) || /\.user\.png$/.test(file) || LIVE_WALLPAPER_PATTERN.test(file))
       .forEach(file => removePath(path.join(assetsDir, file)));
   } catch (e) { errors.push("assets: " + e.message); }
 
@@ -1716,6 +1919,37 @@ app.post("/api/system/factory-reset", async (req, res) => {
 app.post("/upload-wallpaper", wallpaperUpload.single("wallpaper"), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, error: "No file uploaded" });
   res.json({ success: true, message: "Wallpaper uploaded!" });
+});
+
+app.get("/api/wallpaper/live", (req, res) => {
+  const file = liveWallpaperFiles()[0];
+  if (!file) return res.json({ url: null });
+  const stat = fs.statSync(path.join(__dirname, "desktop/assets", file));
+  res.json({ url: `/desktop/assets/${file}`, type: file.endsWith(".gif") ? "gif" : "video", version: String(stat.mtimeMs) });
+});
+
+app.post("/upload-live-wallpaper", (req, res) => {
+  liveWallpaperUpload.single("wallpaper")(req, res, error => {
+    if (error) {
+      const message = error.code === "LIMIT_FILE_SIZE" ? "The file is larger than 200 MB." : error.message;
+      return res.status(400).json({ success: false, error: message });
+    }
+    if (!req.file) return res.status(400).json({ success: false, error: "Choose an MP4, WebM or GIF file." });
+    const extension = LIVE_WALLPAPER_TYPES[req.file.mimetype];
+    try {
+      removeLiveWallpaper();
+      fs.renameSync(req.file.path, path.join(__dirname, "desktop/assets", `wallpaper.live.user.${extension}`));
+    } catch (renameError) {
+      fs.rmSync(req.file.path, { force: true });
+      return res.status(500).json({ success: false, error: renameError.message });
+    }
+    res.json({ success: true, type: extension === "gif" ? "gif" : "video" });
+  });
+});
+
+app.post("/api/wallpaper/live/remove", (req, res) => {
+  removeLiveWallpaper();
+  res.json({ success: true });
 });
 
 app.post('/api/system/boot-logo', (req, res, next) => {
@@ -1766,6 +2000,7 @@ app.post("/api/system/reset-desktop", (req, res) => {
   const wallpaperPath = path.join(__dirname, "desktop/assets/wallpaper.user.png");
   if (fs.existsSync(avatarPath)) fs.unlinkSync(avatarPath);
   if (fs.existsSync(wallpaperPath)) fs.unlinkSync(wallpaperPath);
+  removeLiveWallpaper();
   res.json({ success: true, message: "Desktop ripristinato" });
 });
 
@@ -1846,6 +2081,9 @@ app.get("/api/store/check-upgrades", async (req, res) => {
 // Apply upgrades. Only apps that are git clones from an allowed repo and that actually
 // declare a newer version.json are pulled; the recorded version is then refreshed.
 app.post("/api/store/do-upgrade", async (req, res) => {
+  res.json({ success: true, ...await upgradeInstalledApps() });
+});
+async function upgradeInstalledApps() {
   const installedApps = config.installedApps || [];
   let count = 0;
   const updated = [];
@@ -1869,7 +2107,62 @@ app.post("/api/store/do-upgrade", async (req, res) => {
     }
   }
   if (count > 0) fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
-  res.json({ success: true, count, updated });
+  return { count, updated };
+}
+
+// Automatic app updates (Store › Settings): a few minutes after start, then every 6 hours.
+// What was updated waits in memory until the desktop asks, to show it once.
+let autoUpdatedApps = [];
+async function autoUpdateApps() {
+  if (config.autoUpdateApps !== true) return;
+  try {
+    const { updated } = await upgradeInstalledApps();
+    const titles = new Map((config.installedApps || []).map(app => [app.appId, app.title || app.appId]));
+    autoUpdatedApps.push(...updated.map(item => ({ ...item, title: titles.get(item.appId) || item.appId })));
+  } catch (error) { console.error("[store]: automatic app update failed:", error.message); }
+}
+setTimeout(autoUpdateApps, 3 * 60 * 1000).unref();
+setInterval(autoUpdateApps, 6 * 60 * 60 * 1000).unref();
+app.get("/api/store/auto-update", (req, res) => {
+  const updated = autoUpdatedApps;
+  if (req.query.take === "1") autoUpdatedApps = [];
+  res.json({ success: true, enabled: config.autoUpdateApps === true, updated });
+});
+app.post("/api/store/auto-update", (req, res) => {
+  config.autoUpdateApps = req.body?.enabled === true;
+  saveConfig();
+  if (config.autoUpdateApps) setTimeout(autoUpdateApps, 1000);
+  res.json({ success: true, enabled: config.autoUpdateApps });
+});
+
+// What the Store shows on an app's page beyond the catalog: GitHub stars and activity,
+// and "what's new" from the app's own version.json. Cached for an hour per repository.
+const appInfoCache = new Map();
+app.get("/api/store/app-info", async (req, res) => {
+  const repoUrl = String(req.query.repo || "");
+  if (!isAllowedRepoUrl(repoUrl)) return res.status(400).json({ success: false, error: "Not a GitHub repository" });
+  const cached = appInfoCache.get(repoUrl);
+  if (cached && Date.now() - cached.at < 60 * 60 * 1000) return res.json(cached.info);
+  const info = { success: true, stars: null, updatedAt: null, version: null, changelog: null };
+  const match = repoUrl.replace(/\.git$/, "").match(/github\.com\/([\w.-]+)\/([\w.-]+)/);
+  if (match) {
+    try {
+      const response = await fetch(`https://api.github.com/repos/${match[1]}/${match[2]}`, { headers: { "User-Agent": "mariowOS-Store", Accept: "application/vnd.github+json" } });
+      if (response.ok) { const repo = await response.json(); info.stars = repo.stargazers_count; info.updatedAt = repo.pushed_at; }
+    } catch {}
+  }
+  for (const url of getRepoRawUrls(repoUrl, "version.json")) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) continue;
+      const data = JSON.parse(await response.text());
+      info.version = typeof data.version === "string" ? data.version.slice(0, 40) : null;
+      info.changelog = typeof data.changelog === "string" ? data.changelog.slice(0, 2000) : null;
+      break;
+    } catch {}
+  }
+  appInfoCache.set(repoUrl, { at: Date.now(), info });
+  res.json(info);
 });
 
 app.post("/api/store/publish", appIconUpload.single("iconFile"), (req, res) => {
@@ -3004,12 +3297,14 @@ app.get('/api/system/check-update', async (req, res) => {
       return res.json({ updateAvailable: false, current: local, latest: remote.version, blocked: true,
         error: `Version ${remote.version} was rolled back because it did not start. Waiting for a fixed release.` });
     }
+    // Newer, or a deliberate way back ("replaces"), and inside the staged rollout (lib/validation.js).
+    const offer = updateOffer(remote, local, rolloutBucket(getInstallId()));
     res.json(
-      isNewerVersion(remote.version, local)
-        ? { updateAvailable: true, current: local, latest: remote.version, changelog: remote.changelog }
-        : { updateAvailable: false, current: local, latest: remote.version }
+      offer.offered
+        ? { updateAvailable: true, current: local, latest: remote.version, changelog: remote.changelog, reason: offer.reason }
+        : { updateAvailable: false, current: local, latest: remote.version, rolloutWaiting: offer.reason === "rollout" }
     );
-  } catch (error) { 
+  } catch (error) {
     const versionPath = path.join(__dirname, 'version.json');
     const local = fs.existsSync(versionPath) ? JSON.parse(fs.readFileSync(versionPath, 'utf8')).version : "1.0.0";
     res.json({ updateAvailable: false, current: local, error: "Update server not reachable" }); 

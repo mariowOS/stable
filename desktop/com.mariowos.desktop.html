@@ -719,6 +719,7 @@ Questions? https://discord.gg/YDVxw6jfbH
     #toast-container { position: fixed; bottom: 70px; right: 20px; z-index: 9999; display: flex; flex-direction: column-reverse; gap: 10px; pointer-events: none; }
     .toast { background-color: rgba(15, 20, 30, 0.65) !important; -webkit-backdrop-filter: blur(40px) saturate(210%); backdrop-filter: blur(40px) saturate(210%); border-radius: 14px; padding: 12px 16px; color: #fff; width: 260px; display: flex; align-items: center; gap: 12px; box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5) !important; pointer-events: auto; animation: toastIn 0.5s var(--spring-bounce) forwards; font-size: 13px; transform: translateZ(0);}
     .toast.hide { animation: toastOut 0.25s ease-in forwards; }
+    .toast-icon .material-symbols-outlined { font-size: 22px !important; }
     .toast-icon { font-size: 22px; background: rgba(255, 255, 255, 0.12); border-radius: 8px; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
     .toast-content { display: flex; flex-direction: column; }
     .toast-title { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
@@ -903,6 +904,7 @@ Questions? https://discord.gg/YDVxw6jfbH
     .nc-item { position: relative; flex: 0 0 auto; display: flex; gap: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,0.07); }
     .nc-item.fresh { animation: ncIn 0.45s var(--spring) backwards; }
     .nc-item.leaving { animation: ncOut 0.24s ease-in forwards; }
+    .nc-item-icon .material-symbols-outlined { font-size: 19px !important; }
     .nc-item-icon { width: 34px; height: 34px; flex: 0 0 34px; border-radius: 10px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.1); font-size: 18px; }
     .nc-item-body { flex: 1; min-width: 0; }
     .nc-item-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
@@ -975,6 +977,7 @@ Questions? https://discord.gg/YDVxw6jfbH
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
 <script src="/desktop/assets/external-consent.js"></script>
 <script src="/desktop/assets/calendar-core.js"></script>
+<script src="/desktop/assets/live-wallpaper.js"></script>
 </head>
 
 <body>
@@ -1019,7 +1022,7 @@ Questions? https://discord.gg/YDVxw6jfbH
               <button class="am-round" type="button" id="amPowerBtn" title="Power" data-i18n-title="desktop.session.title"><span class="material-symbols-outlined">power_settings_new</span></button>
               <div class="am-power-menu" id="amPowerMenu" role="menu">
                 <button class="am-power-item" type="button" onclick="closeAllPanels(); lockDesktop()"><span class="material-symbols-outlined">lock</span><span data-i18n="desktop.session.lock">Lock</span></button>
-                <button class="am-power-item" type="button" onclick="window.location.href='/loginui/com.mariowos.loginui.html'"><span class="material-symbols-outlined">logout</span><span data-i18n="desktop.session.sign-out">Sign out</span></button>
+                <button class="am-power-item" type="button" onclick="signOut()"><span class="material-symbols-outlined">logout</span><span data-i18n="desktop.session.sign-out">Sign out</span></button>
                 <button class="am-power-item" type="button" onclick="window.location.reload()"><span class="material-symbols-outlined">refresh</span><span data-i18n="desktop.session.refresh">Refresh Desktop</span></button>
                 <div class="am-power-sep"></div>
                 <button class="am-power-item" id="rebootMariowOSButton" type="button" aria-label="Reboot" data-i18n-aria-label="desktop.session.reboot" onclick="rebootMariowOS()"><span class="material-symbols-outlined">restart_alt</span><span id="rebootMariowOSLabel" data-i18n="desktop.session.reboot">Reboot</span></button>
@@ -1652,7 +1655,8 @@ Questions? https://discord.gg/YDVxw6jfbH
     // Standard accounts (Settings > Users) cannot use some apps; the server refuses them too.
     let currentUser = { admin: true };
     const ADMIN_APPS = new Set(['popup8']);
-    const isAppAllowed = id => currentUser.admin || !ADMIN_APPS.has(id);
+    // Parental controls (Settings > Users > Limits) can block more apps for a standard account.
+    const isAppAllowed = id => currentUser.admin || (!ADMIN_APPS.has(id) && !(currentUser.limits?.blockedApps || []).includes(id));
     function getAllApps() { return [...builtInApps, ...dynamicInstalledApps].filter(app => isAppAllowed(app.id)); }
 
     function launchAppFromMenu(appId) {
@@ -2724,13 +2728,26 @@ Questions? https://discord.gg/YDVxw6jfbH
       } catch (err) {}
     }
 
-    function showNotification(title, msg, icon = "🔔") {
+    // Notification and island icons are Material Symbols: a symbol name is used as is, the emoji
+    // older code and apps still pass are mapped to the matching symbol.
+    const EMOJI_SYMBOLS = { '🔔': 'notifications', '⚠️': 'warning', '⚠': 'warning', '✅': 'check_circle', '❌': 'cancel', '⏳': 'hourglass_top',
+      '✏️': 'edit', '🎧': 'headphones', '💬': 'chat', '📌': 'push_pin', '📶': 'wifi', '🔒': 'lock', '🗑️': 'delete', '📅': 'calendar_month',
+      '🧩': 'extension', '🧹': 'mop', '📦': 'package_2', '🎵': 'music_note', '🔄': 'restart_alt', '⬆️': 'upgrade', '📸': 'screenshot_monitor',
+      '🍄': 'sports_esports', '🍅': 'timer', '😊': 'mood', '🕘': 'schedule', 'ℹ️': 'info', '📁': 'folder', '⬇️': 'download', '🔋': 'battery_full' };
+    function fillIcon(target, icon) {
+      const value = icon == null ? '' : String(icon).trim();
+      const symbol = /^[a-z0-9_]+$/.test(value) ? value : EMOJI_SYMBOLS[value] || (value ? 'notifications' : '');
+      const span = document.createElement('span'); span.className = 'material-symbols-outlined'; span.textContent = symbol;
+      target.replaceChildren(span);
+    }
+
+    function showNotification(title, msg, icon = "notifications") {
       const time = new Date().toLocaleTimeString(mariowOSI18n.locale, { hour: '2-digit', minute: '2-digit' });
       notificationsHistory.unshift({ title, msg, icon, time }); if (notificationsHistory.length > 10) notificationsHistory.pop(); updateNotificationCenter();
       if (qsState.dnd) return;
       const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast';
       // SECURITY (layer-2 XSS): title/msg may carry untrusted text (SSID, BT/app name); use DOM.
-      const tIcon = document.createElement('div'); tIcon.className = 'toast-icon'; tIcon.textContent = icon == null ? '' : String(icon);
+      const tIcon = document.createElement('div'); tIcon.className = 'toast-icon'; fillIcon(tIcon, icon);
       const tContent = document.createElement('div'); tContent.className = 'toast-content';
       const tTitle = document.createElement('div'); tTitle.className = 'toast-title'; tTitle.textContent = title == null ? '' : String(title);
       const tMsg = document.createElement('div'); tMsg.className = 'toast-msg'; tMsg.textContent = msg == null ? '' : String(msg);
@@ -2787,7 +2804,7 @@ Questions? https://discord.gg/YDVxw6jfbH
         // SECURITY (layer-2 XSS): notification fields may carry untrusted text; use DOM.
         const item = document.createElement('div'); item.className = 'nc-item';
         if (!renderedNotifications.has(n)) { renderedNotifications.add(n); item.classList.add('fresh'); }
-        const icon = document.createElement('div'); icon.className = 'nc-item-icon'; icon.textContent = n.icon == null ? '' : String(n.icon);
+        const icon = document.createElement('div'); icon.className = 'nc-item-icon'; fillIcon(icon, n.icon);
         const body = document.createElement('div'); body.className = 'nc-item-body';
         const row = document.createElement('div'); row.className = 'nc-item-row';
         const title = document.createElement('span'); title.className = 'nc-item-title'; title.textContent = n.title == null ? '' : String(n.title);
@@ -4264,6 +4281,55 @@ snapZone = getSnapZone(pendingX, pendingY);
       });
     })();
 
+    // Sign out: the session ends on the server too (and a guest's files are erased), then the login.
+    function signOut() {
+      fetch('/api/system/logout', { method: 'POST' }).catch(() => {}).finally(() => { window.location.href = '/loginui/com.mariowos.loginui.html'; });
+    }
+
+    // Win+D: hides every open window; pressed again (with nothing opened in between) it
+    // brings the same windows back, as on Windows.
+    let shownDesktopWindows = [];
+    function visiblePopups() {
+      return [...document.querySelectorAll('.popup.active:not(.closing):not(.minimizing)')].filter(popup => !popup.id.startsWith('dialog_'));
+    }
+    function toggleShowDesktop() {
+      const open = visiblePopups();
+      if (open.length) {
+        shownDesktopWindows = open.map(popup => popup.id);
+        open.forEach(popup => minimizePopup(popup.id));
+      } else {
+        shownDesktopWindows.forEach(id => { if (runningApps.has(id)) openPopup(id); });
+        shownDesktopWindows = [];
+      }
+    }
+
+    // Windows-style system keys, sent by the Electron shell (launcher.js): on Windows the
+    // Windows key never reaches the page, so it is taken there and forwarded here.
+    const SYSTEM_KEY_ACTIONS = {
+      'win': () => { closeTaskView(); document.getElementById('actionsBtn').click(); },
+      'win+d': toggleShowDesktop,
+      'win+m': () => { shownDesktopWindows = []; visiblePopups().forEach(popup => minimizePopup(popup.id)); },
+      'win+e': () => openPopup('popup10'),
+      'win+i': () => openPopup('popup1'),
+      'win+a': event => openQuickSettings(event),
+      'win+n': () => { if (!document.getElementById('calendarDropdown').classList.contains('open')) document.getElementById('clockBtn').click(); },
+      'win+s': () => { const spotlight = document.getElementById('spotlightSearch'); if (spotlight.classList.contains('active')) closeSpotlight(); else openSpotlight(); },
+      'win+tab': () => { if (taskViewOpen) closeTaskView(); else openTaskView(); },
+      'win+up': () => { const top = getTopmostPopup(); if (top && !top.classList.contains('maximized')) toggleMaximize(top.id); },
+      'win+down': () => { const top = getTopmostPopup(); if (!top) return; if (top.classList.contains('maximized')) toggleMaximize(top.id); else minimizePopup(top.id); },
+      // Same as Start › Sign out: back to the usual login page.
+      'win+l': () => signOut(),
+      'alt+f4': () => { const top = getTopmostPopup(); if (top && !top.id.startsWith('dialog_')) closePopup(top.id); }
+    };
+    SYSTEM_KEY_ACTIONS['win+space'] = SYSTEM_KEY_ACTIONS['win+s'];
+    window.mariowOSElectron?.onSystemKey?.(name => {
+      const action = SYSTEM_KEY_ACTIONS[name];
+      const locked = document.getElementById('lockscreenContainer')?.classList.contains('active');
+      // While locked, the keys do nothing: the lock screen is the only way back in.
+      if (!action || locked) return;
+      action({ stopPropagation() {}, preventDefault() {} });
+    });
+
     const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     let systemTimeOffset = 0, timezoneOffset = 0, manualTimeEnabled = false;
@@ -4579,8 +4645,10 @@ snapZone = getSnapZone(pendingX, pendingY);
         if (typeof deselectDesktopItems === 'function') deselectDesktopItems();
       }
     });
+    const liveWallpaper = mariowOSLiveWallpaper.mount(document.getElementById('desktop-wallpaper'));
     function applyUserWallpaper(forceReload = false) {
      const wallpaper = document.getElementById('desktop-wallpaper');
+     if (forceReload) liveWallpaper.reload();
       const userUrl = `/desktop/assets/wallpaper.user.png${forceReload ? `?ts=${Date.now()}` : ''}`;
 
     wallpaper.style.backgroundImage =
@@ -4636,6 +4704,8 @@ snapZone = getSnapZone(pendingX, pendingY);
         wallpaper.style.backgroundRepeat = `${repeat}, no-repeat`;
         wallpaper.style.backgroundColor = '#05070b';
       }
+      // Live: the video/GIF plays over the picture, which stays as the fallback.
+      liveWallpaper.update();
       const blur = Math.max(0, Math.min(30, Number(st.blur) || 0));
       // Dark mode (Functions Lab) dims the wallpaper on top of the user's own adjustments.
       const dark = document.body.classList.contains('lab-dark-mode');
@@ -4725,7 +4795,7 @@ snapZone = getSnapZone(pendingX, pendingY);
       if (e.data.type === 'apply-style') applyDesktopStyle();
       if (e.data.type === 'quick-settings-changed') loadQuickSettings();
       if (e.data.type === 'open-settings-page' && ['you', 'wallpaper', 'system', 'apps', 'security', 'functions', 'about'].includes(e.data.page)) openSettingsPage(e.data.page);
-      if (e.data.type === 'apply-wallpaper') { applyUserWallpaper(); (async () => { try { const r = await fetch("/get-settings"); if (r.ok) { const cfg = await r.json(); applyLabFlagEffects({ darkMode: cfg.darkMode, performance: cfg.performance, animations: cfg.animations, developer: cfg.developer }); }; } catch (e) {} })(); }
+      if (e.data.type === 'apply-wallpaper') { applyUserWallpaper(true); (async () => { try { const r = await fetch("/get-settings"); if (r.ok) { const cfg = await r.json(); applyLabFlagEffects({ darkMode: cfg.darkMode, performance: cfg.performance, animations: cfg.animations, developer: cfg.developer }); }; } catch (e) {} })(); }
       
       if (e.data.type === 'app-installed-live') {
         // Ask the kernel for the app entry: it decides whether the app runs isolated.
@@ -4862,7 +4932,7 @@ snapZone = getSnapZone(pendingX, pendingY);
       }
 
       if ((e.metaKey || e.ctrlKey) && e.code === 'Space') { e.preventDefault(); const spotlight = document.getElementById('spotlightSearch'); if (spotlight.classList.contains('active')) { closeSpotlight(); } else { openSpotlight(); } }
-      if (e.metaKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); document.querySelectorAll('.popup.active:not(.closing):not(.minimizing)').forEach(popup => { minimizePopup(popup.id); }); }
+      if (e.metaKey && (e.key === 'd' || e.key === 'D')) { e.preventDefault(); toggleShowDesktop(); }
       if (e.shiftKey && !isInput) {
         if (e.key === 'F4') { e.preventDefault(); const topApp = getTopmostPopup(); if (topApp && !topApp.id.startsWith('dialog_')) closePopup(topApp.id); }
         if (e.key === 'r' || e.key === 'R') { e.preventDefault(); window.location.reload(); }
@@ -5437,5 +5507,6 @@ snapZone = getSnapZone(pendingX, pendingY);
     document.addEventListener('DOMContentLoaded', loadDesktopIcons);
   </script>
 <script src="/desktop/assets/rule-runtime.js"></script>
+<script src="/desktop/assets/desktop-extras.js"></script>
 </body>
 </html>

@@ -353,6 +353,26 @@
     }
     .lp-desc-title { margin: 0 0 12px; font-size: 15px; font-weight: 600; }
     .lp-desc { margin: 0; color: var(--text-secondary); font-size: 12.5px; line-height: 1.65; }
+    /* App page: stats from the repository, what's new, permissions */
+    .lp-stats { display: flex; gap: 10px; flex-wrap: wrap; margin: -6px 0 18px; }
+    .lp-stat { display: flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 12px; background: rgba(255,255,255,.06); font-size: 12px; color: var(--text-secondary); animation: lpPop .45s cubic-bezier(.2, 1.4, .4, 1) both; }
+    .lp-stat b { color: var(--text); font-size: 13px; }
+    .lp-stat .material-symbols-outlined { font-size: 17px; }
+    .lp-stat.stars .material-symbols-outlined { color: #ffd60a; }
+    @keyframes lpPop { from { opacity: 0; transform: translateY(8px) scale(.9); } }
+    .lp-version { margin-left: 6px; padding: 2px 8px; border-radius: 99px; background: rgba(255,255,255,.08); font-size: 11px; font-weight: 500; color: var(--text-secondary); }
+    .lp-perms { display: flex; flex-direction: column; gap: 8px; }
+    .lp-perm { display: flex; align-items: center; gap: 12px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); font-size: 12.5px; animation: lpPop .45s cubic-bezier(.2, 1.3, .4, 1) both; }
+    .lp-perm .material-symbols-outlined { width: 30px; height: 30px; border-radius: 9px; display: grid; place-items: center; font-size: 18px; background: rgba(10,132,255,.18); color: #4da3ff; flex-shrink: 0; }
+    .lp-perm.warn .material-symbols-outlined { background: rgba(255,159,10,.18); color: #ff9f0a; }
+    .lp-perm.safe .material-symbols-outlined { background: rgba(48,209,88,.18); color: #30d158; }
+    .lp-perm small { display: block; color: var(--text-secondary); font-size: 11.5px; }
+    .store-switch { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+    .store-switch input { opacity: 0; width: 0; height: 0; }
+    .store-switch span { position: absolute; inset: 0; border-radius: 24px; background: rgba(255,255,255,.2); cursor: pointer; transition: .3s; }
+    .store-switch span::before { content: ""; position: absolute; width: 20px; height: 20px; left: 2px; top: 2px; border-radius: 50%; background: #fff; transition: .3s cubic-bezier(.2, 1.4, .4, 1); }
+    .store-switch input:checked + span { background: #34c759; }
+    .store-switch input:checked + span::before { transform: translateX(20px); }
 
     /* ─────────────── Publish ─────────────── */
     .pub-card {
@@ -514,9 +534,18 @@
             <div id="installError" class="lp-error"></div>
           </div>
         </div>
+        <div class="lp-stats" id="lpStats"></div>
         <div class="lp-desc-container">
           <h3 class="lp-desc-title" data-i18n="store.detail.description">Description</h3>
           <p id="lpDesc" class="lp-desc"></p>
+        </div>
+        <div class="lp-desc-container" id="lpNewBox" hidden>
+          <h3 class="lp-desc-title"><span data-i18n="store.detail.whats-new">What's new</span> <span class="lp-version" id="lpVersion"></span></h3>
+          <p id="lpNew" class="lp-desc"></p>
+        </div>
+        <div class="lp-desc-container">
+          <h3 class="lp-desc-title" data-i18n="store.detail.permissions">What this app can do</h3>
+          <div class="lp-perms" id="lpPerms"></div>
         </div>
       </div>
 
@@ -556,6 +585,17 @@
             <option value="insiders" data-i18n="store.settings.channel.insiders">Insiders (Experimental)</option>
           </select>
           <div id="channelStatus" class="lp-error" style="margin-top: 8px;"></div>
+        </div>
+
+        <div class="pub-card" style="margin-bottom: 24px;">
+          <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="flex: 1;">
+              <h3 class="lp-desc-title" data-i18n="store.settings.auto-update">Update apps automatically</h3>
+              <p class="lp-desc" style="margin: 0;" data-i18n="store.settings.auto-update-text">Installed apps update by themselves in the background, a few minutes after start and every 6 hours.</p>
+            </div>
+            <label class="store-switch"><input type="checkbox" id="autoUpdateToggle"><span></span></label>
+          </div>
+          <div id="autoUpdateStatus" class="lp-error" style="margin-top: 8px;"></div>
         </div>
 
         <div class="pub-card">
@@ -710,6 +750,63 @@
       });
     }
 
+    // What an app can do, before installing it: Store apps run apart from the system;
+    // a catalog entry may declare "permissions", and its EULA may list "Requirements:".
+    const PERMISSIONS = {
+      network: ['public', () => mariowOSI18n.t('store.perm.network', 'Uses the internet')],
+      files: ['folder_open', () => mariowOSI18n.t('store.perm.files', 'Reads and saves your files')],
+      location: ['location_on', () => mariowOSI18n.t('store.perm.location', 'Knows your location')],
+      camera: ['photo_camera', () => mariowOSI18n.t('store.perm.camera', 'Uses the camera')],
+      microphone: ['mic', () => mariowOSI18n.t('store.perm.microphone', 'Uses the microphone')],
+      notifications: ['notifications', () => mariowOSI18n.t('store.perm.notifications', 'Shows notifications')],
+      system: ['admin_panel_settings', () => mariowOSI18n.t('store.perm.system', 'Full access to the system')]
+    };
+    function renderPermissions(app) {
+      const list = document.getElementById('lpPerms');
+      const rows = [];
+      const add = (icon, title, note, kind) => {
+        const row = document.createElement('div'); row.className = 'lp-perm' + (kind ? ' ' + kind : '');
+        row.style.animationDelay = (rows.length * 0.06) + 's';
+        const text = document.createElement('div'); text.textContent = title;
+        if (note) { const small = document.createElement('small'); small.textContent = note; text.append(small); }
+        row.append(Object.assign(document.createElement('span'), { className: 'material-symbols-outlined', textContent: icon }), text);
+        rows.push(row);
+      };
+      const requirements = (String(app.eula || '').split(/Requirements:/i)[1] || '').split(/\r?\n/).map(line => line.replace(/^\s*-\s*/, '').trim()).filter(Boolean).slice(0, 6);
+      const declared = Array.isArray(app.permissions) ? app.permissions.filter(name => PERMISSIONS[name]) : [];
+      const fullAccess = declared.includes('system') || requirements.some(line => /superuser|full|runtime/i.test(line));
+      if (fullAccess) add('admin_panel_settings', mariowOSI18n.t('store.perm.system', 'Full access to the system'), mariowOSI18n.t('store.perm.system-note', 'Install it only if you trust the developer.'), 'warn');
+      else add('shield', mariowOSI18n.t('store.perm.isolated', 'Runs apart from the system'), mariowOSI18n.t('store.perm.isolated-note', 'It cannot read your settings or other apps.'), 'safe');
+      declared.filter(name => name !== 'system').forEach(name => { const [icon, label] = PERMISSIONS[name]; add(icon, label()); });
+      requirements.forEach(line => add('rule', line, mariowOSI18n.t('store.perm.from-eula', 'Listed by the developer'), /superuser|full|runtime/i.test(line) ? 'warn' : ''));
+      list.replaceChildren(...rows);
+    }
+
+    // Stars and activity on GitHub, and "what's new" from the app's own version.json.
+    async function loadAppInfo(app) {
+      const stats = document.getElementById('lpStats');
+      const newBox = document.getElementById('lpNewBox');
+      stats.replaceChildren(); newBox.hidden = true;
+      if (!app.repoUrl) return;
+      let info;
+      try { info = await (await fetch('/api/store/app-info?repo=' + encodeURIComponent(app.repoUrl))).json(); } catch (e) { return; }
+      if (currentAppOpen !== app || !info || !info.success) return;
+      const stat = (icon, value, label, extra) => {
+        const box = document.createElement('div'); box.className = 'lp-stat' + (extra ? ' ' + extra : '');
+        box.style.animationDelay = (stats.childElementCount * 0.07) + 's';
+        box.append(Object.assign(document.createElement('span'), { className: 'material-symbols-outlined', textContent: icon }), Object.assign(document.createElement('b'), { textContent: value }), document.createTextNode(label));
+        stats.append(box);
+      };
+      if (info.stars != null) stat('star', info.stars.toLocaleString(mariowOSI18n.locale), mariowOSI18n.t('store.detail.stars', 'on GitHub'), 'stars');
+      if (info.version) stat('new_releases', info.version, mariowOSI18n.t('store.detail.version', 'version'));
+      if (info.updatedAt) stat('update', new Date(info.updatedAt).toLocaleDateString(mariowOSI18n.locale, { day: 'numeric', month: 'short', year: 'numeric' }), mariowOSI18n.t('store.detail.updated', 'last change'));
+      if (info.changelog) {
+        document.getElementById('lpNew').textContent = info.changelog;
+        document.getElementById('lpVersion').textContent = info.version || '';
+        newBox.hidden = false;
+      }
+    }
+
     function openLandpage(id) {
       currentAppOpen = storeCatalog.find(a => a.id === id);
       if (!currentAppOpen) return;
@@ -719,6 +816,8 @@
       document.getElementById('lpDev').textContent = currentAppOpen.developer;
       document.getElementById('lpDesc').textContent = currentAppOpen.desc;
       document.getElementById('installError').textContent = '';
+      renderPermissions(currentAppOpen);
+      loadAppInfo(currentAppOpen);
 
       updateInstallBtn();
       switchView('landpage');
@@ -907,7 +1006,9 @@
 
         status.style.color = '#32d74b';
         status.textContent = mariowOSI18n.t("store.publish.success", "Success! Your app is now available on Discover.");
-        
+        // It is in this computer's catalog; offer to propose it for everyone's (a GitHub issue).
+        offerOfficialCatalog({ id: idVal, title: titleVal, developer: devVal, desc: descVal, repoUrl: repoVal, icon: iconTextVal || undefined, eula: eulaVal || undefined });
+
         document.getElementById('pubId').value = '';
         document.getElementById('pubTitle').value = '';
         document.getElementById('pubDev').value = '';
@@ -917,7 +1018,7 @@
         document.getElementById('pubIconText').value = '';
         document.getElementById('pubIconFile').value = '';
 
-        setTimeout(() => { initStore(); switchView('home'); }, 1500);
+        initStore(); // the new app is on Discover; this page stays for the "propose" button
       } catch (err) {
         status.style.color = '#FF453A';
         status.textContent = mariowOSI18n.t("store.error", "Error: {error}", { error: err.message });
@@ -968,6 +1069,35 @@
         fetchUpdateChannel();
       }
     }
+
+    // After publishing to this computer, a button opens a prefilled issue on the official
+    // catalog (mariowOS/store-catalog) in the browser; nothing is sent without the user.
+    function offerOfficialCatalog(entry) {
+      const status = document.getElementById('publishStatus');
+      const button = document.createElement('button');
+      button.className = 'btn-action'; button.style.marginTop = '12px'; button.style.width = '100%';
+      button.textContent = mariowOSI18n.t("store.publish.propose", "Propose it for everyone's Store too");
+      button.onclick = () => {
+        const body = 'Please add this app to the mariowOS Store catalog.\n\n```json\n' + JSON.stringify(entry, null, 2) + '\n```\n';
+        const url = 'https://github.com/mariowOS/store-catalog/issues/new?title=' + encodeURIComponent('New app: ' + entry.title) + '&body=' + encodeURIComponent(body);
+        window.open(url, '_blank');
+      };
+      status.after(button);
+      setTimeout(() => button.remove(), 60000);
+    }
+
+    // Automatic app updates: switched here, run by the kernel (see /api/store/auto-update).
+    const autoUpdateToggle = document.getElementById('autoUpdateToggle');
+    fetch('/api/store/auto-update', { cache: 'no-store' }).then(r => r.json()).then(data => { autoUpdateToggle.checked = !!data.enabled; }).catch(() => {});
+    autoUpdateToggle.addEventListener('change', async () => {
+      try {
+        const res = await fetch('/api/store/auto-update', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ enabled: autoUpdateToggle.checked }) });
+        if (!res.ok) throw new Error(res.status);
+      } catch (e) {
+        autoUpdateToggle.checked = !autoUpdateToggle.checked;
+        document.getElementById('autoUpdateStatus').textContent = mariowOSI18n.t("store.admin-only-hint", "Only administrators can install apps on this computer.");
+      }
+    });
 
     async function updateCatalog() {
       const btn = document.getElementById('btnUpdateCatalog');
