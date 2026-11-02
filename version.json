@@ -1,5 +1,5 @@
 {
-  "version": "2.0.0",
-  "changelog": "mariowOS 2.0 arrives on Stable, bringing everything tested in the Insiders previews: multiple user accounts with their own password, home folder and notes (Settings > Users), a new lock screen, a redesigned setup with highlights, accent colors, refreshed built-in apps (Files, Music, Notes, Pictures, Videos, Calculator, Calendar, Terminal and Settings), Bluetooth device detection, battery status and quick settings, and an updated Store that supports the other update channels and can update the local repository with one button.",
+  "version": "1.5",
+  "changelog": "mariowOS 1.5 arrives on Stable, bringing everything tested in the Insiders previews: multiple user accounts with their own password, home folder and notes (Settings > Users), a new lock screen, a redesigned setup with highlights, accent colors, refreshed built-in apps (Files, Music, Notes, Pictures, Videos, Calculator, Calendar, Terminal and Settings), Bluetooth device detection, battery status and quick settings, and an updated Store that supports the other update channels and can update the local repository with one button.",
   "_comment": "obb."
 }
