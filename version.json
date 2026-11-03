@@ -1,6 +1,6 @@
 {
-  "version": "2.0.1",
+  "version": "2.0.2",
   "codename": "bagle",
-  "changelog": "mariowOS 2 is our biggest release so far. A new design made for mariowOS with its own icons and light and dark themes. Updates and Store apps no longer need Git, and a new Windows installer needs nothing else. Global search (Win+S) finds apps, files and settings and does calculations. Widgets (Win+W) show the clock, weather, today's events, notes and music. Notifications are grouped by app with Do not disturb per app. Apps get a real SDK with permissions you approve at install, and the Store adds categories, featured apps, developer pages and a My apps page to review permissions. Optional anonymous usage count, off by default.",
+  "changelog": "mariowOS 2 is our biggest release so far. A new design made for mariowOS with its own icons and light and dark themes. Updates and Store apps no longer need Git, and a new Windows installer includes a migration wizard from Windows 7 and 8.1.",
   "_comment": "obb."
 }
