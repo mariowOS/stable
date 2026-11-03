@@ -7,6 +7,8 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
     <meta charset="UTF-8">
     <title data-i18n="settings.changechannel.title">Changelog - mariowOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +20,7 @@
             margin: 0;
             padding: 20px;
             font-family: 'Poppins', sans-serif;
-            color: white;
+            color: var(--mw-text);
         }
         h1, h2, h3 {
             font-weight: 600;
@@ -38,7 +40,7 @@
         }
 
                 p {
-            color: #ffffff;
+            color: var(--mw-text);
             text-decoration: none;
         }
         ::-webkit-scrollbar {
@@ -53,6 +55,7 @@
             background: #555;
         }
     </style>
+    <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 <link rel="stylesheet" href="/desktop/assets/material-you.css">
 <script src="/desktop/assets/monet-engine.js"></script>
 <!--
@@ -61,7 +64,7 @@ It tells contributors what is already in the current insiders build and what is 
 so the team can keep the OS direction clear without losing the human story behind it.
 -->
 <p><a href="javascript:history.back()" data-i18n="settings.changechannel.go-back">Go back</a></p>
-<h2>🐺 <span data-i18n="settings.roadmap.heading">INSIDERS UPDATE ROADMAP</span></h2>
+<h2><img src="/desktop/assets/icons/stars.png" alt="" width="26" height="26" style="vertical-align: -6px; margin-right: 6px;"><span data-i18n="settings.roadmap.heading">INSIDERS UPDATE ROADMAP</span></h2>
 <h3 data-i18n="settings.roadmap.legend">✅: completed, ⌛: coming soon, 🔷: brought stuff from upcoming releases on current, ❌: cancelled</h3>
 
 <h3>• ✅ INSIDERS V1</h3>

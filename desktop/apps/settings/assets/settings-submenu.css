@@ -1,9 +1,10 @@
+@import url('/desktop/assets/mw-design.css');
 :root {
-  --settings-accent: var(--sys-accent);
-  --settings-surface: rgba(255, 255, 255, 0.06);
-  --settings-border: rgba(255, 255, 255, 0.1);
-  --settings-divider: rgba(255, 255, 255, 0.05);
-  --settings-muted: rgba(255, 255, 255, 0.5);
+  --settings-accent: var(--mw-accent);
+  --settings-surface: var(--mw-fill-soft);
+  --settings-border: var(--mw-border);
+  --settings-divider: var(--mw-divider);
+  --settings-muted: var(--mw-text-muted);
 }
 
 * {
@@ -14,7 +15,7 @@ body {
   display: block;
   overflow-x: hidden;
   padding: 10px 0;
-  color: #fff;
+  color: var(--mw-text);
   font-family: 'Poppins', sans-serif;
 }
 
@@ -38,7 +39,7 @@ body {
 .settings-page-header h2,
 .sub-header h2 {
   margin: 0 0 0 4px;
-  color: #fff;
+  color: var(--mw-text);
   font-size: 20px;
   font-weight: 500;
 }
@@ -86,7 +87,7 @@ body {
 .template-title,
 .history-title,
 .toggle-label {
-  color: #fff;
+  color: var(--mw-text);
 }
 
 .banner .title {
@@ -160,7 +161,7 @@ body {
 .list-item:hover,
 .rule-item:hover,
 .history-item:hover {
-  background: rgba(255, 255, 255, 0.1);
+  background: rgba(var(--mw-ink), 0.1);
 }
 
 .text-title,
@@ -199,7 +200,7 @@ body {
   display: flex;
   flex-shrink: 0;
   align-items: center;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(var(--mw-ink), 0.3);
 }
 
 .item-right .material-symbols-outlined {
@@ -217,8 +218,8 @@ body {
   padding: 7px 12px;
   border: 1px solid var(--settings-border);
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.06);
-  color: #fff;
+  background: rgba(var(--mw-ink), 0.06);
+  color: var(--mw-text);
   font: 500 12px 'Poppins', sans-serif;
   cursor: pointer;
   transition: background 0.2s, border-color 0.2s;
@@ -255,7 +256,7 @@ label,
 .panel label {
   display: block;
   margin: 0 0 6px;
-  color: rgba(255, 255, 255, 0.7);
+  color: rgba(var(--mw-ink), 0.7);
   font-size: 12px;
   font-weight: 500;
 }
@@ -269,8 +270,8 @@ textarea {
   border: 1px solid var(--settings-border);
   border-radius: 6px;
   outline: none;
-  background: rgba(0, 0, 0, 0.2);
-  color: #fff;
+  background: rgba(var(--mw-shade), 0.2);
+  color: var(--mw-text);
   font: 400 13px 'Poppins', sans-serif;
 }
 
@@ -282,7 +283,7 @@ textarea:focus {
 
 select option {
   background: #1e1e1e;
-  color: #fff;
+  color: var(--mw-text);
 }
 
 input[type='time']::-webkit-calendar-picker-indicator {
@@ -301,7 +302,7 @@ input[type='time']::-webkit-calendar-picker-indicator {
   height: 24px;
   border: 1px solid var(--settings-border);
   border-radius: 12px;
-  background: rgba(255, 255, 255, 0.16);
+  background: rgba(var(--mw-ink), 0.16);
   cursor: pointer;
 }
 
@@ -327,7 +328,7 @@ input[type='time']::-webkit-calendar-picker-indicator {
 .preview-box {
   margin: 0;
   padding: 0;
-  color: #fff;
+  color: var(--mw-text);
   font-size: 20px;
   font-weight: 500;
   letter-spacing: 0;
@@ -352,7 +353,7 @@ input[type='time']::-webkit-calendar-picker-indicator {
   width: auto;
   height: auto;
   background: transparent;
-  color: rgba(255, 255, 255, 0.3);
+  color: rgba(var(--mw-ink), 0.3);
 }
 
 .item:hover .card-arrow {

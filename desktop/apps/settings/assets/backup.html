@@ -6,6 +6,8 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,19 +15,20 @@
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   <style>
-    body { -webkit-font-smoothing: antialiased; font-family: 'Poppins', sans-serif; color: white; margin: 0; padding: 10px 0; background: transparent; overflow-x: hidden; overflow-y: auto; }
+    body { -webkit-font-smoothing: antialiased; font-family: 'Poppins', sans-serif; color: var(--mw-text); margin: 0; padding: 10px 0; background: transparent; overflow-x: hidden; overflow-y: auto; }
     .container { width: 100%; position: relative; padding: 0 10px; box-sizing: border-box; }
-    .panel { background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
-    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(255, 255, 255, 0.05); cursor: pointer; transition: background 0.2s; }
-    .list-item:hover { background: rgba(255, 255, 255, 0.1); }
+    .panel { background: rgba(var(--mw-ink), 0.06); border: 1px solid rgba(var(--mw-ink), 0.1); border-radius: 10px; overflow: hidden; margin-bottom: 20px; }
+    .list-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(var(--mw-ink), 0.05); cursor: pointer; transition: background 0.2s; }
+    .list-item:hover { background: rgba(var(--mw-ink), 0.1); }
     .list-item:last-child { border-bottom: none; }
     .item-left { display: flex; align-items: center; gap: 14px; }
     .icon-badge { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; border-radius: 6px; color: white; flex-shrink: 0; }
     .icon-badge .material-symbols-outlined { font-size: 18px; }
     .item-title { font-size: 14px; font-weight: 500; }
-    .item-subtitle { font-size: 12px; color: rgba(255, 255, 255, 0.5); margin-top: 2px; }
-    .item-right { color: rgba(255, 255, 255, 0.3); display: flex; align-items: center; }
+    .item-subtitle { font-size: 12px; color: rgba(var(--mw-ink), 0.5); margin-top: 2px; }
+    .item-right { color: rgba(var(--mw-ink), 0.3); display: flex; align-items: center; }
   </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 
@@ -33,7 +36,7 @@
   <div class="panel">
     <div class="list-item" onclick="exportBackup()">
       <div class="item-left">
-        <div class="icon-badge" style="background: linear-gradient(180deg, #32d74b, #28cd41);"><span class="material-symbols-outlined">download</span></div>
+        <div class="icon-badge" style="background: linear-gradient(135deg, #32d74b, #28cd41);"><span class="material-symbols-outlined">download</span></div>
         <div>
           <div class="item-title" data-i18n="settings.backup.export">Export Settings</div>
           <div class="item-subtitle" data-i18n="settings.backup.export.subtitle">Download your data as credentials.json</div>
@@ -44,7 +47,7 @@
 
     <div class="list-item" onclick="document.getElementById('fileInput').click()">
       <div class="item-left">
-        <div class="icon-badge" style="background: linear-gradient(180deg, #0a84ff, #007aff);"><span class="material-symbols-outlined">upload</span></div>
+        <div class="icon-badge" style="background: linear-gradient(135deg, #0a84ff, #007aff);"><span class="material-symbols-outlined">upload</span></div>
         <div>
           <div class="item-title" data-i18n="settings.backup.import">Import Settings</div>
           <div class="item-subtitle" data-i18n="settings.backup.import.subtitle">Restore from a credentials.json file</div>
@@ -90,7 +93,7 @@ function importBackup(e) {
     fetch('/api/system/restore', { method: 'POST', body: fd })
       .then(r => r.json()).then(res => {
         if(res.success) {
-          window.parent.postMessage({ type: 'show-notification', title: mariowOSI18n.t("settings.backup.restored", "Backup Restored"), msg: mariowOSI18n.t("settings.backup.restored.message", "System config updated successfully."), icon: '☁️' }, '*');
+          window.parent.postMessage({ type: 'show-notification', title: mariowOSI18n.t("settings.backup.restored", "Backup Restored"), msg: mariowOSI18n.t("settings.backup.restored.message", "System config updated successfully."), icon: 'cloud_done' }, '*');
         } else {
           mDialog.alert(mariowOSI18n.t("settings.backup.error", "Error: {message}", { message: res.error }));
         }

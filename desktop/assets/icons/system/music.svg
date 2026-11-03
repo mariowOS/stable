@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="mw-music-bg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff5c8a"/>
+      <stop offset="1" stop-color="#e0285c"/>
+    </linearGradient>
+    <linearGradient id="mw-music-sheen" x1="24" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-music-bg)"/>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-music-sheen)"/>
+  <rect x="2.5" y="2.5" width="43" height="43" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.16"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 31.5V15.5l13-3v15.5"/>
+    <circle cx="16.8" cy="31.5" r="3.4" fill="#ffffff" stroke="none"/>
+    <circle cx="29.8" cy="28" r="3.4" fill="#ffffff" stroke="none"/>
+    <path d="M20 20.5l13-3"/>
+  </g>
+</svg>

@@ -34,6 +34,14 @@
                         <div class="circle"></div>
                     </div>
                 </div>
+
+                <div class="toggle-container" id="statsToggle" role="switch" tabindex="0" aria-labelledby="statsLabel" style="margin-top: 12px;">
+                    <span class="toggle-label" id="statsLabel" data-i18n="setup.preferences.stats">Count this PC in the anonymous total of mariowOS users</span>
+                    <div class="switch">
+                        <div class="circle"></div>
+                    </div>
+                </div>
+                <p style="font-size: 13px; opacity: .7; margin-top: 8px;" data-i18n="setup.preferences.stats-detail">Once a day only the mariowOS version and update channel are sent. No name, no ID, nothing about this PC.</p>
             </div>
         </div>
     </main>
@@ -47,6 +55,21 @@
         // Logica Toggle Interattivo
         const toggle = document.getElementById('mainToggle');
 
+        const statsToggle = document.getElementById('statsToggle');
+        // Anonymous count: no email needed, saved as soon as it is switched.
+        async function switchStats() {
+            const enable = !statsToggle.classList.contains('active');
+            try {
+                const data = await fetch('/api/preferences', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ anonymousStats: enable })
+                }).then(r => r.json());
+                if (data.success) statsToggle.classList.toggle('active', enable);
+            } catch (err) { console.error('Error saving preference:', err); }
+        }
+        statsToggle.addEventListener('click', switchStats);
+        statsToggle.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); switchStats(); } });
+
         let emailVerified = false;
         let busy = false;
 
@@ -56,6 +79,7 @@
             .then(data => {
                 emailVerified = !!data.verified;
                 if (data.sendReports) toggle.classList.add('active');
+                if (data.anonymousStats) statsToggle.classList.add('active');
             })
             .catch(err => console.error('Error loading preferences:', err));
 

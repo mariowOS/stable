@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="mw-calculator-bg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#5b6cff"/>
+      <stop offset="1" stop-color="#3a3fcf"/>
+    </linearGradient>
+    <linearGradient id="mw-calculator-sheen" x1="24" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-calculator-bg)"/>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-calculator-sheen)"/>
+  <rect x="2.5" y="2.5" width="43" height="43" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.16"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M15 17.5h7M18.5 14v7"/>
+    <path d="M26 17.5h7"/>
+    <path d="M15.5 27.5l6 6M21.5 27.5l-6 6"/>
+    <path d="M26 28.5h7M26 32.5h7"/>
+  </g>
+</svg>

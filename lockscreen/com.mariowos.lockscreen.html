@@ -13,6 +13,7 @@ This project uses open source and free fonts sourced from Google Fonts. Google F
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet" id="default-font">
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <style>
 * { box-sizing: border-box; }
 html, body {
@@ -435,6 +436,33 @@ body.live-wallpaper-active.lock-standby { animation-play-state: paused !importan
   .hmos-media-card { background: rgba(20, 22, 28, 0.92); }
   .lockscreen-notif-item { background: rgba(20, 22, 28, 0.92); }
 }
+/* ---- mariowOS 2 ---- The lock screen sits on the wallpaper in both themes, so it keeps light
+   text; surfaces are the shell's glass, motion is calm (no overshoot, no hover zoom). */
+.clock-cell.roll { animation: clockRoll .45s var(--mw-ease-out); }
+@keyframes clockRoll { from { opacity: 0; transform: translateY(30%); filter: blur(3px); } }
+.datetime .date { font-weight: 500; letter-spacing: 0.01em; }
+.datetime .time { font-weight: 600; letter-spacing: -0.02em; }
+.avatar { width: 64px; height: 64px; box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.5), 0 8px 24px rgba(0, 0, 0, 0.45); }
+.unlock-pill { background-color: rgba(16, 19, 26, 0.42); -webkit-backdrop-filter: blur(var(--mw-blur-md)) saturate(160%); backdrop-filter: blur(var(--mw-blur-md)) saturate(160%); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16), 0 8px 24px rgba(0, 0, 0, 0.25); transition: box-shadow var(--mw-duration-base) ease; }
+.unlock-pill:focus-within { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.4), 0 0 0 4px rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.25); }
+.lockscreen-notif-item { background: rgba(16, 19, 26, 0.4); border-color: rgba(255, 255, 255, 0.12); border-radius: var(--mw-radius-lg); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22); }
+.lockscreen-notif-icon { border-radius: var(--mw-radius-md); background: rgba(255, 255, 255, 0.16); color: #ffffff; font-family: var(--mw-font-icons); font-size: 17px; font-variation-settings: 'FILL' 1; overflow: hidden; }
+.hmos-media-card { border-radius: var(--mw-radius-xl); }
+.media-btn { transition: opacity var(--mw-duration-fast) ease; }
+.media-btn:hover { opacity: 0.8; transform: none; }
+.media-btn:active { transform: none; opacity: 0.6; }
+.switch-user { transition: background var(--mw-duration-fast) ease; }
+.switch-user:hover { transform: none; }
+.popup-overlay { background: var(--mw-scrim); }
+.popup { background: var(--mw-glass-solid); color: var(--mw-text); border-radius: var(--mw-radius-xl); box-shadow: var(--mw-edge), var(--mw-shadow-lg); padding: 26px 30px; }
+.popup h1 { color: var(--mw-text); font-size: 20px; }
+.popup p { color: var(--mw-text-secondary); font-size: 14px; }
+.popup-buttons button { border-radius: var(--mw-radius-control); transition: background var(--mw-duration-fast) ease; }
+.popup-buttons button:hover { transform: none; }
+#closePopup { background: var(--mw-fill-strong); color: var(--mw-text); }
+#redirectPopup { background: var(--mw-accent); color: var(--mw-accent-on); }
+@supports not (backdrop-filter: blur(1px)) { .popup { background: var(--mw-surface-3); } }
+/* ---- end mariowOS 2 ---- */
 </style>
 </head>
 <body>
@@ -718,7 +746,7 @@ function updateNotificationsUI(notifs) {
 
     const iconEl = document.createElement('div');
     iconEl.className = 'lockscreen-notif-icon';
-    iconEl.textContent = n.icon || '🔔';
+    iconEl.textContent = n.icon || 'notifications';
 
     const contentEl = document.createElement('div');
     contentEl.className = 'lockscreen-notif-content';

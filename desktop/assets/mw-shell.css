@@ -1,0 +1,375 @@
+/* mariowOS 2 shell: taskbar, apps menu, tray, control panel, notification centre, context menus,
+ * window chrome, toasts, dialogs and task view, drawn with the tokens in mw-design.css.
+ *
+ * The desktop page links it after its own <style>, so these rules win by order at the same
+ * specificity. The page draws every border off (`* { border: 0 !important }`) and every outline
+ * off, so hairlines and focus rings here are box-shadows.
+ *
+ * Principles: calm glass, one hairline rim per sheet, no scaling on hover, a 0.97 press at most,
+ * short ease-out motion. Both themes: dark is the default, [data-theme="light"] flips surfaces.
+ */
+
+/* ===== Motion: the old keyframes, redrawn without overshoot ============================== */
+@keyframes iconPop { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes taskbarSlideUp { from { transform: translate3d(0, 16px, 0); } to { transform: none; } }
+@keyframes popupIn { from { opacity: 0; transform: translateY(8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes popupOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(6px) scale(0.985); } }
+@keyframes popupMinimize { from { opacity: 1; transform: none; } to { opacity: 0; transform: translateY(40px) scale(0.9); } }
+@keyframes toastIn { from { opacity: 0; transform: translate3d(16px, 0, 0); } to { opacity: 1; transform: none; } }
+@keyframes toastOut { from { opacity: 1; transform: none; } to { opacity: 0; transform: translate3d(12px, 0, 0); } }
+@keyframes amItemIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes togglePop { from { opacity: 0.6; } to { opacity: 1; } }
+@keyframes ncIn { from { transform: translateY(-6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes deviceArtIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes mediaSwitch { from { opacity: 0; transform: translateX(6px); } to { opacity: 1; transform: none; } }
+/* Quick Settings glyphs keep their little gestures, without the rubber band. */
+@keyframes qsiDot { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes qsiArc { from { opacity: 0; transform: scale(0.7); } to { opacity: 1; transform: scale(1); } }
+@keyframes qsiTwinkle { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: scale(1); } }
+@keyframes qsiSpark { 0% { opacity: 0; } 50% { opacity: 1; } 100% { opacity: 0; } }
+@keyframes qsiBolt { from { opacity: 0; transform: translateY(-3px); } to { opacity: 1; transform: none; } }
+@keyframes qsiRing { 0% { transform: rotate(0); } 30% { transform: rotate(10deg); } 60% { transform: rotate(-6deg); } 100% { transform: rotate(0); } }
+
+.popup.active { animation-duration: 0.22s; animation-timing-function: var(--mw-ease-out); }
+.popup.closing { animation-duration: 0.14s; }
+.toast { animation-duration: 0.26s; animation-timing-function: var(--mw-ease-out); }
+
+/* ===== Taskbar =========================================================================== */
+.status-bar-bg {
+  background-color: var(--mw-glass-thin);
+  -webkit-backdrop-filter: blur(var(--mw-blur-xl)) saturate(var(--mw-glass-saturate));
+  backdrop-filter: blur(var(--mw-blur-xl)) saturate(var(--mw-glass-saturate));
+  box-shadow: inset 0 1px 0 rgba(var(--mw-ink), 0.08);
+}
+.status-bar { animation-duration: 0.36s; animation-timing-function: var(--mw-ease-out); }
+.status-bar .system-tray-btn, .status-bar .status-clock, .status-left .search-btn, #devChip { animation-duration: 0.3s; }
+
+.dock-icon {
+  border-radius: var(--mw-radius-md);
+  transition: width var(--mw-duration-medium) var(--mw-ease-out), margin var(--mw-duration-medium) var(--mw-ease-out),
+    opacity var(--mw-duration-base) ease, transform var(--mw-duration-fast) var(--mw-ease-out), background var(--mw-duration-fast) ease;
+}
+.dock-icon:hover { background: var(--mw-fill-hover) !important; transform: none; }
+.dock-icon.running { background: rgba(var(--mw-ink), 0.05); }
+.dock-icon.running:hover { background: var(--mw-fill-strong) !important; }
+.dock-icon:active { transform: scale(var(--mw-press-scale)); background: var(--mw-fill-pressed) !important; }
+.dock-icon.drag-over-left { transform: translateX(6px); }
+.dock-icon.drag-over-right { transform: translateX(-6px); }
+.dock-icon img, .dock-icon .menu-icon-symbol { transition: none; }
+.dock-icon:active img, .dock-icon:active .menu-icon-symbol { transform: none; }
+/* Running mark: a short pill that widens on the focused window's app. */
+.dock-icon::after { bottom: 3px; height: 3px; border-radius: var(--mw-radius-full); background: var(--mw-text-muted); transition: width var(--mw-duration-medium) var(--mw-ease-out), background var(--mw-duration-base) ease; }
+.dock-icon.running::after { width: 6px; }
+.dock-icon.running.focused::after, .dock-icon.running.active::after { width: 14px; background: var(--mw-accent-text); }
+.dock-taskview-icon { border-radius: var(--mw-radius-sm); background: linear-gradient(135deg, #8a7cff, #5b4fe0); box-shadow: none; transition: none; }
+.dock-taskview:active .dock-taskview-icon { transform: none; }
+
+.search-btn, .system-tray-btn, .status-clock {
+  border-radius: var(--mw-radius-md);
+  transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease;
+}
+.search-btn { color: var(--mw-text-strong); }
+.search-btn:hover, .system-tray-btn:hover, .status-clock:hover { background: var(--mw-fill-hover) !important; color: var(--mw-text); transform: none; }
+.search-btn:active, .system-tray-btn:active, .status-clock:active { transform: none; background: var(--mw-fill-pressed) !important; }
+.system-tray-btn, .status-clock, #volumeIcon, #batteryBtn { color: var(--mw-text); }
+#volumeDropdownIcon { color: var(--mw-text) !important; }
+#notifBadge { background: var(--mw-danger); box-shadow: 0 0 0 2px var(--mw-glass-thin); }
+:is(.search-btn, .system-tray-btn, .status-clock, .dock-icon, .am-round, .cp-head-btn, .nc-head-btn, .cal-nav-btn, .am-app, .am-file, .am-power-item):focus-visible {
+  box-shadow: var(--mw-focus-ring-inset);
+}
+
+/* ===== Panels (every .dropdown) ========================================================== */
+.dropdown {
+  background-color: var(--mw-glass-thick) !important;
+  -webkit-backdrop-filter: blur(var(--mw-blur-xl)) saturate(var(--mw-glass-saturate)) !important;
+  backdrop-filter: blur(var(--mw-blur-xl)) saturate(var(--mw-glass-saturate)) !important;
+  box-shadow: var(--mw-edge), var(--mw-shadow-lg) !important;
+  border-radius: var(--mw-radius-xl);
+  padding: 6px;
+  transform: translateY(6px) scale(0.985);
+  transition: transform var(--mw-duration-fast) var(--mw-ease-in), opacity var(--mw-duration-fast) ease, visibility var(--mw-duration-fast) ease;
+}
+.dropdown.open { transform: none; transition: transform var(--mw-duration-medium) var(--mw-ease-out), opacity var(--mw-duration-base) ease, visibility var(--mw-duration-base) ease; }
+:is(#actionsDropdown, #notificationsDropdown, #volumeDropdown).open { transition: transform var(--mw-duration-slow) var(--mw-ease-sheet), opacity var(--mw-duration-base) ease, visibility 0s; }
+
+.dropdown-item {
+  gap: 10px; padding: 8px 12px; border-radius: var(--mw-radius-md);
+  font-size: var(--mw-font-size-base); color: var(--mw-text);
+  transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease;
+}
+.dropdown-item:hover { background: var(--mw-fill-strong) !important; }
+.dropdown-item:active { transform: none; background: var(--mw-fill-pressed) !important; }
+.menu-icon-symbol { color: var(--mw-text-secondary); }
+.dropdown-item:hover .menu-icon-symbol { color: var(--mw-accent-text); }
+.dropdown-item.danger, .dropdown-item.danger .material-symbols-outlined { color: var(--mw-danger); }
+.dropdown-item.danger:hover { background: var(--mw-danger-soft) !important; }
+.ctx-menu-header { box-shadow: inset 0 -1px 0 var(--mw-divider); padding: 6px 12px 10px; }
+.ctx-menu-header .ctx-menu-name { color: var(--mw-text); }
+.ctx-menu-header .ctx-menu-state { color: var(--mw-text-muted); }
+.ctx-separator { background: var(--mw-divider); margin: 4px 8px; }
+#desktopContextMenu, #desktopItemContextMenu, #dockContextMenu, #taskbarContextMenu { border-radius: var(--mw-radius-lg); min-width: 220px; }
+
+/* ===== Apps menu ========================================================================== */
+#actionsDropdown { border-radius: var(--mw-radius-2xl); padding: 0; }
+.am-title, .cp-title, .nc-title { color: var(--mw-text); letter-spacing: -0.005em; }
+.am-title { font-size: var(--mw-font-size-md); }
+.am-more { color: var(--mw-text-secondary); border-radius: var(--mw-radius-full); transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease; }
+.am-more:hover { background: var(--mw-fill-hover); color: var(--mw-text); }
+.am-more .material-symbols-outlined { transition: transform var(--mw-duration-medium) var(--mw-ease-out); }
+.am-app { border-radius: var(--mw-radius-lg); color: var(--mw-text); transition: background var(--mw-duration-fast) ease; }
+.am-app:hover { background: var(--mw-fill-hover); }
+.am-app:active { transform: none; background: var(--mw-fill-pressed); }
+.am-app-icon { transition: none; }
+.am-app:hover .am-app-icon { transform: none; }
+.am-app-name { color: var(--mw-text-strong); font-size: var(--mw-font-size-sm); }
+.am-file { border-radius: var(--mw-radius-card); color: var(--mw-text); transition: background var(--mw-duration-fast) ease; }
+.am-file:hover { background: var(--mw-fill-hover); }
+.am-file:active { transform: none; background: var(--mw-fill-pressed); }
+.am-file-icon { border-radius: var(--mw-radius-md); }
+.am-file-meta { color: var(--mw-text-muted); }
+.am-empty { color: var(--mw-text-muted); }
+#actionsDropdown.open .am-app, #actionsDropdown.open .am-file { animation: amItemIn var(--mw-duration-medium) var(--mw-ease-out) backwards; animation-delay: calc(var(--i, 0) * 8ms + 30ms); }
+.am-footer { background: rgba(var(--mw-ink), 0.03); box-shadow: inset 0 1px 0 var(--mw-divider); }
+.am-user { color: var(--mw-text); border-radius: var(--mw-radius-full); }
+.am-user:hover { background: var(--mw-fill-hover); }
+.am-round, .cp-head-btn, .nc-head-btn, .cal-foot-app { color: var(--mw-text-strong); transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease; }
+.am-round:hover, .cp-head-btn:hover, .nc-head-btn:hover, .cal-foot-app:hover { background: var(--mw-fill-strong); color: var(--mw-text); }
+.am-round:active, .cp-head-btn:active, .nc-head-btn:active, .cal-foot-app:active { transform: none; background: var(--mw-fill-pressed); }
+.am-power-menu {
+  border-radius: var(--mw-radius-lg); background: var(--mw-glass-menu);
+  box-shadow: var(--mw-edge), var(--mw-shadow-md);
+  transform: translateY(4px); transition: transform var(--mw-duration-fast) var(--mw-ease-in), opacity var(--mw-duration-fast) ease, visibility 0s linear var(--mw-duration-fast);
+}
+.am-power-menu.open { transform: none; transition: transform var(--mw-duration-base) var(--mw-ease-out), opacity var(--mw-duration-fast) ease, visibility 0s; }
+.am-power-item { border-radius: var(--mw-radius-md); color: var(--mw-text); padding: 9px 12px; }
+.am-power-item:hover { background: var(--mw-fill-strong); }
+.am-power-item .material-symbols-outlined { color: var(--mw-text-secondary); }
+.am-power-item.danger, .am-power-item.danger .material-symbols-outlined { color: var(--mw-danger); }
+.am-power-item.danger:hover { background: var(--mw-danger-soft); }
+.am-power-sep { background: var(--mw-divider); }
+
+/* ===== Control panel (quick settings) ===================================================== */
+#notificationsDropdown { border-radius: var(--mw-radius-2xl); padding: 16px; }
+.cp-tiles .qs-tile-hmos { border-radius: var(--mw-radius-xl); background: var(--mw-fill-soft); box-shadow: inset 0 0 0 1px var(--mw-border-subtle); transition: background var(--mw-duration-fast) ease; }
+.cp-tiles .qs-tile-hmos:hover { background: var(--mw-fill-strong); }
+.qs-tile-hmos:active, .hmos-circle-toggle:active, .hmos-icon-bg:active { transform: none; }
+.hmos-icon-bg { transition: background var(--mw-duration-base) ease, color var(--mw-duration-base) ease, box-shadow var(--mw-duration-base) ease; }
+.qs-tile-hmos .hmos-icon-bg, .hmos-circle-toggle .hmos-icon-bg, .qs-tile-hmos.active .hmos-icon-bg, .hmos-circle-toggle.active .hmos-icon-bg {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--qs-tint, var(--m3-accent-active)) 30%, transparent);
+}
+.qs-tile-hmos.inactive .hmos-icon-bg, .hmos-circle-toggle.inactive .hmos-icon-bg { background: var(--mw-fill-tile); color: var(--mw-text-strong); }
+.hmos-title { color: var(--mw-text); }
+.hmos-subtitle { color: var(--mw-text-muted); }
+.hmos-circle-toggle .hmos-label, .cp-circles .hmos-label { color: var(--mw-text-secondary); }
+.hmos-circle-toggle:active .hmos-label { transform: none; }
+.qs-subpanel { background: var(--mw-fill-soft) !important; border-radius: var(--mw-radius-lg); }
+.qs-list-item { background: var(--mw-fill) !important; border-radius: var(--mw-radius-md); color: var(--mw-text); transition: background var(--mw-duration-fast) ease; }
+.qs-list-item:hover { background: var(--mw-fill-key-hover) !important; }
+.qs-list-item:active { transform: none; }
+.qs-list-item.connected { background: var(--mw-accent) !important; color: var(--mw-accent-on); }
+#notificationsDropdown .hmos-media-card { border-radius: var(--mw-radius-xl); background: var(--mw-fill-soft); box-shadow: inset 0 0 0 1px var(--mw-border-subtle); }
+.media-title { color: var(--mw-text); }
+.media-artist, .media-source { color: var(--mw-text-secondary); }
+.media-source:hover { color: var(--mw-text); }
+.media-cover { border-radius: var(--mw-radius-card); background: var(--mw-fill-strong); }
+.media-cover-glyph { color: var(--mw-text-dim); }
+.media-btn { color: var(--mw-text); transition: background var(--mw-duration-fast) ease, opacity var(--mw-duration-fast) ease; }
+.media-btn:hover { opacity: 1; transform: none; background: var(--mw-fill-strong); }
+.media-btn:active { transform: none; background: var(--mw-fill-pressed); }
+.media-dot::before { background: var(--mw-text-dim); }
+.media-dot.on::before { background: var(--mw-text); transform: none; }
+.cp-slider { background: var(--mw-fill-strong); box-shadow: inset 0 0 0 1px var(--mw-border-subtle); }
+.cp-slider::before { background: var(--mw-text-strong); }
+.cp-slider-value { color: var(--mw-text-secondary); }
+#volumeDropdownIcon.cp-slider-icon, .cp-slider.full .cp-slider-value { color: var(--mw-surface-1) !important; }
+.cp-hint { color: var(--mw-text-secondary); }
+.cp-editing #cpEditBtn { background: var(--mw-accent); color: var(--mw-accent-on); }
+.cp-dragging { scale: 1.02; transition: scale var(--mw-duration-base) var(--mw-ease-out); }
+.cp-tiles > .cp-dragging { background: var(--mw-surface-3) !important; box-shadow: var(--mw-shadow-md), inset 0 0 0 1px var(--mw-border-strong) !important; }
+
+/* ===== Notification centre and calendar card ============================================== */
+.nc-card, .cal-card {
+  background-color: var(--mw-glass-thick);
+  -webkit-backdrop-filter: blur(var(--mw-blur-xl)) saturate(var(--mw-glass-saturate));
+  backdrop-filter: blur(var(--mw-blur-xl)) saturate(var(--mw-glass-saturate));
+  box-shadow: var(--mw-edge), var(--mw-shadow-lg);
+  border-radius: var(--mw-radius-2xl);
+}
+.nc-title { font-size: 17px; }
+.nc-head-btn.on { color: var(--mw-purple); }
+.nc-dnd { border-radius: var(--mw-radius-lg); background: color-mix(in srgb, var(--mw-purple) 16%, transparent); }
+.nc-dnd > .material-symbols-outlined { color: var(--mw-purple); }
+.nc-dnd-text { color: var(--mw-text-secondary); }
+.nc-dnd-off { background: var(--mw-fill-tile); color: var(--mw-text); border-radius: var(--mw-radius-full); }
+.nc-dnd-off:hover { background: var(--mw-fill-key-hover); }
+.nc-empty { color: var(--mw-text-muted); }
+.nc-item { border-radius: var(--mw-radius-lg); background: var(--mw-fill-soft); box-shadow: inset 0 0 0 1px var(--mw-border-subtle); }
+.nc-item.fresh { animation: ncIn var(--mw-duration-medium) var(--mw-ease-out) backwards; }
+.nc-item-icon { border-radius: var(--mw-radius-md); background: var(--mw-accent-soft); color: var(--mw-accent-text); }
+.nc-item-title { color: var(--mw-text); }
+.nc-item-time { color: var(--mw-text-muted); }
+.nc-item-msg { color: var(--mw-text-secondary); }
+.nc-item-close { background: var(--mw-fill-tile); color: var(--mw-text); }
+.nc-item-close:hover { background: var(--mw-fill-key-hover); }
+.cal-month-label { color: var(--mw-text); font-size: 15px; }
+.cal-nav-btn { color: var(--mw-text); transition: background var(--mw-duration-fast) ease; }
+.cal-nav-btn:hover { background: var(--mw-fill-strong); }
+.cal-nav-btn:active { transform: none; background: var(--mw-fill-pressed); }
+.cal-toggle { background: var(--mw-fill); color: var(--mw-text-strong); border-radius: var(--mw-radius-full); }
+.cal-toggle:hover { background: var(--mw-fill-tile); }
+.cal-day-name { color: var(--mw-text-muted); }
+.cal-day { color: var(--mw-text); font-weight: 500; transition: background var(--mw-duration-fast) ease; }
+.cal-day.weekend { color: var(--mw-text-secondary); }
+.cal-day.other-month { color: var(--mw-text-disabled); }
+.cal-day.today { box-shadow: none; }
+.cal-day:hover:not(.today) { background: var(--mw-fill-strong); transform: none; }
+.cal-day:active { transform: none; }
+.cal-events, .cal-foot { box-shadow: inset 0 1px 0 var(--mw-divider); }
+.cal-events-title { color: var(--mw-text-muted); letter-spacing: var(--mw-tracking-caps); }
+.cal-ev { border-radius: var(--mw-radius-md); }
+.cal-ev:hover { background: var(--mw-fill-strong); }
+.cal-ev-title { color: var(--mw-text); }
+.cal-ev-time { color: var(--mw-text-muted); }
+.cal-foot-link { color: var(--mw-text-strong); border-radius: var(--mw-radius-md); }
+.cal-foot-link:hover { background: var(--mw-fill-hover); }
+
+/* ===== Search (spotlight) ================================================================= */
+.spotlight-overlay { background: var(--mw-scrim); }
+.spotlight-box-wrapper {
+  background-color: var(--mw-glass-thick);
+  border-radius: var(--mw-radius-xl);
+  box-shadow: var(--mw-edge), var(--mw-shadow-lg);
+  transform: translateY(-8px) scale(0.99);
+  transition: transform var(--mw-duration-fast) var(--mw-ease-in);
+}
+.spotlight-overlay.active .spotlight-box-wrapper { transform: none; transition: transform var(--mw-duration-medium) var(--mw-ease-out); }
+.spotlight-input-bar { box-shadow: inset 0 -1px 0 var(--mw-divider); }
+.spotlight-input { color: var(--mw-text); font-size: 18px; }
+.spotlight-input::placeholder { color: var(--mw-text-dim); }
+.spotlight-icon { color: var(--mw-text-muted); transition: color var(--mw-duration-fast) ease; }
+.spotlight-input:focus ~ .spotlight-icon { transform: none; color: var(--mw-accent-text); }
+.spotlight-result-item { color: var(--mw-text); border-radius: var(--mw-radius-card); transition: background var(--mw-duration-fast) ease; }
+.spotlight-result-item:hover { background: var(--mw-fill-hover); }
+.spotlight-result-item.selected { background: var(--mw-accent-soft); box-shadow: inset 0 0 0 1px var(--mw-accent-line); }
+.spotlight-result-item:active { transform: none; }
+
+/* ===== Windows ============================================================================ */
+.popup {
+  border-radius: var(--mw-radius-window);
+  box-shadow: var(--mw-edge), var(--mw-shadow-window) !important;
+}
+.popup:not(.focused) { box-shadow: var(--mw-edge), var(--mw-shadow-md) !important; }
+.popup-header {
+  background: var(--mw-titlebar) !important;
+  color: var(--mw-text-strong);
+  font-size: var(--mw-font-size-sm);
+  font-weight: var(--mw-weight-medium);
+  padding: 0 6px 0 14px;
+  box-shadow: inset 0 -1px 0 var(--mw-divider);
+}
+.popup:not(.focused) .popup-header { color: var(--mw-text-muted); }
+.window-actions { gap: 2px; }
+.action-btn {
+  width: 30px; height: 26px; border-radius: var(--mw-radius-sm);
+  color: var(--mw-text-secondary);
+  transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease;
+}
+.action-btn:hover { color: var(--mw-text); background: var(--mw-fill-strong); transform: none; }
+.action-btn:active { transform: none; background: var(--mw-fill-pressed); }
+.action-btn.close-btn:hover { color: #ffffff; background: var(--mw-danger); }
+.action-btn.min-btn { font-size: 17px !important; }
+.action-btn.max-btn { font-size: 14px !important; }
+.action-btn.close-btn { font-size: 18px !important; }
+/* Tabs that Files and Terminal place in their title bar (their styles are injected at runtime,
+   so these carry the header class for specificity). Flat pills, not folder tabs. */
+.popup-header .notes-tab-btn {
+  height: 26px; margin-top: 0; align-self: center; padding: 0 8px 0 12px;
+  border-radius: var(--mw-radius-control); background: transparent; box-shadow: none;
+  color: var(--mw-text-secondary); transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease;
+}
+.popup-header .notes-tab-btn:hover { background: var(--mw-fill-strong); color: var(--mw-text); }
+.popup-header .notes-tab-btn.active { height: 26px; margin-top: 0; background: var(--mw-fill-tile); color: var(--mw-text); box-shadow: inset 0 0 0 1px var(--mw-border-subtle); }
+.popup-header .notes-tab-btn.active::before { content: none; }
+.popup-header .notes-tab-btn .tab-color-line { top: auto; bottom: 3px; left: 10px; right: 10px; height: 2px; border-radius: var(--mw-radius-full); }
+.popup-header .notes-tab-close { width: 18px; height: 18px; border-radius: var(--mw-radius-xs); font-weight: 400; }
+.popup-header .notes-tab-close:hover { color: var(--mw-text); background: var(--mw-fill-key-hover); }
+.popup-header .notes-tab-btn.drag-over { background: var(--mw-accent-soft); transform: none; }
+.popup-header #os-files-tabs .notes-tab-btn.file-drop { background: var(--mw-accent-soft); color: var(--mw-text); box-shadow: inset 0 0 0 1px var(--mw-accent-line); }
+.popup-header :is(#os-term-actions, #os-files-actions) .browser-nav-btn { color: var(--mw-text-secondary) !important; border-radius: var(--mw-radius-sm) !important; }
+.popup-header :is(#os-term-actions, #os-files-actions) .browser-nav-btn:hover { color: var(--mw-text) !important; background: var(--mw-fill-strong) !important; }
+#term-tab-context-menu { background: var(--mw-glass-thick) !important; box-shadow: var(--mw-edge), var(--mw-shadow-md) !important; border-radius: var(--mw-radius-lg) !important; color: var(--mw-text); }
+#term-tab-context-menu .color-dot:hover { transform: none; box-shadow: 0 0 0 2px var(--mw-border-strong); }
+
+.snap-preview { border-radius: var(--mw-radius-window); background: var(--mw-accent-softer); box-shadow: inset 0 0 0 2px var(--mw-accent-line); }
+
+/* Built-in dialogs drawn by the desktop. */
+.dialog-content { color: var(--mw-text); }
+.dialog-icon.error { color: var(--mw-danger); }
+.dialog-icon.warning { color: var(--mw-warning); }
+.dialog-icon.info { color: var(--mw-accent-text); }
+.dialog-buttons { background: rgba(var(--mw-shade), 0.18); box-shadow: inset 0 1px 0 var(--mw-divider); gap: 8px; }
+.dialog-btn { background: var(--mw-fill-strong); color: var(--mw-text); border-radius: var(--mw-radius-control); padding: 7px 16px; transition: background var(--mw-duration-fast) ease; }
+.dialog-btn:hover { background: var(--mw-fill-key-hover); }
+
+/* mariowos-dialogs.js (alert/confirm/prompt) in the shell. Its own <style> is injected at
+   runtime, after this file, so these carry one extra class of specificity. */
+.mdlg-backdrop.mdlg-backdrop { background: var(--mw-scrim); }
+.mdlg-backdrop .mdlg { background: var(--mw-glass-solid); color: var(--mw-text); border-radius: var(--mw-radius-xl); box-shadow: var(--mw-edge), var(--mw-shadow-lg); transform: translateY(8px); transition: transform var(--mw-duration-medium) var(--mw-ease-out); }
+.mdlg-backdrop.show .mdlg { transform: none; }
+.mdlg-backdrop .mdlg-msg { color: var(--mw-text-secondary); }
+.mdlg-backdrop .mdlg-input { color: var(--mw-text); background: var(--mw-field); border-radius: var(--mw-radius-control); box-shadow: inset 0 0 0 1px var(--mw-field-border); }
+.mdlg-backdrop .mdlg-btn { color: var(--mw-text); background: var(--mw-fill-strong); border-radius: var(--mw-radius-control); }
+.mdlg-backdrop .mdlg-btn:hover { filter: none; background: var(--mw-fill-key-hover); }
+.mdlg-backdrop .mdlg-btn.primary { background: var(--mw-accent); color: var(--mw-accent-on); }
+.mdlg-backdrop .mdlg-btn.primary:hover { background: var(--mw-accent-hover); }
+.mdlg-backdrop .mdlg-btn.danger { background: var(--mw-danger); color: #ffffff; }
+.mdlg-backdrop .mdlg-btn:focus-visible { box-shadow: var(--mw-focus-ring); }
+
+/* ===== Toasts ============================================================================= */
+.toast {
+  background-color: var(--mw-glass-thick) !important;
+  border-radius: var(--mw-radius-lg);
+  color: var(--mw-text);
+  box-shadow: var(--mw-edge), var(--mw-shadow-md) !important;
+  width: 300px; padding: 12px 14px;
+}
+.toast-icon { background: var(--mw-accent-soft); color: var(--mw-accent-text); border-radius: var(--mw-radius-md); width: 34px; height: 34px; flex: 0 0 34px; }
+.toast-title { color: var(--mw-text); }
+.toast-msg { color: var(--mw-text-secondary); }
+
+/* ===== Device popup and task view ========================================================= */
+#devicePopup { background-color: var(--mw-glass-thick); color: var(--mw-text); border-radius: var(--mw-radius-2xl); box-shadow: var(--mw-edge), var(--mw-shadow-lg); }
+#devicePopupClose { background: var(--mw-fill-strong); transition: background var(--mw-duration-fast) ease; }
+#devicePopupClose:hover { background: var(--mw-fill-key-hover); transform: none; }
+#devicePopupClose:active { transform: none; }
+#devicePopupStatus { color: var(--mw-text-secondary); }
+#devicePopupBattery { color: var(--mw-text); }
+.tv-close { background: var(--mw-fill-key-hover); }
+.tv-close:hover { background: var(--mw-danger); }
+
+/* ===== Desktop icons ====================================================================== */
+.desktop-item { border-radius: var(--mw-radius-card); transition: background var(--mw-duration-fast) ease; }
+.desktop-item .desktop-item-icon { transition: none; }
+.desktop-item:active .desktop-item-icon { transform: none; }
+
+/* ===== Light theme ======================================================================== */
+/* The desktop writes the window glass after this file with the user's glass level; on light
+   surfaces the glass is the light token instead (same selector plus the theme). */
+:root[data-theme="light"] .popup { background-color: var(--mw-glass-regular) !important; }
+:root[data-theme="light"] body:not(.lab-dark-mode):not(.lab-performance) .popup:not(#popup2) { background-color: var(--mw-glass-regular) !important; }
+:root[data-theme="light"] #popup2 .popup-header { color: #ffffff; }
+:root[data-theme="light"] #popup2 .action-btn { color: rgba(255, 255, 255, 0.75); }
+:root[data-theme="light"] .desktop-item:hover { background: rgba(255, 255, 255, 0.22) !important; }
+/* No-blur modes: solid surfaces in the theme's own color. */
+:root[data-theme="light"] body.power-saver :is(.status-bar-bg, .dropdown, .popup, .toast, .qs-subpanel, .qs-list-item, #notificationsDropdown, .spotlight-box-wrapper, .nc-card, .cal-card, #devicePopup),
+:root[data-theme="light"] body.lab-performance :is(.status-bar-bg, .dropdown, .popup, .toast, .nc-card, .cal-card, #devicePopup) {
+  background-color: var(--mw-glass-solid) !important;
+}
+:root[data-theme="light"] body.power-saver { background-color: var(--mw-surface-0) !important; }
+@supports not (backdrop-filter: blur(1px)) {
+  :root[data-theme="light"] :is(.status-bar-bg, .dropdown, .popup, .spotlight-box-wrapper, .toast) { background-color: var(--mw-glass-solid) !important; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .popup.active, .popup.closing, .popup.minimizing, .toast, .dropdown, .dropdown.open, .am-app, .am-file, .nc-item { animation-duration: 0.01s !important; transition-duration: 0.01s !important; }
+}

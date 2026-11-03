@@ -7,6 +7,8 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
     <meta charset="UTF-8">
     <title data-i18n="settings.changechannel.title">Changelog - mariowOS</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +20,7 @@
             margin: 0;
             padding: 20px;
             font-family: 'Poppins', sans-serif;
-            color: white;
+            color: var(--mw-text);
         }
         h1, h2, h3 {
             font-weight: 600;
@@ -38,14 +40,15 @@
         }
 
                 p {
-            color: #ffffff;
+            color: var(--mw-text);
             text-decoration: none;
         }
     </style>
+    <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 <link rel="stylesheet" href="/desktop/assets/material-you.css">
 <script src="/desktop/assets/monet-engine.js"></script>
 <p><a href="javascript:history.back()" data-i18n="settings.changechannel.go-back">Go back</a></p>
-<h2>❌ <span data-i18n="settings.changechannel.heading">You can't go back to a version without Tiles</span></h2>
+<h2><svg class="mw-heading-icon" viewBox="0 0 24 24" width="22" height="22" aria-hidden="true" style="vertical-align: -4px; margin-right: 6px;"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><path d="M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="settings.changechannel.heading">You can't go back to a version without Tiles</span></h2>
 <p data-i18n="settings.changechannel.explain">We're sorry but until Tiles releases stabily (v1) you can't downgrade to stable because latest doesn't have a way of communicating with the network.</p>
 <p data-i18n="settings.changechannel.wait">So please wait until v1 stable is released, thank you for understanding.</p>
 <p>&nbsp;</p>

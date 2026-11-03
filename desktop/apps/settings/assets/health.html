@@ -4,46 +4,49 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="settings.health.title">System health</title>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <style>
     html, body { margin: 0; background: transparent; -webkit-font-smoothing: antialiased; }
-    body { font-family: 'Poppins', sans-serif; color: #fff; padding: 10px 20px 30px; box-sizing: border-box; }
+    body { font-family: 'Poppins', sans-serif; color: var(--mw-text); padding: 10px 20px 30px; box-sizing: border-box; }
     html::-webkit-scrollbar { display: none; }
-    .back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: rgba(255,255,255,.7); font: 500 13px 'Poppins', sans-serif; cursor: pointer; padding: 6px 0; }
-    .back:hover { color: #fff; }
+    .back { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; color: rgba(var(--mw-ink), .7); font: 500 13px 'Poppins', sans-serif; cursor: pointer; padding: 6px 0; }
+    .back:hover { color: var(--mw-text); }
     h1 { font-size: 22px; margin: 6px 0 2px; }
-    .sub { color: rgba(255,255,255,.55); font-size: 13px; margin-bottom: 18px; }
-    .hero { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 16px; background: rgba(30,30,30,.55); margin-bottom: 14px; animation: rise .5s cubic-bezier(.2, 1.2, .4, 1) both; }
+    .sub { color: rgba(var(--mw-ink), .55); font-size: 13px; margin-bottom: 18px; }
+    .hero { display: flex; align-items: center; gap: 16px; padding: 18px 20px; border-radius: 16px; background: color-mix(in srgb, var(--mw-surface-3) 55%, transparent); margin-bottom: 14px; animation: rise .5s cubic-bezier(.2, 0, 0, 1) both; }
     .hero .dot { width: 46px; height: 46px; border-radius: 50%; display: grid; place-items: center; font-size: 24px; flex-shrink: 0; }
     .hero.ok .dot { background: rgba(48,209,88,.18); color: #30d158; }
     .hero.warn .dot { background: rgba(255,159,10,.18); color: #ff9f0a; }
     .hero .dot .material-symbols-outlined { font-size: 26px; }
     .hero b { display: block; font-size: 16px; }
-    .hero span { color: rgba(255,255,255,.6); font-size: 13px; }
+    .hero span { color: rgba(var(--mw-ink), .6); font-size: 13px; }
     .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-bottom: 14px; }
-    .card { padding: 16px 18px; border-radius: 14px; background: rgba(30,30,30,.55); animation: rise .5s cubic-bezier(.2, 1.2, .4, 1) both; }
-    .card .label { display: flex; align-items: center; gap: 8px; color: rgba(255,255,255,.6); font-size: 12.5px; }
+    .card { padding: 16px 18px; border-radius: 14px; background: color-mix(in srgb, var(--mw-surface-3) 55%, transparent); animation: rise .5s cubic-bezier(.2, 0, 0, 1) both; }
+    .card .label { display: flex; align-items: center; gap: 8px; color: rgba(var(--mw-ink), .6); font-size: 12.5px; }
     .card .label .material-symbols-outlined { font-size: 18px; }
     .card .value { font-size: 18px; font-weight: 600; margin: 6px 0 8px; }
-    .bar { height: 7px; border-radius: 4px; background: rgba(255,255,255,.1); overflow: hidden; }
+    .bar { height: 7px; border-radius: 4px; background: rgba(var(--mw-ink), .1); overflow: hidden; }
     .bar i { display: block; height: 100%; width: 0; border-radius: 4px; background: var(--sys-accent, #0a84ff); transition: width 1s cubic-bezier(.2, .9, .3, 1); }
     .bar i.high { background: #ff9f0a; } .bar i.full { background: #ff453a; }
-    .small { color: rgba(255,255,255,.5); font-size: 12px; }
-    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: rgba(255,255,255,.5); margin: 22px 4px 10px; }
-    .problem { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: rgba(30,30,30,.55); margin-bottom: 8px; animation: rise .45s cubic-bezier(.2, 1.2, .4, 1) both; }
+    .small { color: rgba(var(--mw-ink), .5); font-size: 12px; }
+    h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: rgba(var(--mw-ink), .5); margin: 22px 4px 10px; }
+    .problem { display: flex; gap: 12px; padding: 14px 16px; border-radius: 12px; background: color-mix(in srgb, var(--mw-surface-3) 55%, transparent); margin-bottom: 8px; animation: rise .45s cubic-bezier(.2, 0, 0, 1) both; }
     .problem .material-symbols-outlined { color: #ff9f0a; }
     .problem b { display: block; font-size: 13.5px; }
-    .problem p { margin: 2px 0 6px; font-size: 12.5px; color: rgba(255,255,255,.7); }
-    .problem code { display: block; font: 11px/1.45 'JetBrains Mono', Consolas, monospace; color: rgba(255,255,255,.45); white-space: pre-wrap; word-break: break-all; }
-    .problem .count { margin-left: auto; align-self: flex-start; padding: 1px 8px; border-radius: 99px; background: rgba(255,255,255,.1); font-size: 11px; }
-    .empty { padding: 18px; border-radius: 12px; background: rgba(30,30,30,.55); color: rgba(255,255,255,.6); font-size: 13px; text-align: center; }
-    .refresh { margin-top: 14px; border: 0; border-radius: 10px; padding: 9px 16px; background: rgba(255,255,255,.1); color: #fff; font: 500 13px 'Poppins', sans-serif; cursor: pointer; }
-    .refresh:hover { background: rgba(255,255,255,.16); }
+    .problem p { margin: 2px 0 6px; font-size: 12.5px; color: rgba(var(--mw-ink), .7); }
+    .problem code { display: block; font: 11px/1.45 'JetBrains Mono', Consolas, monospace; color: rgba(var(--mw-ink), .45); white-space: pre-wrap; word-break: break-all; }
+    .problem .count { margin-left: auto; align-self: flex-start; padding: 1px 8px; border-radius: 99px; background: rgba(var(--mw-ink), .1); font-size: 11px; }
+    .empty { padding: 18px; border-radius: 12px; background: color-mix(in srgb, var(--mw-surface-3) 55%, transparent); color: rgba(var(--mw-ink), .6); font-size: 13px; text-align: center; }
+    .refresh { margin-top: 14px; border: 0; border-radius: 10px; padding: 9px 16px; background: rgba(var(--mw-ink), .1); color: var(--mw-text); font: 500 13px 'Poppins', sans-serif; cursor: pointer; }
+    .refresh:hover { background: rgba(var(--mw-ink), .16); }
     @keyframes rise { from { opacity: 0; transform: translateY(12px); } }
   </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
   <button class="back" type="button" onclick="history.back()"><span class="material-symbols-outlined">arrow_back_ios_new</span><span data-i18n="common.back">Back</span></button>
@@ -119,7 +122,7 @@ async function load() {
   const heading = el('h2', '', mariowOSI18n.t('settings.health.problems', 'Recent problems'));
   const list = el('div');
   if (!report.log.available) list.append(el('div', 'empty', mariowOSI18n.t('settings.health.no-log', 'No log on this computer (mariowOS was not started with start-hidden.vbs).')));
-  else if (!problems.length) list.append(el('div', 'empty', mariowOSI18n.t('settings.health.no-problems', 'No problems in the log. 🎉')));
+  else if (!problems.length) list.append(el('div', 'empty', mariowOSI18n.t('settings.health.no-problems', 'No problems in the log.')));
   problems.forEach((problem, index) => {
     const [title, help] = EXPLAIN[problem.kind] || EXPLAIN.other;
     const row = el('div', 'problem'); row.style.animationDelay = (0.25 + index * 0.05) + 's';

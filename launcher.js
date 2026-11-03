@@ -577,7 +577,7 @@ function blockMouseHistoryNavigation(win) {
 // keys turns this off ("systemKeys": false in config.json).
 const SYSTEM_KEYS = new Set(['win', 'win+a', 'win+d', 'win+e', 'win+i', 'win+l', 'win+m', 'win+n',
     'win+s', 'win+space', 'win+tab', 'win+up', 'win+down', 'win+left', 'win+right', 'alt+f4',
-    'win+v', 'win+period', 'win+shift+s', 'win+ctrl+left', 'win+ctrl+right', 'win+ctrl+d', 'win+ctrl+f4']);
+    'win+v', 'win+w', 'win+period', 'win+shift+s', 'win+ctrl+left', 'win+ctrl+right', 'win+ctrl+d', 'win+ctrl+f4']);
 const configPath = path.join(__dirname, 'config.json');
 let systemKeysProcess = null;
 let systemKeysFailures = 0;

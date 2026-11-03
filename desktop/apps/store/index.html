@@ -6,6 +6,9 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+  <script src="/desktop/assets/mariowos-dialogs.js"></script>
+  <link rel="stylesheet" href="/desktop/assets/mw-design.css">
+  <script src="/desktop/assets/mw-theme.js"></script>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   
@@ -13,22 +16,22 @@
     /* Shared mariowOS app language: the same glass sidebar, accent, radii and
        type scale used by Files and Music, so the Store feels part of the system. */
     :root {
-      --accent: var(--sys-accent);
-      --text: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.5);
-      --text-dim: rgba(255, 255, 255, 0.35);
-      --sidebar: rgba(22, 22, 25, 0.65);
-      --hover: rgba(255, 255, 255, 0.08);
-      --surface: rgba(255, 255, 255, 0.05);
+      --accent: var(--mw-accent);
+      --text: var(--mw-text);
+      --text-secondary: var(--mw-text-muted);
+      --text-dim: var(--mw-text-dim);
+      --sidebar: var(--mw-glass-sidebar);
+      --hover: var(--mw-fill);
+      --surface: var(--mw-fill-subtle);
       --surface-hover: rgba(255, 255, 255, 0.09);
-      --glass-border: rgba(255, 255, 255, 0.1);
-      --field-bg: rgba(0, 0, 0, 0.25);
-      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --glass-border: var(--mw-border);
+      --field-bg: var(--mw-field);
+      --spring: var(--mw-ease-spring);
 
-      --radius-sm: 8px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
-      --squircle: 22%;
+      --radius-sm: var(--mw-radius-sm);
+      --radius-md: var(--mw-radius-md);
+      --radius-lg: var(--mw-radius-lg);
+      --squircle: var(--mw-radius-squircle);
     }
 
     * { box-sizing: border-box; outline: none; -webkit-tap-highlight-color: transparent; }
@@ -447,6 +450,59 @@
 
     .store-eula-actions { display: flex; justify-content: flex-end; gap: 10px; }
 
+    /* ─────────────── SDK: categories, featured, developer, My apps ─────────────── */
+    .c-myapps { background: linear-gradient(180deg, #30d158, #248a3d); }
+    .c-category { background: var(--mw-fill-strong); }
+    .hero-symbol { position: absolute; right: 16px; bottom: 10px; font-size: 56px; opacity: 0.55; color: var(--sys-accent-text); }
+    .hero-card:nth-child(2) .hero-symbol { color: var(--mw-orange); }
+
+    .featured-row { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(260px, 1fr); gap: 12px; overflow-x: auto; margin-bottom: 28px; padding-bottom: 2px; }
+    .featured-card { position: relative; display: flex; flex-direction: column; gap: 12px; min-height: 150px; padding: 18px; border: 1px solid var(--glass-border); border-radius: var(--radius-lg);
+      background: linear-gradient(150deg, color-mix(in srgb, var(--sys-accent) 20%, transparent), transparent 65%), var(--surface); cursor: pointer; transition: background 0.2s, transform 0.2s var(--spring); }
+    .featured-card:hover { transform: translateY(-2px); background: linear-gradient(150deg, color-mix(in srgb, var(--sys-accent) 28%, transparent), transparent 65%), var(--surface-hover); }
+    .featured-card .card-icon { width: 56px; height: 56px; }
+    .featured-badge { position: absolute; top: 14px; right: 14px; display: inline-flex; align-items: center; gap: 4px; padding: 3px 9px; border-radius: var(--mw-radius-full); background: var(--mw-fill); color: var(--text-secondary); font-size: 10.5px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+    .featured-badge .material-symbols-outlined { font-size: 14px; color: #ffd60a; }
+    .featured-card .card-desc { white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+
+    .card-meta { margin: 3px 0 0; font-size: 11px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .card-icon .material-symbols-outlined { font-size: 26px; color: var(--text-secondary); }
+    .lp-icon .material-symbols-outlined { font-size: 44px; color: var(--text-secondary); }
+
+    .lp-dev-link { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; color: var(--sys-accent-text); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+    .lp-dev-link:hover { text-decoration: underline; }
+    .lp-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; margin: 0 0 18px; }
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; border: none; border-radius: var(--mw-radius-full); background: var(--mw-fill); color: var(--text-secondary); font: inherit; font-size: 11.5px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+    .chip:hover { background: var(--mw-fill-hover); color: var(--text); }
+    .chip .material-symbols-outlined { font-size: 15px; }
+
+    .list-header { display: flex; align-items: center; gap: 16px; margin-bottom: 22px; padding: 20px 22px; border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: var(--surface); }
+    .list-header .list-icon { width: 56px; height: 56px; flex: 0 0 56px; display: grid; place-items: center; overflow: hidden; border-radius: var(--squircle); background: var(--mw-fill); }
+    .list-header .list-icon .material-symbols-outlined { font-size: 30px; color: var(--sys-accent-text); }
+    .list-header .list-icon img { width: 100%; height: 100%; object-fit: cover; }
+    .list-header h2 { margin: 0; font-size: 21px; font-weight: 600; letter-spacing: -0.3px; }
+    .list-header p { margin: 3px 0 0; color: var(--text-secondary); font-size: 12.5px; }
+    .list-header .list-text { flex: 1; min-width: 0; }
+    .btn-soft { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; border: none; border-radius: var(--mw-radius-full); background: var(--mw-fill); color: var(--text); font: inherit; font-size: 12.5px; font-weight: 500; cursor: pointer; transition: background 0.2s; }
+    .btn-soft:hover { background: var(--mw-fill-hover); }
+    .btn-soft .material-symbols-outlined { font-size: 17px; }
+
+    .myapp { margin-bottom: 14px; padding: 18px 20px; border: 1px solid var(--glass-border); border-radius: var(--radius-lg); background: var(--surface); }
+    .myapp-head { display: flex; align-items: center; gap: 14px; }
+    .myapp-head .card-icon { width: 44px; height: 44px; }
+    .myapp-head .card-info small { display: block; margin-top: 2px; color: var(--text-dim); font-size: 11.5px; }
+    .myapp-perms { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+    .myapp-perms .lp-perm > div { flex: 1; }
+    .myapp-note { margin: 12px 0 0; color: var(--text-secondary); font-size: 12px; line-height: 1.5; }
+    .lp-perm.risk-medium .material-symbols-outlined { background: rgba(255,159,10,.16); color: #ff9f0a; }
+
+    #store-perm-overlay { display: none; position: fixed; inset: 0; z-index: 9999; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.6); }
+    #store-perm-overlay .store-eula-modal { width: 460px; }
+    .perm-intro { margin: 0 0 14px; color: var(--text-secondary); font-size: 12.5px; line-height: 1.5; }
+    .perm-choices { display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; margin-bottom: 16px; }
+    .perm-choice { cursor: pointer; }
+    .perm-choice > div { flex: 1; }
+
     * { scrollbar-width: none; }
     *::-webkit-scrollbar { display: none; }
   </style>
@@ -461,10 +517,17 @@
       <div class="icon-bg c-discover"><span class="material-symbols-outlined">explore</span></div>
       <span class="title" data-i18n="store.nav.discover">Discover</span>
     </div>
+    <div class="nav-item" id="nav-myapps" onclick="switchView('myapps')">
+      <div class="icon-bg c-myapps"><span class="material-symbols-outlined">apps</span></div>
+      <span class="title" data-i18n="store.nav.my-apps">My apps</span>
+    </div>
     <div class="nav-item" id="nav-publish" onclick="switchView('publish')">
       <div class="icon-bg c-publish"><span class="material-symbols-outlined">developer_mode</span></div>
       <span class="title" data-i18n="store.nav.submit">Submit an app</span>
     </div>
+
+    <div class="sidebar-heading" id="navCategoriesHeading" data-i18n="store.nav.categories" hidden>Categories</div>
+    <div id="navCategories"></div>
 
     <!-- Nuova Sezione Settings -->
     <div class="sidebar-heading" data-i18n="store.nav.system">System</div>
@@ -479,7 +542,7 @@
   <div class="main-wrapper">
     <div class="top-bar">
       <div class="nav-arrows">
-        <button class="nav-arrow-btn" id="navBack" onclick="switchView('home')" title="Back to Discover" data-i18n-title="store.nav.back-to-discover"><span class="material-symbols-outlined">chevron_left</span></button>
+        <button class="nav-arrow-btn" id="navBack" onclick="goBack()" title="Back to Discover" data-i18n-title="store.nav.back-to-discover"><span class="material-symbols-outlined">chevron_left</span></button>
         <!-- Forward has nowhere to go in a two-level store, so it stays disabled. -->
         <button class="nav-arrow-btn" disabled title="Forward" data-i18n-title="store.nav.forward"><span class="material-symbols-outlined">chevron_right</span></button>
       </div>
@@ -501,15 +564,19 @@
               <h1 data-i18n="store.hero.build.title">Build for mariowOS</h1>
               <p data-i18n="store.hero.build.text">Publish your own app to the Store straight from a GitHub repository.</p>
             </div>
-            <div class="hero-emoji">✨</div>
+            <span class="material-symbols-outlined hero-symbol">auto_awesome</span>
           </div>
           <div class="hero-card" onclick="document.getElementById('searchInput').focus()">
             <div>
               <h1 data-i18n="store.hero.find.title">Find something new</h1>
               <p data-i18n="store.hero.find.text">Search the catalog for utilities built for your device.</p>
             </div>
-            <div class="hero-emoji">🏆</div>
+            <span class="material-symbols-outlined hero-symbol">travel_explore</span>
           </div>
+        </div>
+        <div id="featuredSection" hidden>
+          <h2 class="section-title" data-i18n="store.featured.title">Featured</h2>
+          <div class="featured-row" id="featuredRow"></div>
         </div>
         <h2 class="section-title" id="gridTitle">New & Updated</h2>
         <div class="app-grid" id="appGrid">
@@ -519,14 +586,17 @@
 
       <!-- App Landpage View -->
       <div id="view-landpage" class="view">
-        <button class="btn-back" id="btnBack" onclick="switchView('home')">
+        <button class="btn-back" id="btnBack" onclick="goBack()">
           <span class="material-symbols-outlined">arrow_back</span> <span data-i18n="common.back">Back</span>
         </button>
         <div class="lp-header">
           <div class="lp-icon" id="lpIcon"></div>
           <div class="lp-info">
             <h1 class="lp-title" id="lpTitle"></h1>
-            <p class="lp-dev" id="lpDev"></p>
+            <div class="lp-meta">
+              <button class="lp-dev-link" id="lpDev" type="button"></button>
+              <button class="chip" id="lpCategory" type="button"></button>
+            </div>
             <div class="lp-actions">
               <button id="btnInstall" class="btn-action primary"></button>
               <button id="btnUninstall" class="btn-uninstall" style="display: none;"></button>
@@ -546,7 +616,32 @@
         <div class="lp-desc-container">
           <h3 class="lp-desc-title" data-i18n="store.detail.permissions">What this app can do</h3>
           <div class="lp-perms" id="lpPerms"></div>
+          <button class="btn-soft" id="lpManagePerms" type="button" style="margin-top: 14px;" onclick="switchView('myapps')" hidden>
+            <span class="material-symbols-outlined">tune</span><span data-i18n="store.perm.manage">Manage permissions</span>
+          </button>
         </div>
+      </div>
+
+      <!-- Category / developer list -->
+      <div id="view-list" class="view">
+        <div class="list-header">
+          <div class="list-icon" id="listIcon"></div>
+          <div class="list-text">
+            <h2 id="listTitle"></h2>
+            <p id="listSubtitle"></p>
+          </div>
+          <button class="btn-soft" id="listGithub" type="button" hidden>
+            <span class="material-symbols-outlined">open_in_new</span><span data-i18n="store.developer.github">View on GitHub</span>
+          </button>
+        </div>
+        <div class="app-grid" id="listGrid"></div>
+      </div>
+
+      <!-- My apps -->
+      <div id="view-myapps" class="view">
+        <h2 class="section-title" data-i18n="store.myapps.title">My apps</h2>
+        <p class="lp-desc" style="margin: -6px 0 18px;" data-i18n="store.myapps.text">Apps from the Store and what you allow them to do. Changes apply the next time the app asks.</p>
+        <div id="myAppsList"><div class="loading-text" data-i18n="store.loading">Loading catalog...</div></div>
       </div>
 
       <!-- Publish View -->
@@ -632,6 +727,19 @@
     </div>
   </div>
 
+  <!-- Permission approval, before installing -->
+  <div id="store-perm-overlay">
+    <div class="store-eula-modal" role="dialog" aria-modal="true" aria-labelledby="permTitle">
+      <h2 id="permTitle" data-i18n="store.perm.approve-title">Allow these permissions?</h2>
+      <p class="perm-intro" id="permIntro"></p>
+      <div class="perm-choices" id="permChoices"></div>
+      <div class="store-eula-actions">
+        <button class="btn-action" style="background: rgba(255, 255, 255, 0.1); color: var(--text);" onclick="closePermDialog(null)" data-i18n="common.cancel">Cancel</button>
+        <button class="btn-action primary" id="permConfirm" data-i18n="store.perm.install">Install</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     let storeCatalog = [];
     let installedAppsList = [];
@@ -649,13 +757,86 @@
     document.getElementById('gridTitle').textContent = mariowOSI18n.t("store.grid.new", "New & Updated");
     document.getElementById('btnUpdateCatalog').textContent = mariowOSI18n.t("store.settings.update-catalog", "Update Catalog");
 
-    const renderIcon = (iconStr) => {
-      if (!iconStr) return '📦';
-      if (iconStr.includes('/') || iconStr.includes('.')) {
-        return `<img src="${iconStr}" style="width: 100%; height: 100%; object-fit: cover; border-radius: inherit;">`;
+    // Catalog text and icons come from other people: always placed as text or as an <img> src.
+    const symbol = name => Object.assign(document.createElement('span'), { className: 'material-symbols-outlined', textContent: name });
+    function renderIcon(iconStr) {
+      const icon = typeof iconStr === 'string' ? iconStr.trim() : '';
+      if (!icon) return symbol('apps');
+      if (icon.includes('/') || icon.includes('.')) {
+        const img = document.createElement('img');
+        img.alt = '';
+        img.style.cssText = 'width: 100%; height: 100%; object-fit: cover; border-radius: inherit;';
+        img.onerror = () => img.replaceWith(symbol('apps'));
+        img.src = icon;
+        return img;
       }
-      return iconStr;
+      return document.createTextNode(icon.slice(0, 8));
+    }
+    const text = value => (value == null ? '' : String(value));
+
+    // ---- Categories and the SDK permissions (lib/app-manifest.js has the same lists) ----
+    const CATEGORIES = {
+      productivity: ['task_alt', () => mariowOSI18n.t("store.category.productivity", "Productivity")],
+      utilities: ['build', () => mariowOSI18n.t("store.category.utilities", "Utilities")],
+      games: ['sports_esports', () => mariowOSI18n.t("store.category.games", "Games")],
+      education: ['school', () => mariowOSI18n.t("store.category.education", "Education")],
+      entertainment: ['movie', () => mariowOSI18n.t("store.category.entertainment", "Entertainment")],
+      social: ['forum', () => mariowOSI18n.t("store.category.social", "Social")],
+      graphics: ['brush', () => mariowOSI18n.t("store.category.graphics", "Graphics & Design")],
+      developer: ['code', () => mariowOSI18n.t("store.category.developer", "Developer Tools")],
+      lifestyle: ['spa', () => mariowOSI18n.t("store.category.lifestyle", "Lifestyle")],
+      other: ['category', () => mariowOSI18n.t("store.category.other", "Other")]
     };
+    const SDK_PERMISSIONS = {
+      notifications: ['notifications', 'low', () => mariowOSI18n.t("store.sdkperm.notifications", "Show notifications")],
+      'files.documents': ['description', 'medium', () => mariowOSI18n.t("store.sdkperm.files-documents", "Read and save files in your Documents folder")],
+      'files.pictures': ['photo_library', 'medium', () => mariowOSI18n.t("store.sdkperm.files-pictures", "Read and save pictures in your Pictures folder")],
+      theme: ['palette', 'low', () => mariowOSI18n.t("store.sdkperm.theme", "Follow your accent color and theme")],
+      storage: ['database', 'low', () => mariowOSI18n.t("store.sdkperm.storage", "Keep its own data on this computer")],
+      'clipboard.write': ['content_paste', 'medium', () => mariowOSI18n.t("store.sdkperm.clipboard-write", "Copy text to your clipboard")],
+      'open-url': ['open_in_browser', 'low', () => mariowOSI18n.t("store.sdkperm.open-url", "Open web pages in the Browser")]
+    };
+    const sdkPermissionIds = list => Array.isArray(list) ? Object.keys(SDK_PERMISSIONS).filter(id => id !== 'notifications' && list.includes(id)) : [];
+    const categoryLabel = id => (CATEGORIES[id] || CATEGORIES.other)[1]();
+    // Same owners as the kernel's isolation rule (server.js, THIRD-PARTY APP ISOLATION).
+    function isTrustedRepo(repoUrl) {
+      const owner = text(repoUrl).match(/^https:\/\/(?:raw\.githubusercontent\.com|github\.com)\/([^/]+)\//i);
+      return !!owner && ['mariowos', 'mariowstech'].includes(owner[1].toLowerCase());
+    }
+    const repoOwner = repoUrl => { const m = text(repoUrl).match(/^https:\/\/github\.com\/([\w.-]+)\//i); return m ? m[1] : null; };
+
+    // mariowos.json of each catalog app, fetched through the kernel (cached there for an hour).
+    const manifests = new Map(); // repoUrl -> Promise<manifest|null>
+    function getManifest(app) {
+      if (!app || !/^https:\/\/github\.com\//i.test(text(app.repoUrl))) return Promise.resolve(null);
+      if (!manifests.has(app.repoUrl)) {
+        manifests.set(app.repoUrl, fetch('/api/store/manifest?repo=' + encodeURIComponent(app.repoUrl))
+          .then(r => r.json()).then(data => (data && data.success ? data.manifest : null)).catch(() => { manifests.delete(app.repoUrl); return null; }));
+      }
+      return manifests.get(app.repoUrl);
+    }
+    const resolvedManifests = new Map(); // repoUrl -> manifest|null, once known
+    function appCategory(app) {
+      if (app && CATEGORIES[app.category]) return app.category;
+      const manifest = app && resolvedManifests.get(app.repoUrl);
+      return manifest && CATEGORIES[manifest.category] ? manifest.category : 'other';
+    }
+    // Apps without a catalog category take the one in their manifest, a few at a time.
+    async function loadCategoriesFromManifests() {
+      const queue = storeCatalog.filter(app => !CATEGORIES[app.category] && /^https:\/\/github\.com\//i.test(text(app.repoUrl)));
+      const worker = async () => {
+        while (queue.length) {
+          const app = queue.shift();
+          resolvedManifests.set(app.repoUrl, await getManifest(app));
+        }
+      };
+      await Promise.all([worker(), worker(), worker(), worker()]);
+      renderCategoryNav();
+      if (currentList && currentList.kind === 'category') openCategory(currentList.value);
+    }
+
+    let currentView = 'home';
+    let currentList = null; // { kind: 'category'|'developer', value }
 
     async function initStore() {
       try {
@@ -666,22 +847,117 @@
       }
 
       try {
-        storeCatalog = await (await fetch('/api/store/catalog')).json();
+        const catalog = await (await fetch('/api/store/catalog')).json();
+        storeCatalog = Array.isArray(catalog) ? catalog.filter(app => app && typeof app.id === 'string') : [];
       } catch (e) {
         console.warn('Could not load store catalog:', e);
         storeCatalog = [];
       }
       renderGrid(storeCatalog);
+      renderFeatured();
+      renderCategoryNav();
+      loadCategoriesFromManifests();
+    }
+
+    function renderCategoryNav() {
+      const nav = document.getElementById('navCategories');
+      const used = new Set(storeCatalog.map(appCategory));
+      const ids = Object.keys(CATEGORIES).filter(id => used.has(id));
+      document.getElementById('navCategoriesHeading').hidden = ids.length === 0;
+      nav.replaceChildren(...ids.map(id => {
+        const item = document.createElement('div');
+        item.className = 'nav-item' + (currentView === 'list' && currentList && currentList.kind === 'category' && currentList.value === id ? ' active' : '');
+        item.dataset.category = id;
+        item.onclick = () => openCategory(id);
+        const iconBg = document.createElement('div'); iconBg.className = 'icon-bg c-category'; iconBg.append(symbol(CATEGORIES[id][0]));
+        item.append(iconBg, Object.assign(document.createElement('span'), { className: 'title', textContent: categoryLabel(id) }));
+        return item;
+      }));
+    }
+
+    function renderFeatured() {
+      const featured = storeCatalog.filter(app => app.featured === true).slice(0, 8);
+      const section = document.getElementById('featuredSection');
+      section.hidden = featured.length === 0 || document.getElementById('searchInput').value.trim() !== '';
+      document.getElementById('featuredRow').replaceChildren(...featured.map(app => {
+        const card = document.createElement('div');
+        card.className = 'featured-card';
+        card.onclick = () => openLandpage(app.id);
+        const badge = document.createElement('span'); badge.className = 'featured-badge';
+        badge.append(symbol('star'), document.createTextNode(mariowOSI18n.t("store.featured.badge", "Featured")));
+        const icon = document.createElement('div'); icon.className = 'card-icon'; icon.append(renderIcon(app.icon));
+        const info = document.createElement('div'); info.className = 'card-info';
+        info.append(
+          Object.assign(document.createElement('h3'), { className: 'card-title', textContent: text(app.title) }),
+          Object.assign(document.createElement('p'), { className: 'card-meta', textContent: text(app.developer) + ' · ' + categoryLabel(appCategory(app)) }),
+          Object.assign(document.createElement('p'), { className: 'card-desc', textContent: text(app.desc) })
+        );
+        card.append(badge, icon, info);
+        return card;
+      }));
+    }
+
+    function openCategory(id) {
+      if (!CATEGORIES[id]) id = 'other';
+      currentList = { kind: 'category', value: id };
+      const apps = storeCatalog.filter(app => appCategory(app) === id);
+      document.getElementById('listIcon').replaceChildren(symbol(CATEGORIES[id][0]));
+      document.getElementById('listTitle').textContent = categoryLabel(id);
+      document.getElementById('listSubtitle').textContent = mariowOSI18n.t("store.list.count", "{count} apps", { count: apps.length });
+      document.getElementById('listGithub').hidden = true;
+      renderGrid(apps, document.getElementById('listGrid'));
+      switchView('list');
+    }
+
+    // A developer's page: their apps in the catalog and their GitHub profile.
+    function openDeveloper(name) {
+      const developer = text(name);
+      currentList = { kind: 'developer', value: developer };
+      const apps = storeCatalog.filter(app => text(app.developer) === developer);
+      const owners = [...new Set(apps.map(app => repoOwner(app.repoUrl)).filter(Boolean))];
+      const owner = owners.length === 1 ? owners[0] : (/^[\w-]{1,39}$/.test(developer) ? developer : null);
+      const icon = document.getElementById('listIcon');
+      icon.replaceChildren(symbol('person'));
+      if (owner) {
+        const img = document.createElement('img'); img.alt = '';
+        img.onload = () => icon.replaceChildren(img);
+        img.src = 'https://github.com/' + encodeURIComponent(owner) + '.png?size=112';
+      }
+      document.getElementById('listTitle').textContent = developer || mariowOSI18n.t("store.eula.unknown-developer", "Unknown Developer");
+      document.getElementById('listSubtitle').textContent = (isTrustedRepo(apps[0] && apps[0].repoUrl) ? mariowOSI18n.t("store.developer.team", "mariowOS team") + ' · ' : '')
+        + mariowOSI18n.t("store.list.count", "{count} apps", { count: apps.length });
+      const github = document.getElementById('listGithub');
+      github.hidden = !owner;
+      github.onclick = () => window.open('https://github.com/' + encodeURIComponent(owner), '_blank');
+      renderGrid(apps, document.getElementById('listGrid'));
+      switchView('list');
+    }
+
+    function goBack() {
+      if (currentView === 'landpage' && currentList) { switchView('list'); return; }
+      switchView('home');
     }
 
     function switchView(viewName) {
+      currentView = viewName;
+      if (viewName !== 'list' && viewName !== 'landpage') currentList = null;
       document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
       document.querySelectorAll('.nav-item').forEach(v => v.classList.remove('active'));
       const btnBack = document.getElementById('btnBack');
       btnBack.style.display = viewName === 'landpage' ? 'inline-flex' : 'none';
       document.getElementById('navBack').disabled = viewName === 'home';
 
-      if (viewName === 'home') {
+      if (viewName === 'list') {
+        document.getElementById('view-list').classList.add('active');
+        if (currentList && currentList.kind === 'category') {
+          const item = document.querySelector(`#navCategories [data-category="${CSS.escape(currentList.value)}"]`);
+          if (item) item.classList.add('active');
+        }
+      } else if (viewName === 'myapps') {
+        document.getElementById('view-myapps').classList.add('active');
+        document.getElementById('nav-myapps').classList.add('active');
+        renderMyApps();
+      } else if (viewName === 'home') {
         document.getElementById('view-home').classList.add('active');
         document.getElementById('nav-discover').classList.add('active');
         document.getElementById('searchInput').value = ''; 
@@ -701,57 +977,70 @@
 
     document.getElementById('searchInput').addEventListener('input', (e) => {
       clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => handleSearch(e.target.value), 250);
+      searchTimeout = setTimeout(() => {
+        // Typing from another page brings Discover back, with the results.
+        if (currentView !== 'home' && e.target.value.trim()) {
+          const query = e.target.value;
+          switchView('home');
+          e.target.value = query;
+        }
+        handleSearch(e.target.value);
+      }, 250);
     });
 
     function handleSearch(query) {
       const q = query.toLowerCase().trim();
       const heroSec = document.getElementById('heroSection');
       const gridTitle = document.getElementById('gridTitle');
-      
+
       if (q === '') {
         heroSec.style.display = 'grid';
         gridTitle.textContent = mariowOSI18n.t("store.grid.new", "New & Updated");
         renderGrid(storeCatalog);
+        renderFeatured();
       } else {
         heroSec.style.display = 'none';
+        document.getElementById('featuredSection').hidden = true;
         gridTitle.textContent = mariowOSI18n.t("store.grid.results", "Search Results");
-        const filtered = storeCatalog.filter(app => 
-          app.title.toLowerCase().includes(q) || 
-          app.developer.toLowerCase().includes(q) || 
-          app.desc.toLowerCase().includes(q)
+        const filtered = storeCatalog.filter(app =>
+          text(app.title).toLowerCase().includes(q) ||
+          text(app.developer).toLowerCase().includes(q) ||
+          text(app.desc).toLowerCase().includes(q) ||
+          categoryLabel(appCategory(app)).toLowerCase().includes(q)
         );
         renderGrid(filtered);
       }
     }
 
-    function renderGrid(catalogArray) {
-      const grid = document.getElementById('appGrid');
+    function renderGrid(catalogArray, grid = document.getElementById('appGrid')) {
       if (catalogArray.length === 0) {
-        grid.innerHTML = '<div class="loading-text" data-i18n="store.grid.empty">No apps found.</div>';
+        grid.replaceChildren(Object.assign(document.createElement('div'), { className: 'loading-text', textContent: mariowOSI18n.t("store.grid.empty", "No apps found.") }));
         return;
       }
-      grid.innerHTML = '';
-
-      catalogArray.forEach(app => {
+      grid.replaceChildren(...catalogArray.map(app => {
         const isInst = installedAppsList.includes(app.id);
         const card = document.createElement('div');
         card.className = 'app-card';
         card.onclick = () => openLandpage(app.id);
-        card.innerHTML = `
-          <div class="card-icon">${renderIcon(app.icon)}</div>
-          <div class="card-info">
-            <h3 class="card-title">${app.title}</h3>
-            <p class="card-desc">${app.desc}</p>
-          </div>
-          <button class="btn-get ${isInst ? 'installed' : ''}" onclick="event.stopPropagation(); ${isInst ? `openInstalledApp('${app.id}')` : `openLandpage('${app.id}')`}">${isInst ? mariowOSI18n.t("common.open", "Open") : mariowOSI18n.t("store.get", "Get")}</button>
-        `;
-        grid.appendChild(card);
-      });
+        const icon = document.createElement('div'); icon.className = 'card-icon'; icon.append(renderIcon(app.icon));
+        const info = document.createElement('div'); info.className = 'card-info';
+        info.append(
+          Object.assign(document.createElement('h3'), { className: 'card-title', textContent: text(app.title) }),
+          Object.assign(document.createElement('p'), { className: 'card-desc', textContent: text(app.desc) }),
+          Object.assign(document.createElement('p'), { className: 'card-meta', textContent: text(app.developer) + ' · ' + categoryLabel(appCategory(app)) })
+        );
+        const button = document.createElement('button');
+        button.className = 'btn-get' + (isInst ? ' installed' : '');
+        button.textContent = isInst ? mariowOSI18n.t("common.open", "Open") : mariowOSI18n.t("store.get", "Get");
+        button.onclick = event => { event.stopPropagation(); isInst ? openInstalledApp(app.id) : openLandpage(app.id); };
+        card.append(icon, info, button);
+        return card;
+      }));
     }
 
-    // What an app can do, before installing it: Store apps run apart from the system;
-    // a catalog entry may declare "permissions", and its EULA may list "Requirements:".
+    // What an app can do, before installing it. Third-party apps run apart from the system and
+    // reach it only through the SDK permissions in their mariowos.json; a catalog entry may
+    // also list informational "permissions", and its EULA may list "Requirements:".
     const PERMISSIONS = {
       network: ['public', () => mariowOSI18n.t('store.perm.network', 'Uses the internet')],
       files: ['folder_open', () => mariowOSI18n.t('store.perm.files', 'Reads and saves your files')],
@@ -761,25 +1050,39 @@
       notifications: ['notifications', () => mariowOSI18n.t('store.perm.notifications', 'Shows notifications')],
       system: ['admin_panel_settings', () => mariowOSI18n.t('store.perm.system', 'Full access to the system')]
     };
-    function renderPermissions(app) {
+    function permissionRow(icon, title, note, kind) {
+      const row = document.createElement('div'); row.className = 'lp-perm' + (kind ? ' ' + kind : '');
+      const label = document.createElement('div'); label.textContent = title;
+      if (note) { const small = document.createElement('small'); small.textContent = note; label.append(small); }
+      row.append(symbol(icon), label);
+      return row;
+    }
+    // manifest: undefined while it loads, null when the app has none.
+    function renderPermissions(app, manifest) {
       const list = document.getElementById('lpPerms');
       const rows = [];
       const add = (icon, title, note, kind) => {
-        const row = document.createElement('div'); row.className = 'lp-perm' + (kind ? ' ' + kind : '');
+        const row = permissionRow(icon, title, note, kind);
         row.style.animationDelay = (rows.length * 0.06) + 's';
-        const text = document.createElement('div'); text.textContent = title;
-        if (note) { const small = document.createElement('small'); small.textContent = note; text.append(small); }
-        row.append(Object.assign(document.createElement('span'), { className: 'material-symbols-outlined', textContent: icon }), text);
         rows.push(row);
       };
       const requirements = (String(app.eula || '').split(/Requirements:/i)[1] || '').split(/\r?\n/).map(line => line.replace(/^\s*-\s*/, '').trim()).filter(Boolean).slice(0, 6);
       const declared = Array.isArray(app.permissions) ? app.permissions.filter(name => PERMISSIONS[name]) : [];
+      const sdk = sdkPermissionIds(manifest && manifest.permissions);
       const fullAccess = declared.includes('system') || requirements.some(line => /superuser|full|runtime/i.test(line));
       if (fullAccess) add('admin_panel_settings', mariowOSI18n.t('store.perm.system', 'Full access to the system'), mariowOSI18n.t('store.perm.system-note', 'Install it only if you trust the developer.'), 'warn');
+      else if (isTrustedRepo(app.repoUrl)) add('verified', mariowOSI18n.t("store.perm.trusted", "Made by the mariowOS team"), mariowOSI18n.t("store.perm.trusted-note", "It runs with the system, like the built-in apps."), 'safe');
       else add('shield', mariowOSI18n.t('store.perm.isolated', 'Runs apart from the system'), mariowOSI18n.t('store.perm.isolated-note', 'It cannot read your settings or other apps.'), 'safe');
-      declared.filter(name => name !== 'system').forEach(name => { const [icon, label] = PERMISSIONS[name]; add(icon, label()); });
+      sdk.forEach(id => {
+        const [icon, risk, label] = SDK_PERMISSIONS[id];
+        add(icon, label(), isTrustedRepo(app.repoUrl) ? '' : mariowOSI18n.t("store.perm.asked", "You choose whether to allow it when installing."), risk === 'medium' ? 'risk-medium' : '');
+      });
+      const covered = new Set(sdk.some(id => id.startsWith('files.')) ? ['files'] : []);
+      declared.filter(name => name !== 'system' && !covered.has(name)).forEach(name => { const [icon, label] = PERMISSIONS[name]; add(icon, label()); });
       requirements.forEach(line => add('rule', line, mariowOSI18n.t('store.perm.from-eula', 'Listed by the developer'), /superuser|full|runtime/i.test(line) ? 'warn' : ''));
+      if (manifest === undefined) add('hourglass_empty', mariowOSI18n.t("store.perm.loading", "Checking what the app asks for…"));
       list.replaceChildren(...rows);
+      document.getElementById('lpManagePerms').hidden = !(installedAppsList.includes(app.id) && sdk.length && !isTrustedRepo(app.repoUrl));
     }
 
     // Stars and activity on GitHub, and "what's new" from the app's own version.json.
@@ -808,16 +1111,33 @@
     }
 
     function openLandpage(id) {
-      currentAppOpen = storeCatalog.find(a => a.id === id);
-      if (!currentAppOpen) return;
+      const app = storeCatalog.find(a => a.id === id);
+      if (!app) return;
+      currentAppOpen = app;
 
-      document.getElementById('lpIcon').innerHTML = renderIcon(currentAppOpen.icon);
-      document.getElementById('lpTitle').textContent = currentAppOpen.title;
-      document.getElementById('lpDev').textContent = currentAppOpen.developer;
-      document.getElementById('lpDesc').textContent = currentAppOpen.desc;
+      document.getElementById('lpIcon').replaceChildren(renderIcon(app.icon));
+      document.getElementById('lpTitle').textContent = text(app.title);
+      const dev = document.getElementById('lpDev');
+      dev.textContent = text(app.developer) || mariowOSI18n.t("store.eula.unknown-developer", "Unknown Developer");
+      dev.title = mariowOSI18n.t("store.developer.more", "More from this developer");
+      dev.onclick = () => openDeveloper(app.developer);
+      const category = document.getElementById('lpCategory');
+      const showCategory = () => {
+        const id = appCategory(app);
+        category.replaceChildren(symbol(CATEGORIES[id][0]), document.createTextNode(categoryLabel(id)));
+        category.onclick = () => openCategory(id);
+      };
+      showCategory();
+      document.getElementById('lpDesc').textContent = text(app.desc);
       document.getElementById('installError').textContent = '';
-      renderPermissions(currentAppOpen);
-      loadAppInfo(currentAppOpen);
+      renderPermissions(app);
+      getManifest(app).then(manifest => {
+        if (app.repoUrl) resolvedManifests.set(app.repoUrl, manifest);
+        if (currentAppOpen !== app) return;
+        renderPermissions(app, manifest);
+        showCategory();
+      });
+      loadAppInfo(app);
 
       updateInstallBtn();
       switchView('landpage');
@@ -832,7 +1152,7 @@
       btnI.className = `btn-action primary ${isInst ? 'installed' : ''}`;
       btnI.style.background = isInst ? 'rgba(255, 255, 255, 0.1)' : '';
       btnI.style.color = isInst ? 'var(--text)' : '';
-      
+
       btnI.disabled = false;
       btnI.title = '';
       if (!storeCanInstall && !isInst) {
@@ -853,7 +1173,7 @@
     function openInstalledApp(appId) {
       window.parent.postMessage({ type: 'open-app-from-store', appId }, '*');
     }
-    
+
     // --- EULA LOGIC ---
     function showEulaModal(eulaText) {
       // "Please review the terms for {app} by {developer}.": keep the styled name elements.
@@ -881,25 +1201,19 @@
       btn.textContent = mariowOSI18n.t("store.checking", "Checking…");
       btn.disabled = true;
 
+      let eula = null;
       try {
         const res = await fetch('/api/store/eula', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ repoUrl: currentAppOpen.repoUrl })
         });
-        const data = await res.json();
-
-        if (data.eula) {
-          showEulaModal(data.eula);
-        } else {
-          actOnApp('install');
-        }
-      } catch (err) {
-        actOnApp('install');
-      } finally {
-        btn.textContent = origText;
-        btn.disabled = false;
-      }
+        eula = (await res.json()).eula;
+      } catch (err) {}
+      btn.textContent = origText;
+      btn.disabled = false;
+      if (eula) showEulaModal(eula);
+      else approvePermissionsAndInstall();
     }
 
     function declineEula() {
@@ -908,10 +1222,51 @@
 
     function acceptEula() {
       document.getElementById("store-eula-overlay").style.display = "none";
-      actOnApp('install'); 
+      approvePermissionsAndInstall();
     }
 
-    async function actOnApp(action) {
+    // After the EULA: the user approves (or unticks) each permission the app's mariowos.json
+    // asks for. Only the approved ones are sent; the kernel keeps them as grantedPermissions.
+    let permDialogResolve = null;
+    function closePermDialog(result) {
+      document.getElementById('store-perm-overlay').style.display = 'none';
+      if (permDialogResolve) { const resolve = permDialogResolve; permDialogResolve = null; resolve(result); }
+    }
+    function askPermissions(app, ids) {
+      document.getElementById('permIntro').textContent = mariowOSI18n.t("store.perm.approve-text", "{app} asks for these permissions. Untick what you do not want to allow: you can change it later in My apps.", { app: text(app.title) });
+      const choices = document.getElementById('permChoices');
+      choices.replaceChildren(...ids.map(id => {
+        const [icon, risk, label] = SDK_PERMISSIONS[id];
+        const row = permissionRow(icon, label(), risk === 'medium' ? mariowOSI18n.t("store.perm.medium", "Touches your data") : '', 'perm-choice' + (risk === 'medium' ? ' risk-medium' : ''));
+        const box = Object.assign(document.createElement('input'), { type: 'checkbox', checked: true, value: id });
+        box.setAttribute('aria-label', label());
+        row.prepend(box);
+        row.addEventListener('click', event => { if (event.target !== box) box.checked = !box.checked; });
+        return row;
+      }));
+      document.getElementById('permConfirm').onclick = () => closePermDialog([...choices.querySelectorAll('input:checked')].map(box => box.value));
+      document.getElementById('store-perm-overlay').style.display = 'flex';
+      return new Promise(resolve => { permDialogResolve = resolve; });
+    }
+
+    async function approvePermissionsAndInstall() {
+      const app = currentAppOpen;
+      if (!app) return;
+      const btn = document.getElementById('btnInstall');
+      btn.disabled = true;
+      const manifest = await getManifest(app);
+      btn.disabled = false;
+      const ids = sdkPermissionIds(manifest && manifest.permissions);
+      let granted = ids;
+      // Apps of the mariowOS team run with the system: there is nothing to choose.
+      if (ids.length && !isTrustedRepo(app.repoUrl)) {
+        granted = await askPermissions(app, ids);
+        if (granted === null) return; // cancelled
+      }
+      if (currentAppOpen === app) actOnApp('install', granted);
+    }
+
+    async function actOnApp(action, grantedPermissions) {
       const btn = action === 'install' ? document.getElementById('btnInstall') : document.getElementById('btnUninstall');
       const origText = btn.textContent;
       const origBg = btn.style.background;
@@ -922,7 +1277,7 @@
 
       try {
         const body = action === 'install'
-          ? { appId: currentAppOpen.id, title: currentAppOpen.title, icon: currentAppOpen.icon, repoUrl: currentAppOpen.repoUrl }
+          ? { appId: currentAppOpen.id, title: currentAppOpen.title, icon: currentAppOpen.icon, repoUrl: currentAppOpen.repoUrl, grantedPermissions: Array.isArray(grantedPermissions) ? grantedPermissions : [] }
           : { appId: currentAppOpen.id };
 
         const res = await fetch(`/api/store/${action}`, {
@@ -949,12 +1304,95 @@
         }
 
         updateInstallBtn();
+        renderPermissions(currentAppOpen, await getManifest(currentAppOpen));
         handleSearch(document.getElementById('searchInput').value);
       } catch (err) {
         document.getElementById('installError').textContent = mariowOSI18n.t("store.error", "Error: {error}", { error: err.message });
         btn.textContent = origText;
         btn.style.background = origBg;
         btn.disabled = false;
+      }
+    }
+
+    // ---- My apps: what each installed app may do, changeable at any time ----
+    async function renderMyApps() {
+      const list = document.getElementById('myAppsList');
+      let apps;
+      try {
+        const data = await (await fetch('/api/store/app-permissions', { cache: 'no-store' })).json();
+        if (!data.success) throw new Error(data.error);
+        apps = data.apps;
+      } catch (e) {
+        list.replaceChildren(Object.assign(document.createElement('div'), { className: 'loading-text', textContent: mariowOSI18n.t("store.network-error", "Network error.") }));
+        return;
+      }
+      if (!apps.length) {
+        list.replaceChildren(Object.assign(document.createElement('div'), { className: 'loading-text', textContent: mariowOSI18n.t("store.myapps.empty", "You have not installed any app from the Store yet.") }));
+        return;
+      }
+      list.replaceChildren(...apps.map(app => {
+        const box = document.createElement('div'); box.className = 'myapp';
+        const head = document.createElement('div'); head.className = 'myapp-head';
+        const icon = document.createElement('div'); icon.className = 'card-icon'; icon.append(renderIcon(app.icon));
+        const info = document.createElement('div'); info.className = 'card-info';
+        info.append(
+          Object.assign(document.createElement('h3'), { className: 'card-title', textContent: text(app.title) }),
+          Object.assign(document.createElement('small'), { textContent: app.trusted ? mariowOSI18n.t("store.perm.trusted", "Made by the mariowOS team") : mariowOSI18n.t("store.perm.isolated", "Runs apart from the system") })
+        );
+        head.append(icon, info);
+        if (storeCatalog.some(entry => entry.id === app.appId)) {
+          const page = Object.assign(document.createElement('button'), { className: 'btn-soft', type: 'button' });
+          page.append(symbol('storefront'), document.createTextNode(mariowOSI18n.t("store.myapps.page", "Store page")));
+          page.onclick = () => openLandpage(app.appId);
+          head.append(page);
+        }
+        const open = Object.assign(document.createElement('button'), { className: 'btn-get installed', type: 'button', textContent: mariowOSI18n.t("common.open", "Open") });
+        open.onclick = () => openInstalledApp(app.appId);
+        head.append(open);
+        box.append(head);
+
+        const ids = Object.keys(SDK_PERMISSIONS).filter(id => app.declared.includes(id) || app.granted.includes(id));
+        if (app.trusted) {
+          box.append(Object.assign(document.createElement('p'), { className: 'myapp-note', textContent: mariowOSI18n.t("store.perm.trusted-note", "It runs with the system, like the built-in apps.") }));
+        } else if (!ids.length) {
+          box.append(Object.assign(document.createElement('p'), { className: 'myapp-note', textContent: mariowOSI18n.t("store.myapps.no-permissions", "This app does not ask for any permission. It can show notifications and control its own window.") }));
+        } else {
+          const perms = document.createElement('div'); perms.className = 'myapp-perms';
+          ids.forEach(id => {
+            const [iconName, risk, label] = SDK_PERMISSIONS[id];
+            const row = permissionRow(iconName, label(), app.declared.includes(id) ? '' : mariowOSI18n.t("store.myapps.no-longer-asked", "The app no longer asks for this."), risk === 'medium' ? 'risk-medium' : '');
+            const toggle = document.createElement('label'); toggle.className = 'store-switch';
+            const input = Object.assign(document.createElement('input'), { type: 'checkbox', checked: app.granted.includes(id), disabled: !storeCanInstall });
+            input.setAttribute('aria-label', label());
+            input.onchange = () => changePermission(app, id, input);
+            toggle.append(input, document.createElement('span'));
+            row.append(toggle);
+            perms.append(row);
+          });
+          box.append(perms);
+          if (!storeCanInstall) box.append(Object.assign(document.createElement('p'), { className: 'myapp-note', textContent: mariowOSI18n.t("store.myapps.admin-only", "Only administrators can change what apps may do.") }));
+        }
+        return box;
+      }));
+    }
+
+    async function changePermission(app, id, input) {
+      const next = input.checked ? [...new Set([...app.granted, id])] : app.granted.filter(item => item !== id);
+      input.disabled = true;
+      try {
+        const res = await fetch('/api/store/app-permissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ appId: app.appId, grantedPermissions: next }) });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.error);
+        app.granted = data.granted;
+        input.checked = app.granted.includes(id);
+        // The desktop forgets what it cached about this app's permissions.
+        if (window.parent !== window) window.parent.postMessage({ type: 'app-permissions-changed', appId: app.appId }, location.origin);
+      } catch (e) {
+        input.checked = !input.checked;
+        const message = mariowOSI18n.t("store.error", "Error: {error}", { error: e.message });
+        if (window.mDialog) mDialog.alert(message); else console.warn(message);
+      } finally {
+        input.disabled = !storeCanInstall;
       }
     }
 

@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="mw-settings-bg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#8b93a7"/>
+      <stop offset="1" stop-color="#4f5668"/>
+    </linearGradient>
+    <linearGradient id="mw-settings-sheen" x1="24" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-settings-bg)"/>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-settings-sheen)"/>
+  <rect x="2.5" y="2.5" width="43" height="43" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.16"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M33.77 21.86 L36.91 22.46 L36.91 25.54 L33.77 26.14 L32.42 29.39 L34.22 32.04 L32.04 34.22 L29.39 32.42 L26.14 33.77 L25.54 36.91 L22.46 36.91 L21.86 33.77 L18.61 32.42 L15.96 34.22 L13.78 32.04 L15.58 29.39 L14.23 26.14 L11.09 25.54 L11.09 22.46 L14.23 21.86 L15.58 18.61 L13.78 15.96 L15.96 13.78 L18.61 15.58 L21.86 14.23 L22.46 11.09 L25.54 11.09 L26.14 14.23 L29.39 15.58 L32.04 13.78 L34.22 15.96 L32.42 18.61 Z"/>
+    <circle cx="24" cy="24" r="4.2"/>
+  </g>
+</svg>

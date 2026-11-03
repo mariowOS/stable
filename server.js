@@ -99,7 +99,6 @@ const SERVER_EXIT_CODES = Object.freeze({ SHUTDOWN: 20, UPDATE_RESTART: 21, KERN
 const BACKEND_INSTANCE_ID = process.env.MARIOWOS_BACKEND_INSTANCE_ID || null;
 let httpServer = null;
 let serverExitStarted = false;
-const SOTA_REPOSITORY_URL = "https://github.com/mariowOS/SOTA.git";
 const SOTA_VERSION_URL = process.env.MARIOWOS_SOTA_VERSION_URL ||
   "https://api.github.com/repos/mariowOS/SOTA/contents/version.json?ref=main";
 const SOTA_COMPONENTS = new Set([
@@ -142,6 +141,7 @@ const { createMailClient } = require("./lib/mail");
 const { createSessions, createPasswordGuard } = require("./lib/session");
 const { createUsers, OWNER_ID, withinHours } = require("./lib/users");
 const { createZip, readZip } = require("./lib/zip");
+const { releaseZipUrl, downloadReleaseZip, stageReleaseZip } = require("./lib/release-zip");
 
 function readStagedVersion(stagePath) {
   try { return JSON.parse(fs.readFileSync(path.join(stagePath, "version.json"), "utf8")).version || null; }
@@ -362,13 +362,13 @@ const users = createUsers({ baseDir: __dirname, getConfig: () => config, saveCon
 // Standard (non-admin) accounts: whatever installs software, runs commands or changes the
 // system for everyone belongs to administrators. Enforced here, whatever the UI shows.
 const ADMIN_ONLY_ROUTES = [
-  /^\/api\/store\/(install|uninstall|do-upgrade|publish|eula|auto-update)\b/,
+  /^\/api\/store\/(install|uninstall|do-upgrade|publish|eula|auto-update|app-permissions)\b/,
   /^\/api\/remote\/exec\b/, /^\/api\/sandbox\//, /^\/api\/recovery\//,
   /^\/api\/system\/(factory-reset|reset-settings|reset-desktop|restore|backup|boot-logo|update-channel|keyring|ota-update|sota-update|health-report)\b/,
   /^\/api\/users\/(create|update|delete|reset-password|guest|limits)\b/,
   /^\/api\/rules\/(save|enabled)\b/,
   /^\/(save-settings|clear-settings|set-password|clear-password|upload-wallpaper|upload-live-wallpaper)$/,
-  /^\/api\/wallpaper\/live\/remove$/
+  /^\/api\/wallpaper\/live\/remove$/, /^\/api\/preferences$/
 ];
 // Reading is fine, except where the read itself acts or hands out secrets.
 const ADMIN_ONLY_READS = /^\/api\/system\/(backup|keyring|ota-update|sota-update|health-report)\b/;
@@ -467,6 +467,9 @@ app.use(requireSession);
 app.use(users.middleware(readSession, clearSession));
 app.use(requireAdminFor);
 app.use(enforceAppPermissions);
+// Store SDK: app manifests (mariowos.json) and the permissions granted to each installed app.
+const { registerStoreSdkRoutes, resolveGrantedPermissions } = require("./lib/store-sdk-routes");
+registerStoreSdkRoutes(app, { getConfig: () => config, saveConfig, appsDir: path.join(__dirname, "desktop/apps") });
 
 require("./spotify").registerSpotifyRoutes(app, {
   getConfig: () => config, saveConfig, hasValidSession, port: PORT
@@ -1495,19 +1498,92 @@ app.post("/reset-password", async (req, res) => {
 
 // --- PREFERENCES (daily report email) ---
 app.get("/api/preferences", (req, res) => {
-  res.json({ sendReports: Boolean(config.sendReports), verified: Boolean(config.verified), email: config.email || "" });
+  res.json({ sendReports: Boolean(config.sendReports), verified: Boolean(config.verified), email: config.email || "",
+    anonymousStats: config.anonymousStats === true });
 });
 
 app.post("/api/preferences", (req, res) => {
-  const sendReports = Boolean(req.body.sendReports);
-  if (sendReports && !config.verified) {
-    return res.status(400).json({ success: false, error: "Verify your email in Settings first." });
+  const body = req.body || {};
+  if (body.anonymousStats !== undefined) {
+    if (typeof body.anonymousStats !== "boolean") return res.status(400).json({ success: false, error: "anonymousStats must be true or false." });
+    config.anonymousStats = body.anonymousStats;
+    if (!config.anonymousStats) delete config.statsLastSent;
   }
-  config.sendReports = sendReports;
+  if (body.sendReports !== undefined) {
+    const sendReports = Boolean(body.sendReports);
+    if (sendReports && !config.verified) {
+      return res.status(400).json({ success: false, error: "Verify your email in Settings first." });
+    }
+    config.sendReports = sendReports;
+    scheduleDailyEmail();
+  }
   saveConfig();
-  scheduleDailyEmail();
+  if (config.anonymousStats) sendAnonymousStats();
   res.json({ success: true });
 });
+
+// --- WEATHER WIDGET ---
+// The desktop's pages may only talk to this kernel (connect-src 'self'), so the weather
+// widget asks here and the kernel asks Open-Meteo (the same service the Privacy notice
+// lists for weather). The desktop only calls this after the user agreed to the external
+// service and typed a city. Cached for 15 minutes per city.
+const weatherCache = new Map();
+app.get("/api/widgets/weather", requireAuthJson, async (req, res) => {
+  const city = String(req.query.city || "").trim().slice(0, 80);
+  if (!city) return res.status(400).json({ success: false, error: "City missing" });
+  const language = /^[a-z]{2}$/.test(String(req.query.lang || "")) ? req.query.lang : "en";
+  const cacheKey = `${city.toLowerCase()}|${language}`;
+  const cached = weatherCache.get(cacheKey);
+  if (cached && Date.now() - cached.at < 15 * 60 * 1000) return res.json(cached.data);
+  try {
+    const place = await fetch(`https://geocoding-api.open-meteo.com/v1/search?count=1&language=${language}&name=${encodeURIComponent(city)}`,
+      { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+    const found = place && Array.isArray(place.results) && place.results[0];
+    if (!found) return res.status(404).json({ success: false, error: "City not found" });
+    const forecast = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${found.latitude}&longitude=${found.longitude}` +
+      "&current=temperature_2m,weather_code,is_day&daily=temperature_2m_max,temperature_2m_min&forecast_days=1&timezone=auto",
+      { signal: AbortSignal.timeout(8000) }).then(r => r.json());
+    const data = {
+      success: true,
+      place: [found.name, found.admin1, found.country_code].filter(Boolean).join(", "),
+      temperature: forecast.current?.temperature_2m, code: forecast.current?.weather_code, isDay: forecast.current?.is_day === 1,
+      max: forecast.daily?.temperature_2m_max?.[0], min: forecast.daily?.temperature_2m_min?.[0]
+    };
+    weatherCache.set(cacheKey, { at: Date.now(), data });
+    res.json(data);
+  } catch (error) {
+    res.status(502).json({ success: false, error: "Weather service not reachable" });
+  }
+});
+
+// --- ANONYMOUS USAGE COUNT (opt-in) ---
+// Only when the owner turned it on (setup or Settings › General). Once a day the kernel
+// sends the mariowOS version and update channel, nothing else: no install id, no name,
+// no hardware. The counter (tools/stats-worker) adds 1 to that day's total and does not
+// keep the address the request came from. One ping per install per day, so a day's total
+// is the number of mariowOS systems that were on that day.
+const STATS_URL = process.env.MARIOWOS_STATS_URL || "https://mariowos-stats.mariowos.workers.dev/ping";
+let statsSending = false;
+async function sendAnonymousStats() {
+  if (!STATS_URL || config.anonymousStats !== true || statsSending) return;
+  const today = new Date().toISOString().slice(0, 10);
+  if (config.statsLastSent === today) return;
+  statsSending = true;
+  try {
+    let version = "unknown";
+    try { version = String(JSON.parse(fs.readFileSync(path.join(__dirname, "version.json"), "utf8")).version || version); } catch (e) {}
+    const response = await fetch(STATS_URL, {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ version: version.slice(0, 32), channel: getUpdateChannel() }),
+      signal: AbortSignal.timeout(10000)
+    });
+    if (response.ok) { config.statsLastSent = today; saveConfig(); }
+    else console.warn(`[stats] counter answered ${response.status}; next try in an hour.`);
+  } catch (e) { console.warn(`[stats] ping not sent (${e.message}); next try in an hour.`); }
+  finally { statsSending = false; }
+}
+setTimeout(sendAnonymousStats, 60 * 1000);
+setInterval(sendAnonymousStats, 60 * 60 * 1000);
 
 app.post("/login", async (req, res) => {
   const { password } = req.body;
@@ -2083,22 +2159,57 @@ app.get("/api/store/check-upgrades", async (req, res) => {
 app.post("/api/store/do-upgrade", async (req, res) => {
   res.json({ success: true, ...await upgradeInstalledApps() });
 });
+// Store apps come from GitHub as a ZIP (no Git needed, as on installed mariowOS), or with
+// `git clone` when the ZIP cannot be fetched. The new copy is prepared next to the app and
+// only then swapped in, so a failed download never leaves a half-installed app.
+function githubOwnerRepo(repoUrl) {
+  const match = /^https:\/\/github\.com\/([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+?)(?:\.git)?\/?$/.exec(String(repoUrl || ""));
+  return match ? { owner: match[1], repo: match[2] } : null;
+}
+async function downloadStoreApp(repoUrl, targetPath, onProgress) {
+  const stagePath = `${targetPath}.download-${Date.now()}`;
+  const source = githubOwnerRepo(repoUrl);
+  try {
+    if (!source) throw new Error("Not a GitHub repository URL");
+    await fetchGithubZip(source.owner, source.repo, stagePath, onProgress, ["main", "master"]);
+  } catch (zipError) {
+    fs.rmSync(stagePath, { recursive: true, force: true });
+    console.warn(`[store]: ZIP download of ${repoUrl} failed (${zipError.message}); trying Git.`);
+    try {
+      await runGit(["clone", "--quiet", "--depth", "1", repoUrl, stagePath], os.tmpdir());
+    } catch (gitError) {
+      fs.rmSync(stagePath, { recursive: true, force: true });
+      throw new Error(gitError.code === "ENOENT" ? zipError.message : `${zipError.message}; Git: ${gitError.message}`);
+    }
+  }
+  fs.rmSync(targetPath, { recursive: true, force: true });
+  fs.renameSync(stagePath, targetPath);
+}
+
 async function upgradeInstalledApps() {
   const installedApps = config.installedApps || [];
   let count = 0;
   const updated = [];
   for (const app of installedApps) {
     const targetPath = path.join(__dirname, "desktop/apps", app.appId);
-    if (!fs.existsSync(path.join(targetPath, ".git")) || !isAllowedRepoUrl(app.repoUrl)) continue;
+    if (!fs.existsSync(targetPath) || !isAllowedRepoUrl(app.repoUrl) || !app.repoUrl.endsWith(".git")) continue;
     const current = app.version || readInstalledAppVersion(app.appId);
     const latest = await fetchRepoVersion(app.repoUrl);
     if (!latest || (current && !isNewerVersion(latest, current))) continue;
 
-    const pulled = await new Promise(resolve => {
-      // Pull from the pinned origin only; never a URL taken from the request body.
-      const child = spawn("git", ["pull", "--ff-only"], { cwd: targetPath });
-      child.on("error", () => resolve(false));
-      child.on("close", code => resolve(code === 0));
+    let pulled = false;
+    if (fs.existsSync(path.join(targetPath, ".git"))) {
+      pulled = await new Promise(resolve => {
+        // Pull from the pinned origin only; never a URL taken from the request body.
+        const child = spawn("git", ["pull", "--ff-only"], { cwd: targetPath, windowsHide: true });
+        child.on("error", () => resolve(false));
+        child.on("close", code => resolve(code === 0));
+      });
+    }
+    // Installed from a ZIP, or no Git on this PC: download the new version again.
+    if (!pulled) pulled = await downloadStoreApp(app.repoUrl, targetPath).then(() => true, error => {
+      console.error(`[store]: could not update ${app.appId}:`, error.message);
+      return false;
     });
     if (pulled) {
       count++;
@@ -2273,12 +2384,15 @@ app.post("/api/store/install", async (req, res) => {
     const installedVersion = readInstalledAppVersion(appId);
     // Tiles is a desktop, not an app: it lives in desktop/ only, never in desktop/apps.
     if (appId === "tiles") fs.rmSync(absolutePath, { recursive: true, force: true });
+    // Only what the user ticked in the Store and the app's own mariowos.json declares.
+    const grantedPermissions = resolveGrantedPermissions(req.body.grantedPermissions, absolutePath);
     const existing = config.installedApps.find(app => app.appId === appId);
     if (existing) {
       existing.repoUrl = repoUrl;
+      existing.grantedPermissions = grantedPermissions;
       if (installedVersion) existing.version = installedVersion;
     } else {
-      config.installedApps.push({ appId, title, icon: localIconPath, url: relativeUrl, repoUrl, version: installedVersion || null });
+      config.installedApps.push({ appId, title, icon: localIconPath, url: relativeUrl, repoUrl, version: installedVersion || null, grantedPermissions });
     }
     fs.writeFileSync(configFile, JSON.stringify(config, null, 2));
     res.json({ success: true, message: "Installation complete" });
@@ -2301,22 +2415,16 @@ app.post("/api/store/install", async (req, res) => {
       return res.status(500).json({ success: false, error: "Download failed" });
     }
   } else {
-    if (fs.existsSync(absolutePath)) fs.rmSync(absolutePath, { recursive: true, force: true });
-    const git = spawn('git', ['clone', '--progress', '--depth', '1', repoUrl, absolutePath]);
-
-    git.stderr.on('data', (data) => {
-      const text = data.toString();
-      const match = text.match(/Receiving objects:\s*(\d+)%/i);
-      if (match) installProgress[appId].progress = parseInt(match[1], 10);
-    });
-
-    git.on('close', (code) => {
-      if (code !== 0) {
-        installProgress[appId] = { progress: 0, status: 'error' };
-        return res.status(500).json({ success: false, error: "Installation failed during git clone" });
-      }
-      finishInstall();
-    });
+    try {
+      await downloadStoreApp(repoUrl, absolutePath, (received, total) => {
+        if (total) installProgress[appId].progress = Math.round(100 * received / total);
+      });
+    } catch (error) {
+      console.error(`[store]: installing ${appId} failed:`, error.message);
+      installProgress[appId] = { progress: 0, status: 'error' };
+      return res.status(500).json({ success: false, error: "Installation failed during download" });
+    }
+    finishInstall();
   }
 });
 
@@ -2885,8 +2993,56 @@ function validateStagedServer(filePath) {
 
 const { matchesGitBlob, validateStagedRuntime, verifyReleaseSignature } = require("./lib/update-checks");
 
+// A release comes as a Git clone or, on PCs without Git, as a ZIP (lib/release-zip.js).
+// Both end in the same file list, so every check below applies to both.
+const stagedZipIndexes = new Map();
+function readStagedIndex(stagePath) {
+  if (stagedZipIndexes.has(stagePath)) return Promise.resolve(stagedZipIndexes.get(stagePath));
+  return runGit(["-C", stagePath, "ls-files", "-s", "-z"], stagePath);
+}
+
+// Download a release of github.com/mariowOS/<repo> into stagePath: the ZIP first, Git if
+// the ZIP cannot be fetched (an older GitHub mirror, a proxy that blocks codeload).
+// A GitHub repository's main (or master) branch as files in stagePath, without Git.
+// Returns the staged file index (`git ls-files -s -z` format, see lib/release-zip.js).
+async function fetchGithubZip(owner, repo, stagePath, onProgress, branches = ["main"]) {
+  let lastError;
+  for (const branch of branches) {
+    try {
+      const buffer = await downloadReleaseZip(releaseZipUrl(owner, repo, branch), { onProgress });
+      fs.mkdirSync(stagePath, { recursive: true });
+      return stageReleaseZip(buffer, stagePath);
+    } catch (error) {
+      lastError = error;
+      fs.rmSync(stagePath, { recursive: true, force: true });
+    }
+  }
+  throw lastError;
+}
+
+async function fetchRelease(repo, stagePath, onProgress) {
+  try {
+    stagedZipIndexes.set(stagePath, await fetchGithubZip("mariowOS", repo, stagePath, onProgress));
+    return "zip";
+  } catch (zipError) {
+    fs.rmSync(stagePath, { recursive: true, force: true });
+    stagedZipIndexes.delete(stagePath);
+    console.warn(`[update] ZIP download of ${repo} failed (${zipError.message}); trying Git.`);
+    try {
+      await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", `https://github.com/mariowOS/${repo}.git`, stagePath], os.tmpdir());
+      return "git";
+    } catch (gitError) {
+      throw new Error(gitError.code === "ENOENT" ? zipError.message : `${zipError.message}; Git: ${gitError.message}`);
+    }
+  }
+}
+function forgetStagedRelease(stagePath) {
+  stagedZipIndexes.delete(stagePath);
+  fs.rmSync(stagePath, { recursive: true, force: true });
+}
+
 function getStagedUpdateFiles(stagePath) {
-  const index = runGit(["-C", stagePath, "ls-files", "-s", "-z"], stagePath);
+  const index = readStagedIndex(stagePath);
   return index.then(output => {
     const entries = output.split("\0").filter(Boolean).map(record => {
       const separator = record.indexOf("\t");
@@ -2982,7 +3138,7 @@ async function fetchSotaManifest() {
 }
 
 function getStagedSotaFiles(stagePath) {
-  return runGit(["-C", stagePath, "ls-files", "-s", "-z"], stagePath).then(output => {
+  return readStagedIndex(stagePath).then(output => {
     const targetPaths = new Set();
     const entries = output.split("\0").filter(Boolean).map(record => {
       const separator = record.indexOf("\t");
@@ -3333,7 +3489,12 @@ app.get('/api/system/ota-update', (req, res) => {
       const channel = getUpdateChannel();
 
       send(5, "Downloading complete update...");
-      await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", `https://github.com/mariowOS/${channel}.git`, stagePath], os.tmpdir());
+      await fetchRelease(channel, stagePath, (received, total) => {
+        // GitHub often streams the ZIP without a size: then only the megabytes move.
+        const mb = (received / 1048576).toFixed(1);
+        if (total) send(5 + Math.round(60 * received / total), `Downloading complete update... ${mb} / ${(total / 1048576).toFixed(1)} MB`);
+        else send(5, `Downloading complete update... ${mb} MB`);
+      });
       send(70, "Checking every downloaded file...");
       const files = await getStagedUpdateFiles(stagePath);
       if (files.length === 0) throw new Error("The update contains no files");
@@ -3373,13 +3534,13 @@ app.get('/api/system/ota-update', (req, res) => {
         setTimeout(() => process.exit(SERVER_EXIT_CODES.UPDATE_RESTART), 300);
       } else {
         transaction.commit();
-        fs.rmSync(stagePath, { recursive: true, force: true });
+        forgetStagedRelease(stagePath);
         send(100, "Update complete. No server restart is required.", true);
         res.end();
         systemUpdateInProgress = false;
       }
     } catch (error) {
-      try { fs.rmSync(stagePath, { recursive: true, force: true }); }
+      try { forgetStagedRelease(stagePath); }
       catch (cleanupError) { console.error("Could not clean staged system update:", cleanupError); }
       console.error("System update failed:", error);
       send(0, `Update failed: ${error.message}`, true);
@@ -3423,7 +3584,7 @@ app.get("/api/system/sota-update", (req, res) => {
   (async () => {
     try {
       send(5, "Downloading SOTA packages...");
-      await runGit(["clone", "--quiet", "--depth", "1", "--branch", "main", SOTA_REPOSITORY_URL, stagePath], os.tmpdir());
+      await fetchRelease("SOTA", stagePath);
       send(35, "Verifying SOTA packages...");
       const allFiles = await getStagedSotaFiles(stagePath);
       const latest = JSON.parse(fs.readFileSync(path.join(stagePath, "version.json"), "utf8"));
@@ -3432,7 +3593,7 @@ app.get("/api/system/sota-update", (req, res) => {
       const changedComponents = [...SOTA_COMPONENTS].filter(name => isNewerVersion(latest[name], current[name]));
 
       if (changedComponents.length === 0) {
-        fs.rmSync(stagePath, { recursive: true, force: true });
+        forgetStagedRelease(stagePath);
         send(100, "All system components are up to date.", true);
         res.end();
         systemUpdateInProgress = false;
@@ -3460,12 +3621,12 @@ app.get("/api/system/sota-update", (req, res) => {
       send(65, `Verified ${packageFiles.length - 1} files. Installing ${changedComponents.length} package(s)...`);
       const transaction = applyStagedFiles(packageFiles, send, 65, 98);
       transaction.commit();
-      fs.rmSync(stagePath, { recursive: true, force: true });
+      forgetStagedRelease(stagePath);
       send(100, `SOTA complete: ${changedComponents.join(", ")} updated.`, true);
       res.end();
       systemUpdateInProgress = false;
     } catch (error) {
-      try { fs.rmSync(stagePath, { recursive: true, force: true }); }
+      try { forgetStagedRelease(stagePath); }
       catch (cleanupError) { console.error("Could not clean staged SOTA update:", cleanupError); }
       console.error("SOTA update failed:", error);
       send(0, `SOTA update failed: ${error.message}`, true);
@@ -4186,7 +4347,7 @@ appsApp.use("/apps/:appId", (req, res, next) => {
   express.static(path.join(__dirname, "desktop", "apps", req.params.appId), { dotfiles: "deny", fallthrough: false })(req, res, next);
 });
 // Shared fonts and icons, so apps can match the system look.
-for (const shared of ["fonts", "icons"]) {
+for (const shared of ["fonts", "icons", "sdk"]) {
   appsApp.use(`/desktop/assets/${shared}`, express.static(path.join(__dirname, "desktop", "assets", shared), { fallthrough: false }));
 }
 appsApp.use((req, res) => res.status(404).end());

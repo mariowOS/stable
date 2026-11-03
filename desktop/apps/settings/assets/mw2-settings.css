@@ -1,0 +1,115 @@
+/* mariowOS 2: the common look of every Settings page, drawn with the tokens in mw-design.css.
+ * Each page links it as the last thing in <head>, after its own <style>, so at equal
+ * specificity these rules win. It only normalises shape, type, color roles and motion;
+ * the layout of every page stays its own.
+ */
+
+html { color-scheme: dark; }
+:root[data-theme="light"] { color-scheme: light; }
+
+body {
+  color: var(--mw-text);
+  font-family: var(--mw-font);
+  font-size: var(--mw-font-size-base);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- Headings ---------------------------------------------------------------------------- */
+h1, h2 { color: var(--mw-text); letter-spacing: -0.01em; }
+h2 { font-weight: var(--mw-weight-semibold); }
+h3 { color: var(--mw-text-strong); }
+.section-title, .section-label, .group-title {
+  color: var(--mw-text-muted);
+  font-size: var(--mw-font-size-xs);
+  font-weight: var(--mw-weight-semibold);
+  letter-spacing: var(--mw-tracking-caps);
+  text-transform: uppercase;
+}
+
+/* ---- Back buttons and page headers --------------------------------------------------------- */
+.back-btn, .settings-page-back {
+  border-radius: var(--mw-radius-full);
+  color: var(--mw-accent-text);
+  transition: background var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease;
+}
+.back-btn:hover, .settings-page-back:hover { background: var(--mw-fill-hover); opacity: 1; }
+
+/* ---- Cards: one surface, one hairline, one radius ----------------------------------------- */
+.panel, .card, .card-list, .setting-card, .banner, .info-box, .form-panel, .toggle-container, .time-display, .checkbox-card {
+  border-radius: var(--mw-radius-card);
+  background: var(--mw-fill-faint);
+  border-color: var(--mw-border-subtle);
+  box-shadow: none;
+}
+.panel, .card-list { background: var(--mw-fill-subtle); }
+.banner .title, .text-title, .item-title, .rule-title, .template-title, .history-title { color: var(--mw-text); }
+.banner .desc, .subtitle, .item-subtitle, .text-desc, .rule-desc, .template-desc, .history-desc, .history-time { color: var(--mw-text-muted); }
+
+/* Rows inside cards. */
+.row, .item, .list-item, .rule-item, .template-item, .history-item {
+  border-color: var(--mw-divider);
+  transition: background var(--mw-duration-fast) ease;
+}
+.row.clickable:hover, .item:hover, .list-item:hover, .template-item:hover { background: var(--mw-fill-hover); }
+.item:active, .list-item:active { transform: none; background: var(--mw-fill-pressed); }
+.item-right, .card-arrow { color: var(--mw-text-dim); }
+.item:hover .card-arrow, .list-item:hover .item-right { color: var(--mw-text-secondary); }
+.item:focus-visible, .list-item:focus-visible { outline: none; box-shadow: var(--mw-focus-ring-inset); }
+
+/* Icon tiles: the same diagonal gradient language as the app icons. */
+.icon-badge {
+  border-radius: var(--mw-radius-md);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+}
+
+/* ---- Buttons ----------------------------------------------------------------------------- */
+button, .btn, .select-btn { font-family: inherit; }
+.btn, .select-btn {
+  min-height: var(--mw-control-h);
+  border-radius: var(--mw-radius-control);
+  font-weight: var(--mw-weight-medium);
+  transition: background var(--mw-duration-fast) ease, border-color var(--mw-duration-fast) ease, color var(--mw-duration-fast) ease, box-shadow var(--mw-duration-fast) ease;
+}
+.btn:active, .container > .btn:active { transform: none; filter: brightness(0.96); }
+.btn:focus-visible, .select-btn:focus-visible, button:focus-visible { outline: none; box-shadow: var(--mw-focus-ring); }
+.btn.delete, .btn.danger, .btn-danger { color: var(--mw-danger); }
+
+/* ---- Fields ------------------------------------------------------------------------------ */
+input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='color']):not([type='file']),
+select, textarea {
+  font-family: inherit;
+  color: var(--mw-text);
+  background-color: var(--mw-field);
+  border-color: var(--mw-field-border);
+  border-radius: var(--mw-radius-control);
+  transition: border-color var(--mw-duration-fast) ease, box-shadow var(--mw-duration-fast) ease;
+}
+input::placeholder, textarea::placeholder { color: var(--mw-text-dim); }
+input:not([type='checkbox']):not([type='radio']):not([type='range']):focus,
+select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--mw-accent-text);
+  box-shadow: 0 0 0 3px var(--mw-accent-soft);
+}
+select option { background: var(--mw-surface-3); color: var(--mw-text); }
+:root[data-theme="light"] input[type='time']::-webkit-calendar-picker-indicator,
+:root[data-theme="light"] input[type='date']::-webkit-calendar-picker-indicator { filter: none; }
+
+/* ---- Switches: a calm pill, accent when on --------------------------------------------- */
+.switch .slider {
+  background-color: var(--mw-fill-key-hover);
+  box-shadow: inset 0 0 0 1px var(--mw-border-subtle);
+  transition: background-color var(--mw-duration-base) var(--mw-ease-out);
+}
+.switch .slider:before { box-shadow: var(--mw-shadow-xs); transition: transform var(--mw-duration-base) var(--mw-ease-out); }
+.switch input:checked + .slider { background-color: var(--mw-accent); box-shadow: none; }
+.switch input:focus-visible + .slider { box-shadow: var(--mw-focus-ring); }
+.toggle-switch { background: var(--mw-fill-key-hover); border-color: var(--mw-border-subtle); }
+.toggle-switch.active { background: var(--mw-accent); border-color: transparent; }
+
+/* ---- Status ------------------------------------------------------------------------------ */
+.warning-banner { border-radius: var(--mw-radius-card); }
+.tag, .verify-badge { border-radius: var(--mw-radius-full); }
+.progress-fill { background: var(--mw-accent); }
+

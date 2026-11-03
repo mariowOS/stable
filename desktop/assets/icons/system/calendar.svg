@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="mw-calendar-bg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ff6a55"/>
+      <stop offset="1" stop-color="#e8384f"/>
+    </linearGradient>
+    <linearGradient id="mw-calendar-sheen" x1="24" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-calendar-bg)"/>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-calendar-sheen)"/>
+  <rect x="2.5" y="2.5" width="43" height="43" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.16"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <rect x="12" y="14" width="24" height="22" rx="4.5"/>
+    <path d="M12 21h24M18 11v5M30 11v5"/>
+    <g fill="#ffffff" stroke="none"><circle cx="18" cy="26.5" r="1.7"/><circle cx="24" cy="26.5" r="1.7"/><circle cx="30" cy="26.5" r="1.7"/><circle cx="18" cy="31.5" r="1.7"/><circle cx="24" cy="31.5" r="1.7"/></g>
+  </g>
+</svg>
