@@ -9,6 +9,8 @@ Licensed under the Apache License, Version 2.0
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+  <link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title data-i18n="help.window-title">mariowOS Help &amp; Documentation</title>
 
@@ -20,20 +22,20 @@ Licensed under the Apache License, Version 2.0
     /* Shared mariowOS app language: the same glass sidebar, top bar, accent,
        radii and type scale used by Files, Music and the Store. */
     :root {
-      --accent: var(--sys-accent);
-      --text: #ffffff;
-      --text-secondary: rgba(255, 255, 255, 0.55);
-      --text-dim: rgba(255, 255, 255, 0.35);
-      --sidebar: rgba(22, 22, 25, 0.65);
-      --hover: rgba(255, 255, 255, 0.08);
-      --surface: rgba(255, 255, 255, 0.05);
-      --glass-border: rgba(255, 255, 255, 0.1);
-      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --accent: var(--mw-accent);
+      --text: var(--mw-text);
+      --text-secondary: var(--mw-text-secondary);
+      --text-dim: var(--mw-text-dim);
+      --sidebar: var(--mw-glass-sidebar);
+      --hover: var(--mw-fill);
+      --surface: var(--mw-fill-subtle);
+      --glass-border: var(--mw-border);
+      --spring: var(--mw-ease-spring);
 
-      --doc-text: rgba(255, 255, 255, 0.8);
-      --radius-sm: 8px;
-      --radius-md: 10px;
-      --radius-lg: 14px;
+      --doc-text: var(--mw-text-body);
+      --radius-sm: var(--mw-radius-sm);
+      --radius-md: var(--mw-radius-md);
+      --radius-lg: var(--mw-radius-lg);
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -94,7 +96,7 @@ Licensed under the Apache License, Version 2.0
       transition: background 180ms ease;
     }
 
-    .nav-item:hover:not(.active) { background: rgba(255, 255, 255, 0.1); }
+    .nav-item:hover:not(.active) { background: rgba(var(--mw-ink), 0.1); }
     .nav-item.active { background: var(--accent); font-weight: 500; color: var(--sys-accent-on); }
     .nav-item.hidden { display: none; }
 
@@ -114,12 +116,12 @@ Licensed under the Apache License, Version 2.0
     }
     .icon-bg .material-symbols-outlined { font-size: 15px; font-weight: 400; }
 
-    .c-welcome  { background: linear-gradient(180deg, #0a84ff, #007aff); }
-    .c-ui       { background: linear-gradient(180deg, #64d2ff, #2bc0ff); }
-    .c-style    { background: linear-gradient(180deg, #32d74b, #28cd41); }
-    .c-security { background: linear-gradient(180deg, #bf5af2, #af52de); }
-    .c-network  { background: linear-gradient(180deg, #5e5ce6, #5856d6); }
-    .c-lab      { background: linear-gradient(180deg, #ff9f0a, #d98608); }
+    .c-welcome  { background: linear-gradient(135deg, #0a84ff, #007aff); }
+    .c-ui       { background: linear-gradient(135deg, #64d2ff, #2bc0ff); }
+    .c-style    { background: linear-gradient(135deg, #32d74b, #28cd41); }
+    .c-security { background: linear-gradient(135deg, #bf5af2, #af52de); }
+    .c-network  { background: linear-gradient(135deg, #5e5ce6, #5856d6); }
+    .c-lab      { background: linear-gradient(135deg, #ff9f0a, #d98608); }
 
     .sidebar-note {
       margin-top: auto;
@@ -140,8 +142,8 @@ Licensed under the Apache License, Version 2.0
       align-items: center;
       gap: 12px;
       padding: 0 20px;
-      background: rgba(0, 0, 0, 0.2);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(var(--mw-shade), 0.2);
+      border-bottom: 1px solid rgba(var(--mw-ink), 0.05);
     }
 
     .top-title { font-size: 13px; font-weight: 500; color: var(--text-secondary); white-space: nowrap; }
@@ -157,7 +159,7 @@ Licensed under the Apache License, Version 2.0
       padding: 0 12px;
       border: 1px solid transparent;
       border-radius: var(--radius-sm);
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(var(--mw-ink), 0.05);
       transition: border-color 0.2s;
     }
     .search-bar:focus-within { border-color: var(--sys-accent-text); }
@@ -226,8 +228,8 @@ Licensed under the Apache License, Version 2.0
     code {
       padding: 2px 6px;
       border-radius: 4px;
-      background: rgba(255, 255, 255, 0.1);
-      color: rgba(255, 255, 255, 0.9);
+      background: rgba(var(--mw-ink), 0.1);
+      color: rgba(var(--mw-ink), 0.9);
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       font-size: 0.9em;
     }
@@ -261,7 +263,7 @@ Licensed under the Apache License, Version 2.0
       padding: 0 2px;
       border-radius: 3px;
       background: rgba(255, 214, 10, 0.3);
-      color: #fff;
+      color: var(--mw-text);
     }
 
     .empty {
@@ -284,6 +286,14 @@ Licensed under the Apache License, Version 2.0
 
     * { scrollbar-width: none; }
     *::-webkit-scrollbar { display: none; }
+/* ---- mariowOS 2 ---- shared selection, calm motion, focus rings. */
+  /* Sidebar selection, as in Settings and Files: a soft accent wash with a short accent bar. */
+  .nav-item { position: relative; }
+  .nav-item.active { background: var(--mw-accent-soft); color: var(--mw-text); font-weight: 600; }
+  .nav-item.active::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: var(--mw-radius-full); background: var(--mw-accent-text); }
+  .nav-item:focus-visible { outline: none; box-shadow: var(--mw-focus-ring-inset); }
+  button:focus-visible { outline: none; box-shadow: var(--mw-focus-ring); }
+  /* ---- end mariowOS 2 ---- */
   </style>
 </head>
 <body>

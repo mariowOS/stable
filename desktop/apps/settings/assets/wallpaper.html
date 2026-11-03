@@ -6,6 +6,8 @@
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
 <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,7 +17,7 @@
 <style>
 body {
   font-family: 'Poppins', sans-serif;
-  color: white;
+  color: var(--mw-text);
   margin: 0;
   padding: 10px 0 40px 0;
   background: transparent;
@@ -32,8 +34,8 @@ body {
   gap: 20px;
 }
 .panel {
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(var(--mw-ink), 0.06);
+  border: 1px solid rgba(var(--mw-ink), 0.1);
   border-radius: 10px;
   padding: 20px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -42,19 +44,19 @@ body {
   gap: 16px;
 }
 .upload-area {
-  border: 2px dashed rgba(255, 255, 255, 0.15);
+  border: 2px dashed rgba(var(--mw-ink), 0.15);
   border-radius: 8px;
   padding: 32px 20px;
   text-align: center;
   transition: all 0.2s;
   cursor: pointer;
-  background: rgba(0, 0, 0, 0.15);
+  background: rgba(var(--mw-shade), 0.15);
 }
 .upload-area:hover { border-color: var(--sys-accent-text); background: color-mix(in srgb, var(--sys-accent) 5%, transparent); }
 .upload-area.dragover { border-color: var(--sys-accent-text); background: color-mix(in srgb, var(--sys-accent) 10%, transparent); }
 .upload-icon { font-size: 36px; margin-bottom: 8px; }
 .upload-text { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
-.upload-hint { font-size: 12px; color: rgba(255, 255, 255, 0.5); }
+.upload-hint { font-size: 12px; color: rgba(var(--mw-ink), 0.5); }
 .file-input { display: none; }
 
 .btn {
@@ -72,7 +74,7 @@ body {
 }
 .btn:hover { background: color-mix(in srgb, var(--sys-accent) 85%, black); color: var(--sys-accent-on); }
 .btn:active { transform: scale(0.99); }
-.btn:disabled { opacity: 0.5; cursor: default; background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.4); }
+.btn:disabled { opacity: 0.5; cursor: default; background: rgba(var(--mw-ink), 0.1); color: rgba(var(--mw-ink), 0.4); }
 
 .preview-area { display: none; }
 .preview-area img {
@@ -80,14 +82,14 @@ body {
   border-radius: 8px;
   max-height: 220px;
   object-fit: cover;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(var(--mw-ink), 0.1);
 }
-.status { font-size: 13px; text-align: center; min-height: 18px; color: rgba(255, 255, 255, 0.5); }
+.status { font-size: 13px; text-align: center; min-height: 18px; color: rgba(var(--mw-ink), 0.5); }
 
 .section-title {
   font-size: 12px;
   font-weight: 600;
-  color: rgba(255, 255, 255, 0.5);
+  color: rgba(var(--mw-ink), 0.5);
   margin: 0 0 -10px 4px;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -95,54 +97,58 @@ body {
 
 /* --- Controls, themed with the user's accent color (--accent) --- */
 :root { --accent: var(--sys-accent); }
-.seg { position: relative; display: flex; padding: 4px; background: rgba(0,0,0,0.28); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; }
+.seg { position: relative; display: flex; padding: 4px; background: rgba(var(--mw-shade), 0.28); border: 1px solid rgba(var(--mw-ink), 0.06); border-radius: 12px; }
+/* Appearance (mariowOS 2): dark, light or automatic, saved by mw-theme.js for every page. */
+.theme-seg button.on { background: var(--accent); color: var(--sys-accent-on); box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 35%, transparent); }
+.theme-seg button { transition: color .15s ease, background .15s ease; }
+.theme-hint { margin-top: 10px; font-size: 12px; color: var(--mw-text-muted); }
 .seg-pill { position: absolute; top: 4px; bottom: 4px; left: 4px; border-radius: 9px; background: var(--accent);
-  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent); transition: transform .35s cubic-bezier(.2,1.2,.4,1), width .35s ease; color: var(--sys-accent-on); }
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--accent) 45%, transparent); transition: transform .24s cubic-bezier(.2,0,0,1), width .24s cubic-bezier(.2,0,0,1); color: var(--sys-accent-on); }
 .seg button { position: relative; z-index: 1; flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 4px;
-  border: 0; border-radius: 9px; background: transparent; color: rgba(255,255,255,0.65); font: 500 12.5px 'Poppins', sans-serif; cursor: pointer; transition: color .2s; }
+  border: 0; border-radius: 9px; background: transparent; color: rgba(var(--mw-ink), 0.65); font: 500 12.5px 'Poppins', sans-serif; cursor: pointer; transition: color .2s; }
 .seg button .material-symbols-outlined { font-size: 17px; }
-.seg button:hover { color: #fff; }
+.seg button:hover { color: var(--mw-text); }
 .seg button.on { color: var(--sys-accent-on); }
 .row { display: grid; grid-template-columns: 150px minmax(0, 1fr) 56px; align-items: center; gap: 16px; min-height: 34px; }
 .row select { grid-column: 2 / -1; justify-self: end; }
 .row label { display: flex; align-items: center; gap: 10px; font-size: 13.5px; font-weight: 500; white-space: nowrap; }
-.row label .material-symbols-outlined { font-size: 18px; color: rgba(255,255,255,0.55); }
-.row output { min-width: 50px; padding: 3px 8px; border-radius: 7px; background: rgba(255,255,255,0.07); font-size: 11.5px; font-weight: 500;
-  color: rgba(255,255,255,0.8); text-align: center; font-variant-numeric: tabular-nums; }
-.hint { font-size: 12px; color: rgba(255,255,255,0.5); }
+.row label .material-symbols-outlined { font-size: 18px; color: rgba(var(--mw-ink), 0.55); }
+.row output { min-width: 50px; padding: 3px 8px; border-radius: 7px; background: rgba(var(--mw-ink), 0.07); font-size: 11.5px; font-weight: 500;
+  color: rgba(var(--mw-ink), 0.8); text-align: center; font-variant-numeric: tabular-nums; }
+.hint { font-size: 12px; color: rgba(var(--mw-ink), 0.5); }
 input[type=range] { --fill: 50%; width: 100%; height: 22px; margin: 0; background: transparent; cursor: pointer; -webkit-appearance: none; appearance: none; }
 input[type=range]:focus { outline: none; }
 input[type=range]::-webkit-slider-runnable-track { height: 6px; border-radius: 3px;
-  background: linear-gradient(to right, var(--accent) 0, var(--accent) var(--fill), rgba(255,255,255,0.14) var(--fill)); }
+  background: linear-gradient(to right, var(--accent) 0, var(--accent) var(--fill), rgba(var(--mw-ink), 0.14) var(--fill)); }
 input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; margin-top: -6px; border-radius: 50%;
   background: #fff; border: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.45); transition: transform .15s, box-shadow .2s; }
-input[type=range]:hover::-webkit-slider-thumb { transform: scale(1.12); }
+input[type=range]:hover::-webkit-slider-thumb { transform: none; }
 input[type=range]:active::-webkit-slider-thumb, input[type=range]:focus-visible::-webkit-slider-thumb {
   transform: scale(1.18); box-shadow: 0 2px 6px rgba(0,0,0,0.45), 0 0 0 6px color-mix(in srgb, var(--accent) 30%, transparent); }
 .swatches { display: flex; flex-wrap: wrap; gap: 12px; }
 .swatch { position: relative; width: 32px; height: 32px; border-radius: 50%; border: 0; cursor: pointer; padding: 0;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.15); transition: transform .15s; }
-.swatch:hover { transform: scale(1.1); }
+.swatch:hover { transform: none; }
 .swatch.on { box-shadow: 0 0 0 2px #15171b, 0 0 0 4px #fff; }
 .swatch.on::after { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; content: "check";
   font-family: 'Material Symbols Outlined'; font-size: 18px; color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,0.6); }
 .swatch.custom { overflow: hidden; background: conic-gradient(red, yellow, lime, cyan, blue, magenta, red); }
 .swatch.custom input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .gradients { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
-.gradients button { position: relative; height: 62px; border-radius: 12px; border: 0; cursor: pointer; color: #fff;
+.gradients button { position: relative; height: 62px; border-radius: 12px; border: 0; cursor: pointer; color: var(--mw-text);
   font: 600 11.5px 'Poppins', sans-serif; text-shadow: 0 1px 3px rgba(0,0,0,0.6); display: flex; align-items: flex-end; padding: 8px;
   box-shadow: inset 0 0 0 1px rgba(255,255,255,0.12); transition: transform .15s; }
 .gradients button:hover { transform: translateY(-2px); }
 .gradients button.on { box-shadow: 0 0 0 2px #15171b, 0 0 0 4px var(--accent); }
-select { min-width: 160px; padding: 8px 34px 8px 12px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; outline: none; cursor: pointer;
-  color: #fff; font: 13px 'Poppins', sans-serif; -webkit-appearance: none; appearance: none;
-  background: rgba(0,0,0,0.3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23ffffff99' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 10px center; }
-select:hover { border-color: rgba(255,255,255,0.25); }
+select { min-width: 160px; padding: 8px 34px 8px 12px; border: 1px solid rgba(var(--mw-ink), 0.12); border-radius: 10px; outline: none; cursor: pointer;
+  color: var(--mw-text); font: 13px 'Poppins', sans-serif; -webkit-appearance: none; appearance: none;
+  background: rgba(var(--mw-shade), 0.3) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24'%3E%3Cpath fill='%23888c96' d='M7 10l5 5 5-5z'/%3E%3C/svg%3E") no-repeat right 10px center; }
+select:hover { border-color: rgba(var(--mw-ink), 0.25); }
 select:focus { border-color: var(--sys-accent-text); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent); }
-select option { background: #1c1e24; }
-.saved { font-size: 11.5px; color: rgba(255,255,255,0.45); text-align: right; min-height: 16px; margin: -12px 4px 0 0; }
+select option { background: var(--mw-surface-3); }
+.saved { font-size: 11.5px; color: rgba(var(--mw-ink), 0.45); text-align: right; min-height: 16px; margin: -12px 4px 0 0; }
 .mode-panel[hidden] { display: none; }
-.mode-panel[data-for="live"] { display: flex; flex-direction: column; gap: 14px; animation: liveIn .45s cubic-bezier(.2,1.1,.4,1); }
+.mode-panel[data-for="live"] { display: flex; flex-direction: column; gap: 14px; animation: liveIn .45s cubic-bezier(.2, 0, 0, 1); }
 .mode-panel[data-for="live"][hidden] { display: none; }
 @keyframes liveIn { from { opacity: 0; transform: translateY(8px) scale(.98); } }
 .live-preview { position: relative; height: 190px; border-radius: 12px; overflow: hidden; background: #000; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.1); }
@@ -150,12 +156,12 @@ select option { background: #1c1e24; }
 .live-preview video, .live-preview img { width: 100%; height: 100%; object-fit: cover; display: block; animation: livePop .6s ease; }
 @keyframes livePop { from { opacity: 0; transform: scale(1.06); filter: blur(6px); } }
 .live-preview .live-badge { position: absolute; top: 10px; left: 10px; display: flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 99px;
-  background: rgba(0,0,0,0.55); backdrop-filter: blur(8px); font-size: 11px; font-weight: 600; letter-spacing: .4px; }
+  background: rgba(var(--mw-shade), 0.55); backdrop-filter: blur(8px); font-size: 11px; font-weight: 600; letter-spacing: .4px; }
 .live-preview .live-badge::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #ff453a; box-shadow: 0 0 0 0 rgba(255,69,58,.7); animation: livePulse 1.6s infinite; }
-.live-preview.still .live-badge::before { background: rgba(255,255,255,.5); animation: none; }
+.live-preview.still .live-badge::before { background: rgba(var(--mw-ink), .5); animation: none; }
 @keyframes livePulse { 70% { box-shadow: 0 0 0 7px rgba(255,69,58,0); } 100% { box-shadow: 0 0 0 0 rgba(255,69,58,0); } }
 .live-drop { padding: 22px 20px; position: relative; overflow: hidden; }
-.live-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(255,255,255,0.08); }
+.live-progress { position: absolute; left: 0; right: 0; bottom: 0; height: 3px; background: rgba(var(--mw-ink), 0.08); }
 .live-progress[hidden] { display: none; }
 .live-progress span { display: block; height: 100%; width: 0; background: var(--accent); transition: width .2s; box-shadow: 0 0 10px var(--accent); }
 .btn-text { justify-self: end; grid-column: 3; border: 0; background: transparent; color: #ff453a; font: 500 13px 'Poppins', sans-serif; cursor: pointer; padding: 6px 4px; }
@@ -163,20 +169,28 @@ select option { background: #1c1e24; }
 .row[hidden] { display: none; }
 .switch { position: relative; display: inline-block; width: 44px; height: 24px; justify-self: end; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; inset: 0; cursor: pointer; background-color: rgba(255,255,255,0.2); transition: .3s; border-radius: 24px; }
+.slider { position: absolute; inset: 0; cursor: pointer; background-color: rgba(var(--mw-ink), 0.2); transition: .3s; border-radius: 24px; }
 .slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 2px; bottom: 2px; background-color: white; transition: .3s; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 .switch input:checked + .slider { background-color: #f5a524; }
 .switch input:checked + .slider:before { transform: translateX(20px); }
-.time-range { grid-column: 2 / -1; justify-self: end; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: rgba(255,255,255,0.6); }
-.time-range input { padding: 7px 10px; border: 1px solid rgba(255,255,255,0.12); border-radius: 10px; background: rgba(0,0,0,0.3); color: #fff; font: 13px 'Poppins', sans-serif; color-scheme: dark; outline: none; }
+.time-range { grid-column: 2 / -1; justify-self: end; display: flex; align-items: center; gap: 10px; font-size: 12.5px; color: rgba(var(--mw-ink), 0.6); }
+.time-range input { padding: 7px 10px; border: 1px solid rgba(var(--mw-ink), 0.12); border-radius: 10px; background: rgba(var(--mw-shade), 0.3); color: var(--mw-text); font: 13px 'Poppins', sans-serif; color-scheme: dark; outline: none; }
 .time-range input:focus { border-color: var(--sys-accent-text); }
 
 html::-webkit-scrollbar { display: none; }
 </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 <div class="container">
   
+  <div class="section-title" data-i18n="settings.wallpaper.appearance">Appearance</div>
+  <div class="panel">
+    <div class="seg theme-seg" id="themeSeg" role="radiogroup" aria-label="Appearance" data-i18n-aria-label="settings.wallpaper.appearance">
+      <button type="button" role="radio" data-theme="dark"><span class="material-symbols-outlined">dark_mode</span><span data-i18n="settings.wallpaper.theme-dark">Dark</span></button><button type="button" role="radio" data-theme="light"><span class="material-symbols-outlined">light_mode</span><span data-i18n="settings.wallpaper.theme-light">Light</span></button><button type="button" role="radio" data-theme="auto"><span class="material-symbols-outlined">contrast</span><span data-i18n="settings.wallpaper.theme-auto">Automatic</span></button>
+    </div>
+    <div class="theme-hint" data-i18n="settings.wallpaper.theme-hint">Automatic follows the light or dark setting of your computer.</div>
+  </div>
   <div class="section-title" data-i18n="settings.wallpaper.upload-title">Upload Custom Wallpaper</div>
   <div class="panel">
     <div class="upload-area" id="dropArea" onclick="document.getElementById('fileInput').click()">
@@ -275,26 +289,26 @@ html::-webkit-scrollbar { display: none; }
     <div class="list-item" onclick="resetStyle()" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
       <div style="display: flex; align-items: center; gap: 12px;">
         <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(180deg, #5e5ce6, #3634a3); display: flex; align-items: center; justify-content: center;">
-          <span class="material-symbols-outlined" style="font-size: 18px; color: #fff;">format_paint</span>
+          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--mw-text);">format_paint</span>
         </div>
         <div>
           <div style="font-size: 14px; font-weight: 500;" data-i18n="settings.wallpaper.reset-style">Reset Style</div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.5);" data-i18n="settings.wallpaper.reset-style-desc">Restore accent, adjustments, windows, icons and font</div>
+          <div style="font-size: 12px; color: rgba(var(--mw-ink), 0.5);" data-i18n="settings.wallpaper.reset-style-desc">Restore accent, adjustments, windows, icons and font</div>
         </div>
       </div>
-      <span class="material-symbols-outlined" style="color: rgba(255,255,255,0.3);">chevron_right</span>
+      <span class="material-symbols-outlined" style="color: rgba(var(--mw-ink), 0.3);">chevron_right</span>
     </div>
     <div class="list-item" onclick="resetToFactory()" style="display: flex; justify-content: space-between; align-items: center; padding: 12px; cursor: pointer; border-radius: 6px; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
       <div style="display: flex; align-items: center; gap: 12px;">
         <div style="width: 28px; height: 28px; border-radius: 6px; background: linear-gradient(180deg, #8e8e93, #636366); display: flex; align-items: center; justify-content: center;">
-          <span class="material-symbols-outlined" style="font-size: 18px; color: #fff;">wallpaper</span>
+          <span class="material-symbols-outlined" style="font-size: 18px; color: var(--mw-text);">wallpaper</span>
         </div>
         <div>
           <div style="font-size: 14px; font-weight: 500;" data-i18n="settings.wallpaper.restore">Restore Default Wallpaper</div>
-          <div style="font-size: 12px; color: rgba(255,255,255,0.5);" data-i18n="settings.wallpaper.restore-desc">Revert to the factory desktop background</div>
+          <div style="font-size: 12px; color: rgba(var(--mw-ink), 0.5);" data-i18n="settings.wallpaper.restore-desc">Revert to the factory desktop background</div>
         </div>
       </div>
-      <span class="material-symbols-outlined" style="color: rgba(255,255,255,0.3);">chevron_right</span>
+      <span class="material-symbols-outlined" style="color: rgba(var(--mw-ink), 0.3);">chevron_right</span>
     </div>
   </div>
 
@@ -632,6 +646,17 @@ fetch('/get-settings').then(r => r.ok ? r.json() : null).then(cfg => {
   try { localStorage.setItem('desktopStyle', JSON.stringify(style)); } catch (e) {}
   renderStyle();
 }).catch(() => {});
+</script>
+<script>
+// Appearance: the choice is saved and applied to every page by /desktop/assets/mw-theme.js.
+(function () {
+  const seg = document.getElementById('themeSeg');
+  if (!seg || !window.mariowOSTheme) return;
+  const render = () => seg.querySelectorAll('button').forEach(b => { const on = b.dataset.theme === mariowOSTheme.get(); b.classList.toggle('on', on); b.setAttribute('aria-checked', on); });
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => { mariowOSTheme.set(b.dataset.theme); render(); }));
+  window.addEventListener('storage', e => { if (e.key === 'mwTheme') render(); });
+  render();
+})();
 </script>
 </body>
 </html>

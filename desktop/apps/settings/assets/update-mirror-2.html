@@ -4,6 +4,8 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
@@ -11,7 +13,7 @@
 <style>
 :root {
   --accent: var(--sys-accent);
-  --menu: rgba(26, 28, 34, 0.96);
+  --menu: color-mix(in srgb, var(--mw-surface-3) 96%, transparent);
   --spring: cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -23,7 +25,7 @@ body {
   min-height: 400px;
   overflow: hidden;
   font-family: 'Poppins', sans-serif;
-  color: #fff;
+  color: var(--mw-text);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -50,7 +52,7 @@ body {
 .progress-track {
   width: 200px;
   height: 4px;
-  background: rgba(255,255,255,0.08);
+  background: rgba(var(--mw-ink), 0.08);
   border-radius: 4px;
   margin: 0 auto 8px auto;
   overflow: hidden;
@@ -120,7 +122,7 @@ body {
   min-height: 100%;
   height: 100%;
   overflow: auto;
-  color: #fff;
+  color: var(--mw-text);
 }
 
 .card {
@@ -136,7 +138,7 @@ body {
 
 .section-label {
   margin: 0 0 6px 12px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--mw-ink), 0.5);
   font-size: 12px;
   text-transform: uppercase;
   font-weight: 600;
@@ -156,15 +158,15 @@ body {
   gap: 12px;
   margin: 0;
   padding: 14px 16px;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(var(--mw-ink), .1);
   border-radius: 10px;
-  background: rgba(255,255,255,.06);
+  background: rgba(var(--mw-ink), .06);
   transition: background .18s ease, border-color .18s ease;
 }
 
 .update-row:hover {
-  border-color: rgba(255,255,255,.14);
-  background: rgba(255,255,255,.085);
+  border-color: rgba(var(--mw-ink), .14);
+  background: rgba(var(--mw-ink), .085);
 }
 
 .update-icon {
@@ -175,7 +177,7 @@ body {
   place-items: center;
   overflow: hidden;
   border-radius: 12px;
-  background: linear-gradient(150deg, rgba(255,255,255,.22), rgba(255,255,255,.07));
+  background: linear-gradient(150deg, rgba(var(--mw-ink), .22), rgba(var(--mw-ink), .07));
   color: #fff;
 }
 
@@ -201,7 +203,7 @@ body {
 
 .update-title {
   overflow: hidden;
-  color: #fff;
+  color: var(--mw-text);
   font-size: 16px;
   font-weight: 600;
   line-height: 1.3;
@@ -212,7 +214,7 @@ body {
 .update-subtitle {
   overflow: hidden;
   margin-top: 2px;
-  color: rgba(255,255,255,.76);
+  color: rgba(var(--mw-ink), .76);
   font-size: 13px;
   font-weight: 400;
   line-height: 1.35;
@@ -222,19 +224,19 @@ body {
 
 .update-action {
   flex: 0 0 auto;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(var(--mw-ink), .1);
   border-radius: 8px;
   padding: 7px 14px;
   min-height: 32px;
   outline: none;
-  background: rgba(255,255,255,.08);
-  color: #fff;
+  background: rgba(var(--mw-ink), .08);
+  color: var(--mw-text);
   font: 500 13px/1.2 'Poppins', sans-serif;
   cursor: pointer;
   transition: background .16s ease, transform .16s ease;
 }
 
-.update-action:hover { background: rgba(255,255,255,.15); }
+.update-action:hover { background: rgba(var(--mw-ink), .15); }
 .update-action:active { transform: scale(.97); }
 .update-action:disabled { opacity: .5; cursor: wait; }
 
@@ -254,9 +256,9 @@ body {
 .progress-view {
   margin: 0;
   padding: 12px 16px;
-  border: 1px solid rgba(255,255,255,.1);
+  border: 1px solid rgba(var(--mw-ink), .1);
   border-radius: 10px;
-  background: rgba(255,255,255,.06);
+  background: rgba(var(--mw-ink), .06);
 }
 
 .progress-meta {
@@ -264,7 +266,7 @@ body {
   justify-content: space-between;
   gap: 12px;
   margin-bottom: 8px;
-  color: rgba(255,255,255,.72);
+  color: rgba(var(--mw-ink), .72);
   font-size: 11px;
 }
 
@@ -274,7 +276,7 @@ body {
   height: 4px;
   margin: 0;
   border-radius: 4px;
-  background: rgba(255,255,255,.12);
+  background: rgba(var(--mw-ink), .12);
 }
 
 .progress-fill {
@@ -287,7 +289,7 @@ body {
 
 .notice {
   margin: 10px 0 0;
-  color: rgba(255,255,255,.62);
+  color: rgba(var(--mw-ink), .62);
   font-size: 11px;
   line-height: 1.5;
 }
@@ -300,28 +302,28 @@ body {
   justify-content: space-between;
   margin-top: 32px;
   padding: 16px 12px 0 12px;
-  border-top: 1px solid rgba(255,255,255,0.08);
+  border-top: 1px solid rgba(var(--mw-ink), 0.08);
 }
 
 .channel-label {
   font-size: 13px;
-  color: rgba(255,255,255,0.6);
+  color: rgba(var(--mw-ink), 0.6);
   font-weight: 500;
 }
 
 .tb { 
   height: 32px; padding: 0 10px; display: inline-flex; align-items: center; justify-content: center; 
-  gap: 6px; border: 0; border-radius: 8px; background: rgba(255,255,255,0.06); color: rgba(255,255,255,.85); 
+  gap: 6px; border: 0; border-radius: 8px; background: rgba(var(--mw-ink), 0.06); color: rgba(var(--mw-ink), .85); 
   cursor: pointer; font-size: 13px; transition: background .15s, color .15s; font-family: inherit; 
 }
-.tb:hover:not(:disabled) { background: rgba(255, 255, 255, 0.12); color: #fff; }
-.tb.on { background: color-mix(in srgb, var(--accent) 25%, transparent); color: #fff; }
+.tb:hover:not(:disabled) { background: rgba(var(--mw-ink), 0.12); color: var(--mw-text); }
+.tb.on { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--mw-text); }
 .tb:disabled { opacity: .35; cursor: wait; }
-.tb.style-btn { min-width: 120px; justify-content: space-between; font-weight: 500; border: 1px solid rgba(255,255,255,0.05); }
+.tb.style-btn { min-width: 120px; justify-content: space-between; font-weight: 500; border: 1px solid rgba(var(--mw-ink), 0.05); }
 
 .menu { 
   position: fixed; z-index: 1000; min-width: 160px; padding: 6px; border-radius: 14px; background: var(--menu); 
-  border: 1px solid rgba(255,255,255,.1); box-shadow: 0 18px 50px rgba(0,0,0,.5); backdrop-filter: blur(30px); 
+  border: 1px solid rgba(var(--mw-ink), .1); box-shadow: 0 18px 50px rgba(0,0,0,.5); backdrop-filter: blur(30px); 
   display: none; flex-direction: column; animation: pop .18s var(--spring); 
 }
 .menu.open { display: flex; }
@@ -329,12 +331,12 @@ body {
 
 .menu button { 
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; border: 0; border-radius: 9px; 
-  background: transparent; cursor: pointer; font-size: 13px; text-align: left; font-family: inherit; color: #fff; transition: background .15s;
+  background: transparent; cursor: pointer; font-size: 13px; text-align: left; font-family: inherit; color: var(--mw-text); transition: background .15s;
 }
-.menu button:hover:not(:disabled) { background: rgba(255,255,255,.1); }
-.menu button.active { background: color-mix(in srgb, var(--accent) 25%, transparent); color: #fff; font-weight: 600; }
+.menu button:hover:not(:disabled) { background: rgba(var(--mw-ink), .1); }
+.menu button.active { background: color-mix(in srgb, var(--accent) 25%, transparent); color: var(--mw-text); font-weight: 600; }
 .menu button:disabled { opacity: .4; cursor: default; }
-.menu button .ms { font-size: 18px; color: rgba(255,255,255,.7); width: 20px; }
+.menu button .ms { font-size: 18px; color: rgba(var(--mw-ink), .7); width: 20px; }
 
 @media (max-width: 420px) {
   .card { padding: 20px 0 16px; }
@@ -348,6 +350,7 @@ body {
   *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
 </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 <main class="card" id="app">

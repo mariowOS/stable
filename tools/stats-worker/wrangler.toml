@@ -1,0 +1,8 @@
+name = "mariowos-stats"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+# Create it once with `npx wrangler kv namespace create STATS` and paste the id here.
+[[kv_namespaces]]
+binding = "STATS"
+id = "7d2d443e194d46e285723133988f1845"

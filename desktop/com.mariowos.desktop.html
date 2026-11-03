@@ -21,6 +21,8 @@ Questions? https://discord.gg/YDVxw6jfbH
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/api/users/me.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+  <script src="/desktop/assets/mw-theme.js"></script>
+  <link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
 
@@ -29,14 +31,14 @@ Questions? https://discord.gg/YDVxw6jfbH
       --m3-accent-active: #0a84ff;
       --m3-accent-on-active: #ffffff;
       --m3-accent-text: #4da3ff;
---m3-tile-inactive: rgba(255, 255, 255, 0.12);
-      --m3-tile-on-inactive: rgba(255, 255, 255, 0.85);
-      --m3-text-color: #ffffff;
+--m3-tile-inactive: var(--mw-fill-tile);
+      --m3-tile-on-inactive: var(--mw-text-strong);
+      --m3-text-color: var(--mw-text);
       
       /* UI Spring Physics */
-      --spring: cubic-bezier(0.16, 1, 0.3, 1);
-      --spring-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
-      --sheet: cubic-bezier(0.32, 0.72, 0, 1); /* long, soft landing for menus */
+      --spring: var(--mw-ease-spring);
+      --spring-bounce: var(--mw-ease-bounce);
+      --sheet: var(--mw-ease-sheet); /* long, soft landing for menus */
     }
 
     *, *::before, *::after {
@@ -901,6 +903,10 @@ Questions? https://discord.gg/YDVxw6jfbH
     .nc-empty svg { width: 96px; height: 72px; }
     @keyframes ncIn { from { transform: translateY(-14px) scale(0.96); opacity: 0; } to { transform: none; opacity: 1; } }
     @keyframes ncOut { to { transform: translateX(60px); opacity: 0; } }
+    .nc-group-head { display: flex; align-items: center; gap: 4px; padding: 8px 4px 0 6px; font-size: 12px; font-weight: 600; color: rgba(255,255,255,0.7); }
+    .nc-group-head span:first-child { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .nc-group-btn { border: 0; background: transparent; color: rgba(255,255,255,0.7); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 18px !important; display: grid; place-items: center; }
+    .nc-group-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
     .nc-item { position: relative; flex: 0 0 auto; display: flex; gap: 12px; padding: 12px 14px; border-radius: 18px; background: rgba(255,255,255,0.07); }
     .nc-item.fresh { animation: ncIn 0.45s var(--spring) backwards; }
     .nc-item.leaving { animation: ncOut 0.24s ease-in forwards; }
@@ -974,6 +980,7 @@ Questions? https://discord.gg/YDVxw6jfbH
     .popup.tv-hot { box-shadow: 0 0 0 6px rgba(255,255,255,0.5), 0 30px 70px rgba(0,0,0,0.55) !important; }
 
   </style>
+  <link rel="stylesheet" href="/desktop/assets/mw-shell.css">
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
 <script src="/desktop/assets/external-consent.js"></script>
 <script src="/desktop/assets/calendar-core.js"></script>
@@ -1037,6 +1044,9 @@ Questions? https://discord.gg/YDVxw6jfbH
         <span class="material-symbols-outlined">search</span>
         <span data-i18n="common.search">Search</span>
       </div>
+      <div class="search-btn" id="mwWidgetsBtn" onclick="mwWidgets.toggle()" role="button" tabindex="0" title="Widgets" data-i18n-title="desktop.widgets.title" aria-label="Widgets" data-i18n-aria-label="desktop.widgets.title">
+        <span class="material-symbols-outlined">widgets</span>
+      </div>
     </div>
 
     <div class="status-center">
@@ -1096,6 +1106,13 @@ Questions? https://discord.gg/YDVxw6jfbH
               <div class="hmos-text-container">
                 <span class="hmos-title" data-i18n="desktop.qs.night-light">Night light</span>
                 <span class="hmos-subtitle" id="subNight" data-i18n="desktop.qs.off">Off</span>
+              </div>
+            </div>
+            <div class="qs-tile-hmos active" id="tileTheme" onclick="mwToggleTheme()">
+              <div class="hmos-icon-bg"><span class="material-symbols-outlined" id="iconTheme" style="font-size:22px">dark_mode</span></div>
+              <div class="hmos-text-container">
+                <span class="hmos-title" data-i18n="desktop.qs.theme">Theme</span>
+                <span class="hmos-subtitle" id="subTheme" data-i18n="desktop.qs.theme-dark">Dark</span>
               </div>
             </div>
           </div>
@@ -2741,10 +2758,28 @@ Questions? https://discord.gg/YDVxw6jfbH
       target.replaceChildren(span);
     }
 
-    function showNotification(title, msg, icon = "notifications") {
+    // Apps that the user silenced from the notification center: their notifications are kept
+    // there but no longer pop up.
+    const mutedNotificationApps = () => { try { return JSON.parse(localStorage.getItem('mwMutedNotificationApps') || '[]'); } catch (e) { return []; } };
+    function setNotificationAppMuted(appId, muted) {
+      const list = mutedNotificationApps().filter(id => id !== appId);
+      if (muted) list.push(appId);
+      try { localStorage.setItem('mwMutedNotificationApps', JSON.stringify(list)); } catch (e) {}
+      updateNotificationCenter();
+    }
+    // The app a notification came from: { id: popup id, title: its window title }.
+    function notificationAppOf(source) {
+      const popupId = source && appIdOfMessageSource(source);
+      if (!popupId) return null;
+      const header = document.querySelector(`#${CSS.escape(popupId)} .popup-header span`);
+      return { id: popupId, title: (header && header.textContent.trim()) || popupId };
+    }
+
+    function showNotification(title, msg, icon = "notifications", options = {}) {
       const time = new Date().toLocaleTimeString(mariowOSI18n.locale, { hour: '2-digit', minute: '2-digit' });
-      notificationsHistory.unshift({ title, msg, icon, time }); if (notificationsHistory.length > 10) notificationsHistory.pop(); updateNotificationCenter();
-      if (qsState.dnd) return;
+      const app = options && options.app && options.app.id ? { id: String(options.app.id), title: String(options.app.title || options.app.id).slice(0, 60) } : null;
+      notificationsHistory.unshift({ title, msg, icon, time, app }); if (notificationsHistory.length > 30) notificationsHistory.pop(); updateNotificationCenter();
+      if (qsState.dnd || (app && mutedNotificationApps().includes(app.id))) return;
       const container = document.getElementById('toast-container'); const toast = document.createElement('div'); toast.className = 'toast';
       // SECURITY (layer-2 XSS): title/msg may carry untrusted text (SSID, BT/app name); use DOM.
       const tIcon = document.createElement('div'); tIcon.className = 'toast-icon'; fillIcon(tIcon, icon);
@@ -2800,7 +2835,8 @@ Questions? https://discord.gg/YDVxw6jfbH
         badge.style.display = 'none'; return;
       }
       if (dropdown && !dropdown.classList.contains('open')) badge.style.display = 'block';
-      list.replaceChildren(...notificationsHistory.map(n => {
+      // Grouped by the app that sent them; system messages come first, without a header.
+      const renderItem = n => {
         // SECURITY (layer-2 XSS): notification fields may carry untrusted text; use DOM.
         const item = document.createElement('div'); item.className = 'nc-item';
         if (!renderedNotifications.has(n)) { renderedNotifications.add(n); item.classList.add('fresh'); }
@@ -2816,7 +2852,33 @@ Questions? https://discord.gg/YDVxw6jfbH
         close.addEventListener('click', e => { e.stopPropagation(); dismissNotification(n, item); });
         item.append(icon, body, close);
         return item;
-      }));
+      };
+      const groups = new Map();
+      notificationsHistory.forEach(n => {
+        const key = n.app ? n.app.id : '';
+        if (!groups.has(key)) groups.set(key, { app: n.app, items: [] });
+        groups.get(key).items.push(n);
+      });
+      const muted = mutedNotificationApps();
+      const nodes = [];
+      [...groups.values()].sort((a, b) => (a.app ? 1 : 0) - (b.app ? 1 : 0)).forEach(group => {
+        if (group.app) {
+          const head = document.createElement('div'); head.className = 'nc-group-head';
+          const name = document.createElement('span'); name.textContent = group.app.title;
+          const isMuted = muted.includes(group.app.id);
+          const mute = document.createElement('button'); mute.type = 'button'; mute.className = 'nc-group-btn material-symbols-outlined';
+          mute.textContent = isMuted ? 'notifications_off' : 'notifications_active';
+          mute.title = isMuted ? mariowOSI18n.t("desktop.notifications.unmute", "Show this app's notifications again") : mariowOSI18n.t("desktop.notifications.mute", "Do not disturb for this app");
+          mute.addEventListener('click', e => { e.stopPropagation(); setNotificationAppMuted(group.app.id, !isMuted); });
+          const clear = document.createElement('button'); clear.type = 'button'; clear.className = 'nc-group-btn material-symbols-outlined'; clear.textContent = 'clear_all';
+          clear.title = mariowOSI18n.t("desktop.notifications.clear-app", "Clear this app's notifications");
+          clear.addEventListener('click', e => { e.stopPropagation(); notificationsHistory = notificationsHistory.filter(n => !(n.app && n.app.id === group.app.id)); updateNotificationCenter(); syncLockscreenData(); });
+          head.append(name, mute, clear);
+          nodes.push(head);
+        }
+        group.items.forEach(n => nodes.push(renderItem(n)));
+      });
+      list.replaceChildren(...nodes);
     }
 
     function dismissNotification(n, item) {
@@ -4723,6 +4785,8 @@ snapZone = getSnapZone(pendingX, pendingY);
       const font = String(st.uiFont || 'Poppins').replace(/[^a-z0-9 -]/gi, '');
       const styleText = `
         .popup:not(.maximized) { border-radius: ${radius}px !important; }
+        /* Round corners eat into the title bar: keep the window buttons inside the curve. */
+        .popup:not(.maximized) .popup-header { padding-right: ${Math.max(6, Math.round(radius * 0.5))}px !important; }
         body:not(.lab-dark-mode):not(.lab-performance) .popup:not(#popup2) { background-color: rgba(18, 22, 32, ${glass}) !important; }
         #desktop-icons .desktop-item { width: ${Math.round(86 * scale)}px; }
         #desktop-icons .desktop-item .desktop-item-icon { font-size: ${Math.round(44 * scale)}px; }
@@ -4776,7 +4840,7 @@ snapZone = getSnapZone(pendingX, pendingY);
         const ownAppId = appIdOfMessageSource(e.source);
         if (!ownAppId || !CROSS_ORIGIN_APP_MESSAGES.has(e.data.type)) return;
         if (e.data.type === 'show-notification') {
-          showNotification(String(e.data.title || '').slice(0, 80), String(e.data.msg || '').slice(0, 300));
+          showNotification(String(e.data.title || '').slice(0, 80), String(e.data.msg || '').slice(0, 300), 'notifications', { app: notificationAppOf(e.source) });
         } else if (e.data.type === 'close-app') {
           closePopup(ownAppId);
         } else {
@@ -4784,7 +4848,7 @@ snapZone = getSnapZone(pendingX, pendingY);
         }
         return;
       }
-      if (e.data.type === 'show-notification') { showNotification(e.data.title, e.data.msg, e.data.icon); }
+      if (e.data.type === 'show-notification') { showNotification(e.data.title, e.data.msg, e.data.icon, { app: notificationAppOf(e.source) }); }
       if (e.data.type === 'close-app') { closePopup(e.data.appId); }
       if (e.data.type === 'maximize-app') { toggleMaximize(e.data.appId); }
       
@@ -5508,5 +5572,8 @@ snapZone = getSnapZone(pendingX, pendingY);
   </script>
 <script src="/desktop/assets/rule-runtime.js"></script>
 <script src="/desktop/assets/desktop-extras.js"></script>
+<script src="/desktop/assets/desktop-search.js"></script>
+<script src="/desktop/assets/desktop-widgets.js"></script>
+<script src="/desktop/assets/sdk-host.js"></script>
 </body>
 </html>

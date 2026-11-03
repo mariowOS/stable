@@ -8,6 +8,8 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+  <link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <meta charset="UTF-8">
   <title data-i18n="common.settings">Settings</title>
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
@@ -15,13 +17,13 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
 
 <style>
 :root {
-    --mac-accent: var(--sys-accent);
-    --mac-sidebar: rgba(22, 22, 25, 0.65);
-    --mac-border: rgba(255, 255, 255, 0.08);
-    --mac-text: #ffffff;
-    --mac-text-secondary: rgba(255, 255, 255, 0.55);
-    --mac-hover: rgba(255, 255, 255, 0.1);
-    --mac-search-bg: rgba(0, 0, 0, 0.35);
+    --mac-accent: var(--mw-accent);
+    --mac-sidebar: var(--mw-glass-sidebar);
+    --mac-border: var(--mw-border-subtle);
+    --mac-text: var(--mw-text);
+    --mac-text-secondary: var(--mw-text-secondary);
+    --mac-hover: var(--mw-fill-strong);
+    --mac-search-bg: var(--mw-field-strong);
   }
 
   * { box-sizing: border-box; }
@@ -132,6 +134,51 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
   .content h2 { margin-top: 0; margin-bottom: 24px; font-size: 24px; font-weight: 600; color: var(--mac-text); }
   * { scrollbar-width: none; }
   *::-webkit-scrollbar { display: none; }
+
+  /* ---- mariowOS 2 ------------------------------------------------------------------------
+     The sidebar is a quiet column: the selected page is a soft accent wash with a short accent
+     bar at its leading edge (not a full accent fill), icon tiles share the diagonal gradient of
+     the app icons, and nothing moves on hover. */
+  .sidebar { width: 252px; background: var(--mw-glass-sidebar); border-right: 0; box-shadow: inset -1px 0 0 var(--mw-divider); backdrop-filter: blur(var(--mw-blur-xl)); -webkit-backdrop-filter: blur(var(--mw-blur-xl)); }
+  .profile-banner { margin: 14px 10px 6px; padding: 8px 10px; border-radius: var(--mw-radius-card); transition: background var(--mw-duration-fast) ease; }
+  .profile-banner .title { font-weight: 600; }
+  .profile-avatar { box-shadow: 0 0 0 1px var(--mw-border); }
+  .search { padding: 4px 10px 10px; }
+  .search input { height: 32px; padding: 0 10px 0 30px; border-radius: var(--mw-radius-control); background: var(--mw-field); border: 1px solid var(--mw-field-border); transition: border-color var(--mw-duration-fast) ease, box-shadow var(--mw-duration-fast) ease; }
+  .search input::placeholder { color: var(--mw-text-dim); }
+  .search input:focus { border-color: var(--mw-accent-text); box-shadow: 0 0 0 3px var(--mw-accent-soft); }
+  .search-wrapper .material-symbols-outlined { left: 9px; font-size: 17px; }
+  .sidebar-divider { background: var(--mw-divider); margin: 6px 12px; }
+  .menu { gap: 1px; padding: 6px 10px 16px; }
+  .menu-item { position: relative; padding: 6px 10px; border-radius: var(--mw-radius-md); transition: background var(--mw-duration-fast) ease; }
+  .menu-item:hover:not(.active) { background: var(--mw-fill-hover); }
+  .menu-item.active, .profile-banner.active { background: var(--mw-accent-soft); color: var(--mw-text); }
+  .menu-item.active::before { content: ''; position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: var(--mw-radius-full); background: var(--mw-accent-text); }
+  .profile-banner.active::before { top: 14px; bottom: 14px; }
+  .menu-item.active .title, .profile-banner.active .title { color: var(--mw-text); font-weight: 600; }
+  .profile-banner.active .subtitle { color: var(--mw-text-secondary); }
+  .menu-item .title { font-size: 13px; color: var(--mw-text-strong); }
+  .menu-item:focus-visible { outline: none; box-shadow: var(--mw-focus-ring-inset); }
+
+  .icon-bg { width: 26px; height: 26px; border-radius: var(--mw-radius-md); position: relative; overflow: hidden; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+  .icon-bg::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0) 55%); pointer-events: none; }
+  .icon-bg .material-symbols-outlined { font-size: 16px; position: relative; z-index: 1; }
+  .c-wifi { background: linear-gradient(135deg, #3bb2ff, #1f6fe5); }
+  .c-bt { background: linear-gradient(135deg, #4f8bff, #2f5de0); }
+  .c-ethernet { background: linear-gradient(135deg, #8b93a7, #4f5668); }
+  .c-apps { background: linear-gradient(135deg, #ff6a55, #e8384f); }
+  .c-security { background: linear-gradient(135deg, #8b93a7, #4f5668); }
+  .c-users { background: linear-gradient(135deg, #2fd0b3, #11928a); }
+  .c-wallpaper { background: linear-gradient(135deg, #b26bff, #e2489a); }
+  .c-lockscreen { background: linear-gradient(135deg, #8a7cff, #5b4fe0); }
+  .c-functions { background: linear-gradient(135deg, #ffc94d, #f29d1a); }
+  .c-system { background: linear-gradient(135deg, #5b6cff, #3a3fcf); }
+  .c-updater { background: linear-gradient(135deg, #4cd97b, #1f9d47); }
+  .c-about { background: linear-gradient(135deg, #5ad1ff, #1f8fe0); }
+  .c-backup { background: linear-gradient(135deg, #3bb2ff, #2f5de0); }
+
+  .content { padding: 28px 36px 0; }
+  .content h2 { margin-bottom: 18px; font-size: var(--mw-font-size-2xl); letter-spacing: -0.015em; color: var(--mw-text); }
 </style>
 </head>
 <body>
@@ -430,14 +477,14 @@ Licensed under the Apache License, Version 2.0; you can use this file if you giv
     const overlay = document.createElement('div');
     overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;z-index:9999;';
     overlay.innerHTML = `
-      <div style="background:rgba(30,30,30,0.8);border:1px solid rgba(255,255,255,0.1);padding:24px;border-radius:14px;width:280px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-family:'Poppins',sans-serif;color:white;">
+      <div style="background:color-mix(in srgb, var(--mw-surface-3) 80%, transparent);border:1px solid rgba(255,255,255,0.1);padding:24px;border-radius:14px;width:280px;text-align:center;box-shadow:0 10px 30px rgba(0,0,0,0.5);font-family:'Poppins',sans-serif;color:white;">
         <div style="margin-bottom:12px;"><span class="material-symbols-outlined" style="font-size:32px;color: var(--sys-accent-text);">lock</span></div>
         <h3 style="margin:0 0 8px 0;font-size:16px;font-weight:500;">${mariowOSI18n.t("settings.auth.title", "Authentication Required")}</h3>
-        <p style="margin:0 0 20px 0;font-size:12px;color:rgba(255,255,255,0.6);">${mariowOSI18n.t("settings.auth.message", "Enter your password to proceed.")}</p>
-        <input type="password" id="auth-pwd" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.2);background:rgba(0,0,0,0.3);color:white;margin-bottom:12px;box-sizing:border-box;outline:none;font-family:inherit;" placeholder="${mariowOSI18n.t("settings.auth.password", "Password")}">
+        <p style="margin:0 0 20px 0;font-size:12px;color:rgba(var(--mw-ink), 0.6);">${mariowOSI18n.t("settings.auth.message", "Enter your password to proceed.")}</p>
+        <input type="password" id="auth-pwd" style="width:100%;padding:10px;border-radius:8px;border:1px solid rgba(var(--mw-ink), 0.2);background:rgba(var(--mw-shade), 0.3);color:var(--mw-text);margin-bottom:12px;box-sizing:border-box;outline:none;font-family:inherit;" placeholder="${mariowOSI18n.t("settings.auth.password", "Password")}">
         <div style="color:#ff453a;font-size:12px;margin-bottom:12px;display:none;" id="auth-err">${mariowOSI18n.t("settings.auth.incorrect", "Incorrect password")}</div>
         <div style="display:flex;gap:10px;">
-          <button id="auth-cancel" style="flex:1;padding:8px;border-radius:8px;border:none;background:rgba(255,255,255,0.1);color:white;cursor:pointer;font-family:inherit;">${mariowOSI18n.t("common.cancel", "Cancel")}</button>
+          <button id="auth-cancel" style="flex:1;padding:8px;border-radius:8px;border:none;background:rgba(var(--mw-ink), 0.1);color:var(--mw-text);cursor:pointer;font-family:inherit;">${mariowOSI18n.t("common.cancel", "Cancel")}</button>
           <button id="auth-ok" style="flex:1;padding:8px;border-radius:8px;border:none;background:var(--sys-accent);color:var(--sys-accent-on);cursor:pointer;font-family:inherit;">${mariowOSI18n.t("settings.auth.verify", "Verify")}</button>
         </div>
       </div>

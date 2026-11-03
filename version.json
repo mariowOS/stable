@@ -1,8 +1,6 @@
 {
-  "version": "1.5.0",
-  "replaces": [
-    "2.0.0"
-  ],
-  "changelog": "mariowOS 1.5.0 makes mariowOS feel like a real OS. Windows keys work inside mariowOS (Win opens Start, Win+L locks, Win+D shows the desktop, Win+arrows snap windows, Win+Ctrl+arrows switch virtual desktops, Win+V clipboard history, Win+. emoji, Win+Shift+S screenshot). Live wallpapers (MP4, WebM, GIF), a dynamic island for music, timers and updates, a Pomodoro timer, daylight gradient and parallax. New Guest account, parental controls with blocked apps and allowed hours, personal backup and restore, and Switch user on the lock screen. System health page in Settings. The Store shows app permissions, stars and what is new, and can update apps by itself.",
+  "version": "2.0.1",
+  "codename": "supplì",
+  "changelog": "mariowOS 2 is our biggest release so far. A new design made for mariowOS with its own icons and light and dark themes. Updates and Store apps no longer need Git, and a new Windows installer needs nothing else. Global search (Win+S) finds apps, files and settings and does calculations. Widgets (Win+W) show the clock, weather, today's events, notes and music. Notifications are grouped by app with Do not disturb per app. Apps get a real SDK with permissions you approve at install, and the Store adds categories, featured apps, developer pages and a My apps page to review permissions. Optional anonymous usage count, off by default.",
   "_comment": "obb."
 }

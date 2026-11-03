@@ -6,6 +6,8 @@
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
 <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,7 +19,7 @@
   <style>
     body { 
       font-family: 'Poppins', sans-serif; 
-      color: white; 
+      color: var(--mw-text); 
       margin: 0; 
       padding: 30px 20px; 
       background: transparent; 
@@ -34,8 +36,8 @@
     }
 
     .panel { 
-      background: rgba(255, 255, 255, 0.06); 
-      border: 1px solid rgba(255, 255, 255, 0.1); 
+      background: rgba(var(--mw-ink), 0.06); 
+      border: 1px solid rgba(var(--mw-ink), 0.1); 
       border-radius: 12px; 
       padding: 24px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -47,7 +49,7 @@
     .panel label { 
       font-size: 13px; 
       font-weight: 500; 
-      color: rgba(255, 255, 255, 0.7); 
+      color: rgba(var(--mw-ink), 0.7); 
       margin-left: 2px;
     }
 
@@ -56,9 +58,9 @@
       box-sizing: border-box;
       padding: 12px 16px; 
       border-radius: 8px; 
-      border: 1px solid rgba(255, 255, 255, 0.1); 
-      background: rgba(0, 0, 0, 0.25); 
-      color: white; 
+      border: 1px solid rgba(var(--mw-ink), 0.1); 
+      background: rgba(var(--mw-shade), 0.25); 
+      color: var(--mw-text); 
       font-family: inherit; 
       font-size: 16px; 
       outline: none; 
@@ -115,6 +117,7 @@
     input:focus, select:focus { box-shadow: 0 0 0 2px color-mix(in srgb, var(--sys-accent) 40%, transparent); }
     
   </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 

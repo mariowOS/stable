@@ -10,6 +10,8 @@
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
 <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <title data-i18n="calendar.title">Calendar</title>
 <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
@@ -17,13 +19,13 @@
 <style>
   :root {
     --m3-accent-active: var(--sys-accent);
-    --m3-text-color: #ffffff;
-    --m3-glass-border: rgba(255, 255, 255, 0.12);
-    --muted: rgba(255, 255, 255, 0.5);
-    --surface: rgba(255, 255, 255, 0.04);
-    --surface-hover: rgba(255, 255, 255, 0.08);
-    --c-blue: #0a84ff; --c-green: #30d158; --c-red: #ff453a; --c-orange: #ff9f0a;
-    --c-purple: #bf5af2; --c-pink: #ff375f; --c-teal: #40c8e0;
+    --m3-text-color: var(--mw-text);
+    --m3-glass-border: var(--mw-border-strong);
+    --muted: var(--mw-text-muted);
+    --surface: var(--mw-fill-faint);
+    --surface-hover: var(--mw-fill);
+    --c-blue: var(--mw-blue); --c-green: var(--mw-green); --c-red: var(--mw-red); --c-orange: var(--mw-orange);
+    --c-purple: var(--mw-purple); --c-pink: var(--mw-pink); --c-teal: var(--mw-teal);
     --hour: 44px;
   }
   * { box-sizing: border-box; }
@@ -39,20 +41,20 @@
   .toolbar { display: flex; align-items: center; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; row-gap: 8px; }
   .month-title { font-size: 20px; font-weight: 600; margin-right: auto; letter-spacing: -0.3px; white-space: nowrap; }
   .month-title span { font-weight: 300; color: var(--muted); }
-  .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--surface); color: rgba(255,255,255,0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
-  .icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
-  .pill-btn { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.08); cursor: pointer; font-size: 13px; font-weight: 500; outline: none; display: flex; align-items: center; gap: 6px; transition: background 0.15s; white-space: nowrap; }
-  .pill-btn:hover { background: rgba(255,255,255,0.15); }
+  .icon-btn { width: 34px; height: 34px; border-radius: 50%; border: none; background: var(--surface); color: rgba(var(--mw-ink), 0.7); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.15s; }
+  .icon-btn:hover { background: rgba(var(--mw-ink), 0.1); color: var(--mw-text); }
+  .pill-btn { height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid rgba(var(--mw-ink), 0.1); background: rgba(var(--mw-ink), 0.08); cursor: pointer; font-size: 13px; font-weight: 500; outline: none; display: flex; align-items: center; gap: 6px; transition: background 0.15s; white-space: nowrap; }
+  .pill-btn:hover { background: rgba(var(--mw-ink), 0.15); }
   .pill-btn:focus-visible, .icon-btn:focus-visible { box-shadow: 0 0 0 2px color-mix(in srgb, var(--sys-accent) 40%, transparent); }
   .pill-btn.primary { background: var(--m3-accent-active); border-color: transparent; color: var(--sys-accent-on); font-weight: 500; }
   .pill-btn.primary:hover { filter: brightness(1.1); }
-  .seg { display: flex; padding: 3px; border-radius: 9px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); }
+  .seg { display: flex; padding: 3px; border-radius: 9px; background: rgba(var(--mw-shade), 0.25); border: 1px solid rgba(var(--mw-ink), 0.08); }
   .seg button { height: 26px; padding: 0 11px; border: 0; border-radius: 7px; background: transparent; color: var(--muted); cursor: pointer; font-size: 12.5px; font-weight: 500; }
-  .seg button.on { background: rgba(255,255,255,0.14); color: #fff; }
-  .search { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 8px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); width: 140px; }
+  .seg button.on { background: rgba(var(--mw-ink), 0.14); color: var(--mw-text); }
+  .search { display: flex; align-items: center; gap: 6px; height: 34px; padding: 0 10px; border-radius: 8px; background: rgba(var(--mw-shade), 0.25); border: 1px solid rgba(var(--mw-ink), 0.08); width: 140px; }
   .search:focus-within { border-color: var(--sys-accent-text); }
   .search .material-symbols-outlined { font-size: 17px; color: var(--muted); }
-  .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font: inherit; font-size: 12.5px; user-select: text; }
+  .search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: var(--mw-text); font: inherit; font-size: 12.5px; user-select: text; }
 
   .weekdays { display: grid; grid-template-columns: repeat(7, 1fr); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.6px; color: var(--muted); padding: 0 2px 6px; }
   .weekdays div { padding-left: 8px; }
@@ -71,23 +73,23 @@
 
   /* ---- week / day view ---- */
   .week { flex: 1; min-height: 0; display: flex; flex-direction: column; border-radius: 12px; background: var(--surface); overflow: hidden; }
-  .wk-head, .wk-allday { display: grid; grid-template-columns: 52px repeat(var(--days), 1fr); border-bottom: 1px solid rgba(255,255,255,0.07); }
+  .wk-head, .wk-allday { display: grid; grid-template-columns: 52px repeat(var(--days), 1fr); border-bottom: 1px solid rgba(var(--mw-ink), 0.07); }
   .wk-head div { padding: 8px 6px 6px; text-align: center; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; cursor: pointer; }
-  .wk-head div b { display: block; margin: 2px auto 0; width: 30px; height: 30px; line-height: 30px; border-radius: 50%; font-size: 15px; color: #fff; text-transform: none; letter-spacing: 0; }
+  .wk-head div b { display: block; margin: 2px auto 0; width: 30px; height: 30px; line-height: 30px; border-radius: 50%; font-size: 15px; color: var(--mw-text); text-transform: none; letter-spacing: 0; }
   .wk-head div.today b { background: var(--m3-accent-active); color: var(--sys-accent-on); }
   .wk-head div.selected b { box-shadow: inset 0 0 0 1.5px var(--m3-accent-active); }
   .wk-allday { min-height: 26px; }
-  .wk-allday > div { padding: 3px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid rgba(255,255,255,0.05); min-width: 0; }
+  .wk-allday > div { padding: 3px; display: flex; flex-direction: column; gap: 2px; border-left: 1px solid rgba(var(--mw-ink), 0.05); min-width: 0; }
   .wk-allday .label { font-size: 10px; color: var(--muted); padding: 6px 6px 0 0; text-align: right; border-left: 0; }
   .wk-scroll { flex: 1; min-height: 0; overflow-y: auto; position: relative; }
   .wk-body { position: relative; display: grid; grid-template-columns: 52px repeat(var(--days), 1fr); height: calc(var(--hour) * 24); }
   .wk-hours div { height: var(--hour); font-size: 10.5px; color: var(--muted); text-align: right; padding-right: 8px; transform: translateY(-7px); }
-  .wk-col { position: relative; border-left: 1px solid rgba(255,255,255,0.05);
+  .wk-col { position: relative; border-left: 1px solid rgba(var(--mw-ink), 0.05);
     background-image: repeating-linear-gradient(to bottom, rgba(255,255,255,0.06) 0, rgba(255,255,255,0.06) 1px, transparent 1px, transparent var(--hour)); cursor: cell; }
   .wk-col.today { background-color: color-mix(in srgb, var(--sys-accent) 5%, transparent); }
   .wk-col.drop { background-color: rgba(48,209,88,0.08); }
   .wk-ev { position: absolute; border-radius: 7px; padding: 3px 6px; font-size: 11px; line-height: 1.3; overflow: hidden; cursor: grab;
-    background: color-mix(in srgb, var(--ev) 30%, rgba(20,22,28,.9)); border-left: 3px solid var(--ev); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
+    background: color-mix(in srgb, var(--ev) 30%, color-mix(in srgb, var(--mw-surface-3) 90%, transparent)); border-left: 3px solid var(--ev); box-shadow: 0 1px 4px rgba(0,0,0,.35); }
   .wk-ev:hover { filter: brightness(1.15); z-index: 3; }
   .wk-ev b { display: block; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .wk-ev span { opacity: .75; }
@@ -95,12 +97,12 @@
   .now-line::before { content: ''; position: absolute; left: -5px; top: -4px; width: 10px; height: 10px; border-radius: 50%; background: var(--c-red); }
 
   /* ---- side agenda ---- */
-  .side { border-left: 1px solid rgba(255,255,255,0.1); background: rgba(0, 0, 0, 0.18); display: flex; flex-direction: column; min-height: 0; }
+  .side { border-left: 1px solid rgba(var(--mw-ink), 0.1); background: rgba(var(--mw-shade), 0.18); display: flex; flex-direction: column; min-height: 0; }
   .side-head { padding: 18px 18px 10px; }
   .side-day { font-size: 13px; color: var(--sys-accent-text); font-weight: 500; }
   .side-date { font-size: 26px; font-weight: 600; letter-spacing: -0.5px; }
   .agenda { flex: 1; overflow-y: auto; padding: 4px 12px 12px; display: flex; flex-direction: column; gap: 8px; }
-  .agenda::-webkit-scrollbar { width: 6px; } .agenda::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 3px; }
+  .agenda::-webkit-scrollbar { width: 6px; } .agenda::-webkit-scrollbar-thumb { background: rgba(var(--mw-ink), 0.15); border-radius: 3px; }
   .ev-card { background: var(--surface); border-radius: 12px; padding: 10px 12px; border-left: 4px solid var(--ev); cursor: pointer; transition: background 0.15s; }
   .ev-card:hover { background: var(--surface-hover); }
   .ev-title { font-size: 14px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
@@ -114,16 +116,16 @@
   .upcoming-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); margin: 10px 4px 0; }
 
   /* ---- editor ---- */
-  .backdrop { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.18s; z-index: 50; }
+  .backdrop { position: fixed; inset: 0; background: rgba(var(--mw-shade), 0.5); display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: opacity 0.18s; z-index: 50; }
   .backdrop.show { opacity: 1; pointer-events: auto; }
-  .editor { width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; background: rgba(28, 30, 38, 0.98); border: 1px solid var(--m3-glass-border); border-radius: 18px; padding: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); transform: translateY(10px) scale(0.97); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); user-select: text; }
+  .editor { width: min(460px, calc(100vw - 32px)); max-height: calc(100vh - 32px); overflow-y: auto; background: color-mix(in srgb, var(--mw-surface-3) 98%, transparent); border: 1px solid var(--m3-glass-border); border-radius: 18px; padding: 20px; box-shadow: 0 24px 60px rgba(0,0,0,0.55); transform: translateY(10px) scale(0.97); transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); user-select: text; }
   .backdrop.show .editor { transform: none; }
   .editor h3 { margin: 0 0 14px; font-size: 16px; font-weight: 600; }
   .field { margin-bottom: 12px; }
-  .field label { display: block; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7); margin-bottom: 6px; }
-  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.2); color: #fff; font: inherit; font-size: 13px; outline: none; color-scheme: dark; transition: border-color 0.2s, box-shadow 0.2s; }
-  .field input::placeholder, .field textarea::placeholder { color: rgba(255,255,255,0.4); }
-  .field select option { background: #1e1e1e; color: #fff; }
+  .field label { display: block; font-size: 12px; font-weight: 500; color: rgba(var(--mw-ink), 0.7); margin-bottom: 6px; }
+  .field input, .field select, .field textarea { width: 100%; padding: 9px 12px; border-radius: 8px; border: 1px solid rgba(var(--mw-ink), 0.1); background: rgba(var(--mw-shade), 0.2); color: var(--mw-text); font: inherit; font-size: 13px; outline: none; color-scheme: dark; transition: border-color 0.2s, box-shadow 0.2s; }
+  .field input::placeholder, .field textarea::placeholder { color: rgba(var(--mw-ink), 0.4); }
+  .field select option { background: var(--mw-surface-3); color: var(--mw-text); }
   .field input::-webkit-calendar-picker-indicator { filter: invert(1); cursor: pointer; }
   .field input:focus, .field select:focus, .field textarea:focus { border-color: var(--sys-accent-text); box-shadow: 0 0 0 2px color-mix(in srgb, var(--sys-accent) 40%, transparent); }
   .field textarea { resize: vertical; min-height: 60px; }
@@ -132,18 +134,18 @@
   .repeat-extra.show { display: flex; }
   .inline-num { display: flex; align-items: center; gap: 8px; }
   .inline-num input { width: 70px; }
-  .inline-num span { font-size: 13px; color: rgba(255,255,255,0.75); }
+  .inline-num span { font-size: 13px; color: rgba(var(--mw-ink), 0.75); }
   .title-input { font-size: 16px !important; font-weight: 500; }
   .toggle-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; font-size: 13px; }
   .switch { position: relative; width: 44px; height: 24px; flex: 0 0 auto; }
   .switch input { opacity: 0; width: 0; height: 0; }
-  .slider { position: absolute; inset: 0; background: rgba(255,255,255,0.2); border-radius: 24px; cursor: pointer; transition: background 0.3s; }
+  .slider { position: absolute; inset: 0; background: rgba(var(--mw-ink), 0.2); border-radius: 24px; cursor: pointer; transition: background 0.3s; }
   .slider::before { content: ""; position: absolute; width: 20px; height: 20px; left: 2px; bottom: 2px; background: #fff; border-radius: 50%; box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: transform 0.3s; }
   .switch input:checked + .slider { background: #34c759; }
   .switch input:checked + .slider::before { transform: translateX(20px); }
   .colors { display: flex; gap: 8px; }
   .swatch { width: 24px; height: 24px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; background: var(--ev); transition: transform 0.15s; }
-  .swatch:hover { transform: scale(1.12); }
+  .swatch:hover { transform: none; }
   .swatch.on { border-color: #fff; box-shadow: 0 0 0 2px var(--ev); }
   .editor-actions { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
   .editor-actions .spacer { flex: 1; }
@@ -163,6 +165,10 @@
     .cell.has-events .cell-num::after { content: "•"; display: block; line-height: 4px; color: var(--sys-accent-text); }
     .month-title { font-size: 18px; width: 100%; }
   }
+/* ---- mariowOS 2 ---- shared selection and focus, as in Settings and Files. */
+  button:focus-visible, [tabindex]:focus-visible { outline: none; box-shadow: var(--mw-focus-ring); }
+  input:focus-visible, textarea:focus-visible, select:focus-visible { outline: none; }
+  /* ---- end mariowOS 2 ---- */
 </style>
 </head>
 <body>

@@ -11,23 +11,25 @@ Licensed under the Apache License, Version 2.0
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+  <link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   <title data-i18n="music.window-title">mariowOS Music</title>
   <style>
     :root {
-      --accent: var(--sys-accent);
-      --text: #ffffff;
-      --text-muted: rgba(255, 255, 255, 0.5);
-      --text-dim: rgba(255, 255, 255, 0.35);
-      --hover: rgba(255, 255, 255, 0.08);
-      --glass-border: rgba(255, 255, 255, 0.1);
-      --sidebar: rgba(22, 22, 25, 0.65);
-      --surface: rgba(255, 255, 255, 0.05);
-      --spring: cubic-bezier(0.16, 1, 0.3, 1);
+      --accent: var(--mw-accent);
+      --text: var(--mw-text);
+      --text-muted: var(--mw-text-muted);
+      --text-dim: var(--mw-text-dim);
+      --hover: var(--mw-fill);
+      --glass-border: var(--mw-border);
+      --sidebar: var(--mw-glass-sidebar);
+      --surface: var(--mw-fill-subtle);
+      --spring: var(--mw-ease-spring);
       /* Set per track so the whole app takes on the colour of what is playing. */
-      --art-a: #0a84ff;
-      --art-b: #5e5ce6;
+      --art-a: var(--mw-blue);
+      --art-b: var(--mw-indigo);
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -87,7 +89,7 @@ Licensed under the Apache License, Version 2.0
       transition: background 180ms ease;
     }
 
-    .nav-item:hover:not(.active) { background: rgba(255, 255, 255, 0.1); }
+    .nav-item:hover:not(.active) { background: rgba(var(--mw-ink), 0.1); }
     .nav-item.active { background: var(--accent); color: var(--sys-accent-on); }
 
     .nav-count {
@@ -97,7 +99,7 @@ Licensed under the Apache License, Version 2.0
       font-variant-numeric: tabular-nums;
     }
 
-    .nav-item.active .nav-count { color: rgba(255, 255, 255, 0.75); }
+    .nav-item.active .nav-count { color: rgba(var(--mw-ink), 0.75); }
 
     .icon-bg {
       display: flex;
@@ -129,7 +131,7 @@ Licensed under the Apache License, Version 2.0
     .view-tools:empty { display: none; }
     .svc-search {
       flex: 1; min-width: 220px; max-width: 460px; display: flex; align-items: center; gap: 8px;
-      padding: 0 14px; height: 38px; border-radius: 999px; background: rgba(0, 0, 0, 0.3);
+      padding: 0 14px; height: 38px; border-radius: 999px; background: rgba(var(--mw-shade), 0.3);
       border: 1px solid var(--glass-border);
     }
     .svc-search:focus-within { border-color: var(--sys-accent-text); }
@@ -137,9 +139,9 @@ Licensed under the Apache License, Version 2.0
     .svc-search input { flex: 1; min-width: 0; border: 0; outline: 0; background: transparent; color: #fff; font: 13px 'Poppins', sans-serif; user-select: text; }
     .svc-chip {
       height: 38px; padding: 0 14px; border-radius: 999px; border: 1px solid var(--glass-border);
-      background: rgba(255, 255, 255, 0.06); color: var(--text-muted); font: 500 12px 'Poppins', sans-serif; cursor: pointer;
+      background: rgba(var(--mw-ink), 0.06); color: var(--text-muted); font: 500 12px 'Poppins', sans-serif; cursor: pointer;
     }
-    .svc-chip:hover, .svc-chip.on { color: #fff; background: rgba(255, 255, 255, 0.14); }
+    .svc-chip:hover, .svc-chip.on { color: #fff; background: rgba(var(--mw-ink), 0.14); }
     .track-art img { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; }
     .svc-recent { display: flex; flex-direction: column; gap: 2px; }
     .svc-recent .track-row { grid-template-columns: 44px 1fr auto; cursor: default; }
@@ -150,17 +152,17 @@ Licensed under the Apache License, Version 2.0
       transition: transform 0.2s var(--spring), background 0.2s;
       animation: rowIn 0.35s var(--spring) both;
     }
-    .web-tile:hover { transform: translateY(-3px); background: rgba(255, 255, 255, 0.1); }
+    .web-tile:hover { transform: translateY(-3px); background: rgba(var(--mw-ink), 0.1); }
     .web-logo { width: 42px; height: 42px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; color: #fff; }
     .web-name { font-size: 14px; font-weight: 600; margin-top: 4px; }
     .web-sub { font-size: 11.5px; color: var(--text-muted); line-height: 1.5; }
     .pc-controls { display: flex; gap: 10px; margin-top: 14px; }
     .pc-controls button {
       width: 40px; height: 40px; border-radius: 50%; border: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
-      background: rgba(255, 255, 255, 0.1); color: #fff; transition: transform 0.15s;
+      background: rgba(var(--mw-ink), 0.1); color: #fff; transition: transform 0.15s;
     }
     .pc-controls button { flex: 0 0 40px; padding: 0; }
-    .pc-controls button:hover { transform: scale(1.08); }
+    .pc-controls button:hover { transform: none; }
     .pc-controls button.main { background: var(--accent); color: var(--sys-accent-on); }
     .pc-controls .material-symbols-outlined { font-size: 22px; font-variation-settings: 'FILL' 1; }
 
@@ -177,12 +179,12 @@ Licensed under the Apache License, Version 2.0
     .sp-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 6px; }
     .sp-card p, .sp-card li { color: var(--text-muted); font-size: 12.5px; line-height: 1.6; }
     .sp-card ol { padding-left: 18px; margin: 8px 0 14px; }
-    .sp-card code { padding: 2px 6px; border-radius: 6px; background: rgba(0, 0, 0, 0.35); color: #fff; font-size: 11.5px; user-select: text; }
+    .sp-card code { padding: 2px 6px; border-radius: 6px; background: rgba(var(--mw-shade), 0.35); color: var(--mw-text); font-size: 11.5px; user-select: text; }
     .sp-card a { color: #1ed760; }
     .sp-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .sp-input {
       flex: 1; min-width: 220px; padding: 10px 14px; border-radius: 12px; outline: none;
-      border: 1px solid var(--glass-border); background: rgba(0, 0, 0, 0.3); color: #fff;
+      border: 1px solid var(--glass-border); background: rgba(var(--mw-shade), 0.3); color: var(--mw-text);
       font: 13px 'Poppins', sans-serif; user-select: text;
     }
     .sp-input:focus { border-color: #1ed760; }
@@ -191,11 +193,11 @@ Licensed under the Apache License, Version 2.0
       background: #1ed760; color: #000; font: 600 13px 'Poppins', sans-serif; cursor: pointer;
       transition: transform 0.15s ease, filter 0.15s ease;
     }
-    .sp-btn:hover { transform: scale(1.04); filter: brightness(1.08); }
-    .sp-btn.ghost { background: rgba(255, 255, 255, 0.1); color: #fff; }
+    .sp-btn:hover { transform: none; filter: brightness(1.08); }
+    .sp-btn.ghost { background: rgba(var(--mw-ink), 0.1); color: var(--mw-text); }
     .sp-btn .material-symbols-outlined { font-size: 18px; }
     .sp-account { display: flex; align-items: center; gap: 10px; margin-bottom: 18px; font-size: 12.5px; color: var(--text-muted); }
-    .sp-account strong { color: #fff; font-weight: 600; }
+    .sp-account strong { color: var(--mw-text); font-weight: 600; }
     .sp-badge { padding: 2px 8px; border-radius: 999px; background: rgba(30, 215, 96, 0.18); color: #1ed760; font-size: 10.5px; font-weight: 600; }
     .sp-badge.warn { background: rgba(255, 159, 10, 0.18); color: #ff9f0a; }
     .sp-account .sp-btn { margin-left: auto; padding: 6px 14px; font-size: 12px; }
@@ -220,7 +222,7 @@ Licensed under the Apache License, Version 2.0
       transition: background 0.2s ease, transform 0.2s var(--spring);
       animation: rowIn 0.35s var(--spring) both;
     }
-    .sp-tile:hover { background: rgba(255, 255, 255, 0.1); transform: translateY(-3px); }
+    .sp-tile:hover { background: rgba(var(--mw-ink), 0.1); transform: translateY(-3px); }
     .sp-tile-art {
       position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; margin-bottom: 10px;
       background: linear-gradient(145deg, #333, #1a1a1a); display: flex; align-items: center; justify-content: center;
@@ -245,7 +247,7 @@ Licensed under the Apache License, Version 2.0
       padding: 11px;
       border: 1px dashed var(--glass-border);
       border-radius: 12px;
-      background: rgba(255, 255, 255, 0.03);
+      background: rgba(var(--mw-ink), 0.03);
       color: var(--text-muted);
       font-size: 12px;
       font-weight: 500;
@@ -347,7 +349,7 @@ Licensed under the Apache License, Version 2.0
       align-items: center;
       justify-content: center;
       font-size: 18px;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(var(--mw-ink), 0.9);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
@@ -406,10 +408,10 @@ Licensed under the Apache License, Version 2.0
       align-items: center;
       gap: 20px;
       padding: 14px 24px;
-      background: rgba(18, 18, 21, 0.72);
+      background: color-mix(in srgb, var(--mw-surface-1) 72%, transparent);
       backdrop-filter: blur(40px);
       -webkit-backdrop-filter: blur(40px);
-      border-top: 1px solid rgba(255, 255, 255, 0.07);
+      border-top: 1px solid rgba(var(--mw-ink), 0.07);
       position: relative;
       z-index: 2;
     }
@@ -466,8 +468,8 @@ Licensed under the Apache License, Version 2.0
       border-radius: 50%;
       transition: color 0.2s, transform 0.15s ease;
     }
-    .deck-btn:hover:not(:disabled) { color: #fff; transform: scale(1.1); }
-    .deck-btn:active:not(:disabled) { transform: scale(0.92); }
+    .deck-btn:hover:not(:disabled) { color: var(--mw-text); transform: none; }
+    .deck-btn:active:not(:disabled) { transform: scale(0.97); }
     .deck-btn:disabled { opacity: 0.3; cursor: not-allowed; }
     .deck-btn.active { color: var(--sys-accent-text); }
     .deck-btn .material-symbols-outlined { font-size: 22px; }
@@ -494,7 +496,7 @@ Licensed under the Apache License, Version 2.0
       align-items: center;
       cursor: pointer;
     }
-    .seek-track { position: absolute; left: 0; right: 0; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.14); }
+    .seek-track { position: absolute; left: 0; right: 0; height: 4px; border-radius: 4px; background: rgba(var(--mw-ink), 0.14); }
     .seek-fill {
       position: absolute;
       left: 0;
@@ -521,9 +523,9 @@ Licensed under the Apache License, Version 2.0
 
     .volume { display: flex; align-items: center; gap: 9px; width: 130px; flex-shrink: 0; }
     .volume .material-symbols-outlined { font-size: 19px; color: var(--text-muted); cursor: pointer; }
-    .volume .material-symbols-outlined:hover { color: #fff; }
-    .vol-bar { position: relative; flex: 1; height: 4px; border-radius: 4px; background: rgba(255, 255, 255, 0.14); cursor: pointer; }
-    .vol-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: rgba(255, 255, 255, 0.75); }
+    .volume .material-symbols-outlined:hover { color: var(--mw-text); }
+    .vol-bar { position: relative; flex: 1; height: 4px; border-radius: 4px; background: rgba(var(--mw-ink), 0.14); cursor: pointer; }
+    .vol-fill { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: rgba(var(--mw-ink), 0.75); }
 
     /* ─────────────── Toasts ─────────────── */
     #toasts {
@@ -541,7 +543,7 @@ Licensed under the Apache License, Version 2.0
       padding: 9px 16px;
       border-radius: 12px;
       border: 1px solid var(--glass-border);
-      background: rgba(24, 25, 28, 0.9);
+      background: color-mix(in srgb, var(--mw-surface-3) 90%, transparent);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       font-size: 12.5px;
@@ -555,6 +557,14 @@ Licensed under the Apache License, Version 2.0
 
     * { scrollbar-width: none; }
     *::-webkit-scrollbar { display: none; }
+/* ---- mariowOS 2 ---- shared selection, calm motion, focus rings. */
+  /* Sidebar selection, as in Settings and Files: a soft accent wash with a short accent bar. */
+  .nav-item { position: relative; }
+  .nav-item.active { background: var(--mw-accent-soft); color: var(--mw-text); font-weight: 600; }
+  .nav-item.active::before { content: ''; position: absolute; left: 0; top: 8px; bottom: 8px; width: 3px; border-radius: var(--mw-radius-full); background: var(--mw-accent-text); }
+  .nav-item:focus-visible { outline: none; box-shadow: var(--mw-focus-ring-inset); }
+  button:focus-visible { outline: none; box-shadow: var(--mw-focus-ring); }
+  /* ---- end mariowOS 2 ---- */
   </style>
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
 <script src="/desktop/assets/external-consent.js"></script>

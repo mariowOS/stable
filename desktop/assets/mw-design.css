@@ -1,0 +1,291 @@
+/* mariowOS 2 design tokens, shared by the desktop and every system app. See docs/design.md.
+ *
+ * Load it in <head>, right after accent.js (and mw-theme.js):
+ *   <script src="/desktop/assets/accent.js"></script>
+ *   <script src="/desktop/assets/mw-theme.js"></script>
+ *   <link rel="stylesheet" href="/desktop/assets/mw-design.css">
+ *
+ * This file only defines custom properties: linking it never changes how a page looks until the
+ * page uses them. Dark is the default; :root[data-theme="light"] holds the light variant, which
+ * mw-theme.js sets from the user's saved choice. The accent comes from accent.js (--sys-accent,
+ * --sys-accent-on, --sys-accent-text), which sets it inline on :root, so the --mw-accent* tokens
+ * follow the user's choice live.
+ */
+
+:root {
+  color-scheme: dark;
+
+  /* ---- Accent ----------------------------------------------------------------------------
+     Fills use --mw-accent, text on a fill uses --mw-accent-on, text and thin marks on a
+     surface use --mw-accent-text. Never put white text on --mw-accent directly. */
+  --mw-accent: var(--sys-accent, #0a84ff);
+  --mw-accent-on: var(--sys-accent-on, #ffffff);
+  --mw-accent-text: var(--sys-accent-text, #4da3ff);
+  --mw-accent-hover: color-mix(in srgb, var(--mw-accent) 88%, #ffffff);
+  --mw-accent-pressed: color-mix(in srgb, var(--mw-accent) 82%, #000000);
+  --mw-accent-soft: color-mix(in srgb, var(--mw-accent) 18%, transparent);
+  --mw-accent-softer: color-mix(in srgb, var(--mw-accent) 10%, transparent);
+  --mw-accent-line: color-mix(in srgb, var(--mw-accent) 55%, transparent);
+
+  /* ---- Ink and shade ---------------------------------------------------------------------
+     RGB triplets for translucent layers that must flip with the theme:
+       rgba(var(--mw-ink), 0.08)   a hairline/fill in the text color (white on dark, black on light)
+       rgba(var(--mw-shade), 0.3)  a darkening layer on dark, a lightening one on light
+     Shadows never use these: a shadow is always black. */
+  --mw-ink: 255, 255, 255;
+  --mw-shade: 0, 0, 0;
+
+  /* ---- System colors (calendar labels, status, artwork) ---------------------------------- */
+  --mw-blue: #0a84ff;
+  --mw-indigo: #5e5ce6;
+  --mw-green: #30d158;
+  --mw-red: #ff453a;
+  --mw-orange: #ff9f0a;
+  --mw-yellow: #ffd60a;
+  --mw-purple: #bf5af2;
+  --mw-pink: #ff375f;
+  --mw-teal: #40c8e0;
+  --mw-graphite: #8e8e93;
+
+  /* Status roles. Use these, not the raw hues, for meaning. */
+  --mw-success: var(--mw-green);
+  --mw-warning: var(--mw-orange);
+  --mw-danger: var(--mw-red);
+  --mw-info: var(--mw-teal);
+  --mw-danger-soft: color-mix(in srgb, var(--mw-danger) 16%, transparent);
+  --mw-success-soft: color-mix(in srgb, var(--mw-success) 16%, transparent);
+  --mw-warning-soft: color-mix(in srgb, var(--mw-warning) 16%, transparent);
+
+  /* ---- Text, strongest to weakest ---------------------------------------------------------- */
+  --mw-text: #f4f5f8;
+  --mw-text-strong: rgba(var(--mw-ink), 0.88);
+  --mw-text-body: rgba(var(--mw-ink), 0.8);
+  --mw-text-secondary: rgba(var(--mw-ink), 0.6);
+  --mw-text-muted: rgba(var(--mw-ink), 0.5);
+  --mw-text-dim: rgba(var(--mw-ink), 0.36);
+  --mw-text-disabled: rgba(var(--mw-ink), 0.28);
+
+  /* ---- Translucent fills laid on glass: cards, list rows, hover and pressed states -------- */
+  --mw-fill-faint: rgba(var(--mw-ink), 0.035);
+  --mw-fill-subtle: rgba(var(--mw-ink), 0.05);
+  --mw-fill-soft: rgba(var(--mw-ink), 0.06);
+  --mw-fill-hover: rgba(var(--mw-ink), 0.08);
+  --mw-fill: rgba(var(--mw-ink), 0.08);
+  --mw-fill-strong: rgba(var(--mw-ink), 0.1);
+  --mw-fill-tile: rgba(var(--mw-ink), 0.12);
+  --mw-fill-pressed: rgba(var(--mw-ink), 0.14);
+  --mw-fill-key-hover: rgba(var(--mw-ink), 0.16);
+
+  /* ---- Lines --------------------------------------------------------------------------------- */
+  --mw-divider: rgba(var(--mw-ink), 0.06);
+  --mw-border-subtle: rgba(var(--mw-ink), 0.08);
+  --mw-border: rgba(var(--mw-ink), 0.1);
+  --mw-border-strong: rgba(var(--mw-ink), 0.16);
+
+  /* ---- Solid surfaces, back to front ----------------------------------------------------------
+     Used where glass is off (power saver, performance) and for things that must stay readable
+     over anything: menus, dialogs, select options. */
+  --mw-surface-0: #0e1016;   /* desktop and full-screen pages */
+  --mw-surface-1: #161921;   /* window body */
+  --mw-surface-2: #1e222c;   /* cards on a window, raised panes */
+  --mw-surface-3: #272c38;   /* menus, popovers, dialogs */
+  --mw-surface-inverse: #f4f5f8;
+
+  /* ---- Glass levels (pair with a --mw-blur-* backdrop-filter) ----------------------------------
+     thin: bars and chips that sit on the wallpaper; regular: windows and panels;
+     thick: menus and popovers that must read over busy content; solid: no-blur fallback. */
+  --mw-glass-thin: rgba(16, 19, 26, 0.5);
+  --mw-glass-regular: rgba(20, 23, 31, 0.72);
+  --mw-glass-thick: rgba(26, 29, 38, 0.88);
+  --mw-glass-solid: rgba(22, 25, 33, 0.97);
+  --mw-glass-saturate: 180%;
+
+  /* Role aliases used by the apps since mariowOS 1. */
+  --mw-glass-sidebar: rgba(18, 20, 27, 0.55);
+  --mw-glass-panel: rgba(18, 20, 27, 0.6);
+  --mw-glass-calc: rgba(20, 23, 31, 0.72);
+  --mw-glass-menu: rgba(30, 33, 43, 0.97);
+  --mw-titlebar: rgba(var(--mw-shade), 0.22);
+  --mw-field: rgba(var(--mw-shade), 0.22);
+  --mw-field-strong: rgba(var(--mw-shade), 0.32);
+  --mw-field-border: rgba(var(--mw-ink), 0.1);
+  --mw-scrim: rgba(6, 8, 12, 0.5);
+
+  /* Backdrop blur radii. */
+  --mw-blur-sm: 12px;
+  --mw-blur-md: 20px;
+  --mw-blur-lg: 30px;
+  --mw-blur-xl: 40px;
+
+  /* ---- Corner radii ------------------------------------------------------------------------
+     One scale for everything. Windows 14, cards 12, controls 8, chips/pills full. */
+  --mw-radius-xs: 4px;
+  --mw-radius-sm: 6px;
+  --mw-radius-md: 8px;
+  --mw-radius-card: 12px;
+  --mw-radius-lg: 14px;
+  --mw-radius-xl: 18px;
+  --mw-radius-2xl: 24px;
+  --mw-radius-window: 14px;
+  --mw-radius-control: 8px;
+  --mw-radius-full: 999px;
+  --mw-radius-squircle: 26%;   /* app icon tiles: 12.5 / 48 */
+
+  /* ---- Elevation ---------------------------------------------------------------------------- */
+  --mw-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.24);
+  --mw-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.22);
+  --mw-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.36);
+  --mw-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.44);
+  --mw-shadow-window: 0 0 0 1px rgba(0, 0, 0, 0.35), 0 22px 56px rgba(0, 0, 0, 0.45), 0 4px 14px rgba(0, 0, 0, 0.25);
+  --mw-edge-top: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --mw-edge-right: inset -1px 0 0 rgba(255, 255, 255, 0.05);
+  --mw-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.07);   /* the hairline rim of every glass sheet */
+
+  /* ---- Focus ---------------------------------------------------------------------------------- */
+  --mw-focus-color: var(--mw-accent-text);
+  --mw-focus-ring: 0 0 0 2px var(--mw-surface-1), 0 0 0 4px var(--mw-focus-color);
+  --mw-focus-ring-inset: inset 0 0 0 2px var(--mw-focus-color);
+
+  /* ---- Spacing, on a 4px grid ----------------------------------------------------------------- */
+  --mw-space-1: 4px;
+  --mw-space-2: 8px;
+  --mw-space-3: 12px;
+  --mw-space-4: 16px;
+  --mw-space-5: 20px;
+  --mw-space-6: 24px;
+  --mw-space-8: 32px;
+  --mw-space-10: 40px;
+
+  /* ---- Controls --------------------------------------------------------------------------------- */
+  --mw-control-h-sm: 28px;
+  --mw-control-h: 34px;
+  --mw-control-h-lg: 40px;
+  --mw-row-h: 52px;
+
+  /* ---- Motion ----------------------------------------------------------------------------------
+     Short and ease-out. Nothing overshoots: hover never scales, press scales to 0.97 at most. */
+  --mw-ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --mw-ease-in: cubic-bezier(0.4, 0, 1, 1);
+  --mw-ease-standard: cubic-bezier(0.2, 0, 0.2, 1);
+  --mw-ease-spring: var(--mw-ease-out);    /* legacy name, now the same calm curve */
+  --mw-ease-bounce: var(--mw-ease-out);    /* legacy name: kept so old rules stop bouncing */
+  --mw-ease-sheet: cubic-bezier(0.25, 0.8, 0.25, 1);
+  --mw-duration-instant: 0.08s;
+  --mw-duration-fast: 0.12s;
+  --mw-duration-base: 0.18s;
+  --mw-duration-medium: 0.24s;
+  --mw-duration-slow: 0.36s;
+  --mw-press-scale: 0.97;
+
+  /* ---- Typography. Fonts come from /desktop/assets/fonts/fonts.css. -------------------------- */
+  --mw-font: 'Poppins', system-ui, sans-serif;
+  --mw-font-mono: 'Cascadia Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --mw-font-icons: 'Material Symbols Outlined';
+  --mw-font-size-2xs: 10px;
+  --mw-font-size-xs: 11px;
+  --mw-font-size-sm: 12px;
+  --mw-font-size-base: 13px;
+  --mw-font-size-md: 14px;
+  --mw-font-size-lg: 16px;
+  --mw-font-size-xl: 20px;
+  --mw-font-size-2xl: 24px;
+  --mw-font-size-title: 28px;
+  --mw-font-size-display: 40px;
+  --mw-weight-regular: 400;
+  --mw-weight-medium: 500;
+  --mw-weight-semibold: 600;
+  --mw-leading-tight: 1.25;
+  --mw-leading: 1.45;
+  --mw-tracking-caps: 0.06em;
+}
+
+/* ===== Light theme ===================================================================== */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* accent.js derives --sys-accent-text against a dark surface, so on light surfaces the text
+     shade is the accent darkened instead. */
+  --mw-accent-text: color-mix(in srgb, var(--mw-accent) 76%, #000000);
+  --mw-accent-hover: color-mix(in srgb, var(--mw-accent) 90%, #000000);
+  --mw-accent-soft: color-mix(in srgb, var(--mw-accent) 14%, transparent);
+  --mw-accent-softer: color-mix(in srgb, var(--mw-accent) 8%, transparent);
+
+  --mw-ink: 0, 0, 0;
+  --mw-shade: 255, 255, 255;
+
+  --mw-blue: #007aff;
+  --mw-indigo: #5856d6;
+  --mw-green: #1f9d47;
+  --mw-red: #e5372c;
+  --mw-orange: #e88400;
+  --mw-yellow: #c99a00;
+  --mw-purple: #a346d6;
+  --mw-pink: #e8264f;
+  --mw-teal: #1f9fb8;
+  --mw-graphite: #7b7b82;
+
+  --mw-text: #15171c;
+  --mw-text-strong: rgba(0, 0, 0, 0.86);
+  --mw-text-body: rgba(0, 0, 0, 0.78);
+  --mw-text-secondary: rgba(0, 0, 0, 0.6);
+  --mw-text-muted: rgba(0, 0, 0, 0.52);
+  --mw-text-dim: rgba(0, 0, 0, 0.4);
+  --mw-text-disabled: rgba(0, 0, 0, 0.3);
+
+  --mw-fill-faint: rgba(0, 0, 0, 0.025);
+  --mw-fill-subtle: rgba(0, 0, 0, 0.035);
+  --mw-fill-soft: rgba(0, 0, 0, 0.045);
+  --mw-fill-hover: rgba(0, 0, 0, 0.06);
+  --mw-fill: rgba(0, 0, 0, 0.06);
+  --mw-fill-strong: rgba(0, 0, 0, 0.08);
+  --mw-fill-tile: rgba(0, 0, 0, 0.09);
+  --mw-fill-pressed: rgba(0, 0, 0, 0.11);
+  --mw-fill-key-hover: rgba(0, 0, 0, 0.13);
+
+  --mw-divider: rgba(0, 0, 0, 0.07);
+  --mw-border-subtle: rgba(0, 0, 0, 0.08);
+  --mw-border: rgba(0, 0, 0, 0.11);
+  --mw-border-strong: rgba(0, 0, 0, 0.16);
+
+  --mw-surface-0: #eceef3;
+  --mw-surface-1: #f7f8fa;
+  --mw-surface-2: #ffffff;
+  --mw-surface-3: #ffffff;
+  --mw-surface-inverse: #15171c;
+
+  --mw-glass-thin: rgba(244, 245, 249, 0.74);
+  --mw-glass-regular: rgba(246, 247, 250, 0.86);
+  --mw-glass-thick: rgba(250, 251, 253, 0.9);
+  --mw-glass-solid: rgba(248, 249, 251, 0.98);
+  --mw-glass-saturate: 160%;
+
+  --mw-glass-sidebar: rgba(234, 236, 242, 0.7);
+  --mw-glass-panel: rgba(234, 236, 242, 0.7);
+  --mw-glass-calc: rgba(246, 247, 250, 0.8);
+  --mw-glass-menu: rgba(252, 252, 254, 0.97);
+  --mw-titlebar: rgba(255, 255, 255, 0.35);
+  --mw-field: rgba(255, 255, 255, 0.7);
+  --mw-field-strong: rgba(255, 255, 255, 0.85);
+  --mw-field-border: rgba(0, 0, 0, 0.12);
+  --mw-scrim: rgba(20, 24, 32, 0.28);
+
+  --mw-shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.08);
+  --mw-shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.08);
+  --mw-shadow-md: 0 8px 24px rgba(0, 0, 0, 0.12);
+  --mw-shadow-lg: 0 18px 48px rgba(0, 0, 0, 0.16);
+  --mw-shadow-window: 0 0 0 1px rgba(0, 0, 0, 0.1), 0 22px 56px rgba(0, 0, 0, 0.18), 0 4px 14px rgba(0, 0, 0, 0.08);
+  --mw-edge-top: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --mw-edge-right: inset -1px 0 0 rgba(0, 0, 0, 0.06);
+  --mw-edge: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+/* Less motion when the system asks for it. */
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --mw-duration-fast: 0.01s;
+    --mw-duration-base: 0.01s;
+    --mw-duration-medium: 0.01s;
+    --mw-duration-slow: 0.01s;
+    --mw-press-scale: 1;
+  }
+}

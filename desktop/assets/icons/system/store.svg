@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48">
+  <defs>
+    <linearGradient id="mw-store-bg" x1="4" y1="2" x2="44" y2="46" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#4f8bff"/>
+      <stop offset="1" stop-color="#6b4dff"/>
+    </linearGradient>
+    <linearGradient id="mw-store-sheen" x1="24" y1="2" x2="24" y2="26" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.22"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-store-bg)"/>
+  <rect x="2" y="2" width="44" height="44" rx="12.5" fill="url(#mw-store-sheen)"/>
+  <rect x="2.5" y="2.5" width="43" height="43" rx="12" fill="none" stroke="#ffffff" stroke-opacity="0.16"/>
+  <g fill="none" stroke="#ffffff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M14 19h20l-1.6 14.2a3.4 3.4 0 0 1-3.4 3H19a3.4 3.4 0 0 1-3.4-3z"/>
+    <path d="M19 22v-4.5a5 5 0 0 1 10 0V22"/>
+  </g>
+</svg>

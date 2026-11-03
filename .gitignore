@@ -1,0 +1,4 @@
+
+# Wrangler (Cloudflare) local cache and state: account data, never commit
+node_modules/.cache/
+tools/stats-worker/.wrangler/

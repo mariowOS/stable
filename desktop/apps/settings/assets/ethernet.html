@@ -6,19 +6,22 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <meta charset="UTF-8">
   <link href="/desktop/assets/fonts/fonts.css" rel="stylesheet">
   <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css"/>
   <style>
-    body { font-family: 'Poppins', sans-serif; color: white; margin: 0; padding: 10px 0; overflow-y: auto; -webkit-font-smoothing: antialiased; }
-    .panel { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
-    .row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+    body { font-family: 'Poppins', sans-serif; color: var(--mw-text); margin: 0; padding: 10px 0; overflow-y: auto; -webkit-font-smoothing: antialiased; }
+    .panel { background: rgba(var(--mw-ink), 0.06); border: 1px solid rgba(var(--mw-ink), 0.1); border-radius: 10px; margin-bottom: 20px; overflow: hidden; }
+    .row { display: flex; justify-content: space-between; align-items: center; padding: 16px; border-bottom: 1px solid rgba(var(--mw-ink), 0.05); }
     .row:last-child { border-bottom: none; }
     .left { display: flex; align-items: center; gap: 12px; }
     .title { font-size: 14px; font-weight: 500; }
-    .subtitle { font-size: 12px; color: rgba(255,255,255,0.5); }
+    .subtitle { font-size: 12px; color: rgba(var(--mw-ink), 0.5); }
     .badge { background: rgba(52, 199, 89, 0.2); color: #34c759; padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 600; text-transform: capitalize; flex-shrink: 0; }
   </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
   <div class="panel" id="ethPanel">

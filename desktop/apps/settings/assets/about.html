@@ -4,6 +4,8 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title data-i18n="settings.about.title">About mariowOS</title>
@@ -25,7 +27,7 @@
 
     body {
       font-family: 'Poppins', sans-serif;
-      color: #fff;
+      color: var(--mw-text);
       display: flex;
       flex-direction: column;
       box-sizing: border-box;
@@ -56,8 +58,8 @@
     }
 
     .info-box {
-      background: rgba(30, 30, 30, 0.55);
-      border: 1px solid rgba(255, 255, 255, 0.03);
+      background: color-mix(in srgb, var(--mw-surface-3) 55%, transparent);
+      border: 1px solid rgba(var(--mw-ink), 0.03);
       border-radius: 12px;
       padding: 20px 24px;
       margin-bottom: 16px;
@@ -73,7 +75,7 @@
       font-size: 16px;
       font-weight: 600;
       margin: 0 0 10px 0;
-      color: #fff;
+      color: var(--mw-text);
     }
 
     .info-box .content {
@@ -101,7 +103,7 @@
 
     .info-row .label {
       font-weight: 500;
-      color: rgba(255, 255, 255, 0.9);
+      color: rgba(var(--mw-ink), 0.9);
     }
 
     .info-row .value {
@@ -116,6 +118,7 @@
       height: 0 !important;
     }
   </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 

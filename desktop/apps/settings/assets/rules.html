@@ -6,6 +6,8 @@
 <script src="/desktop/assets/i18n-data.js"></script>
 <script src="/desktop/assets/i18n.js"></script>
 <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rules</title>
@@ -15,7 +17,7 @@
 <style>
 body {
   font-family: 'Poppins', sans-serif;
-  color: #fff;
+  color: var(--mw-text);
   margin: 0;
   padding: 40px;
   background: transparent;
@@ -43,18 +45,18 @@ body {
 
 .back-btn {
   font-size: 18px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--mw-ink), 0.5);
   cursor: pointer;
   transition: color 0.15s ease;
 }
 
 .back-btn:hover {
-  color: #fff;
+  color: var(--mw-text);
 }
 
 .banner {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(var(--mw-ink), 0.06);
+  border: 1px solid rgba(var(--mw-ink), 0.1);
   border-radius: 10px;
   padding: 18px;
   margin-bottom: 15px;
@@ -67,12 +69,12 @@ body {
 
 .banner .desc {
   font-size: 13px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--mw-ink), 0.5);
   margin-top: 4px;
 }
 
 .item {
-  background: rgba(255,255,255,0.05);
+  background: rgba(var(--mw-ink), 0.05);
   border-radius: 10px;
   padding: 14px 18px;
   margin-bottom: 8px;
@@ -81,7 +83,7 @@ body {
 }
 
 .item:hover {
-  background: rgba(255,255,255,0.1);
+  background: rgba(var(--mw-ink), 0.1);
 }
 
 .text-title {
@@ -91,7 +93,7 @@ body {
 
 .text-desc {
   font-size: 13px;
-  color: rgba(255,255,255,0.5);
+  color: rgba(var(--mw-ink), 0.5);
   margin-top: 3px;
 }
 
@@ -101,6 +103,7 @@ html::-webkit-scrollbar {
 </style>
 <link rel="stylesheet" href="/desktop/assets/fonts/fonts.css">
 <link rel="stylesheet" href="settings-submenu.css">
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 

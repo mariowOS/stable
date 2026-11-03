@@ -4,6 +4,8 @@
   <script src="/desktop/assets/i18n-data.js"></script>
   <script src="/desktop/assets/i18n.js"></script>
   <script src="/desktop/assets/accent.js"></script>
+<script src="/desktop/assets/mw-theme.js"></script>
+<link rel="stylesheet" href="/desktop/assets/mw-design.css">
 <script src="/desktop/assets/mariowos-dialogs.js"></script>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -13,7 +15,7 @@
   <style>
     body { 
       font-family: 'Poppins', sans-serif; 
-      color: white; 
+      color: var(--mw-text); 
       margin: 0; 
       padding: 20px 0 60px 0; 
       background: transparent;
@@ -54,7 +56,7 @@
       height: 100%;
       border-radius: 50%;
       object-fit: cover;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(var(--mw-ink), 0.1);
       box-shadow: 0 4px 14px rgba(0,0,0,0.3);
       transition: filter 0.2s;
     }
@@ -89,14 +91,14 @@
 
     .user-email {
       font-size: 13px;
-      color: rgba(255, 255, 255, 0.6);
+      color: rgba(var(--mw-ink), 0.6);
       margin: 0;
     }
 
     /* macOS Panel Groups - Full Width Edge-to-Edge */
     .list-group { 
-      background: rgba(255, 255, 255, 0.06); 
-      border: 1px solid rgba(255, 255, 255, 0.1); 
+      background: rgba(var(--mw-ink), 0.06); 
+      border: 1px solid rgba(var(--mw-ink), 0.1); 
       border-radius: 10px; 
       overflow: hidden;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -107,12 +109,12 @@
       justify-content: space-between;
       align-items: center;
       padding: 16px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid rgba(var(--mw-ink), 0.05);
       cursor: pointer;
       transition: background 0.2s;
     }
     
-    .list-item:hover { background: rgba(255, 255, 255, 0.1); }
+    .list-item:hover { background: rgba(var(--mw-ink), 0.1); }
     .list-item:last-child { border-bottom: none; }
 
     .item-left {
@@ -135,11 +137,11 @@
     .icon-badge .material-symbols-outlined { font-size: 18px; }
 
     /* macOS Icon Colors */
-    .bg-gray { background: linear-gradient(180deg, #8e8e93, #636366); }
-    .bg-blue { background: linear-gradient(180deg, #64d2ff, #2bc0ff); }
-    .bg-family { background: linear-gradient(180deg, #0a84ff, #007aff); }
-    .bg-appstore { background: linear-gradient(180deg, #0a84ff, #007aff); }
-    .bg-black { background: linear-gradient(180deg, #48484a, #2c2c2e); }
+    .bg-gray { background: linear-gradient(135deg, #8e8e93, #636366); }
+    .bg-blue { background: linear-gradient(135deg, #64d2ff, #2bc0ff); }
+    .bg-family { background: linear-gradient(135deg, #0a84ff, #007aff); }
+    .bg-appstore { background: linear-gradient(135deg, #0a84ff, #007aff); }
+    .bg-black { background: linear-gradient(135deg, #48484a, #2c2c2e); }
 
     .item-title {
       font-size: 14px;
@@ -148,12 +150,12 @@
 
     .item-subtitle {
       font-size: 12px;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(var(--mw-ink), 0.5);
       margin-top: 2px;
     }
 
     .item-right {
-      color: rgba(255, 255, 255, 0.3);
+      color: rgba(var(--mw-ink), 0.3);
       display: flex;
       align-items: center;
     }
@@ -162,7 +164,7 @@
     .section-title {
       font-size: 12px;
       font-weight: 600;
-      color: rgba(255, 255, 255, 0.5);
+      color: rgba(var(--mw-ink), 0.5);
       margin: 12px 0 4px 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
@@ -174,8 +176,8 @@
       flex-direction: column;
       gap: 12px;
       padding: 16px;
-      background: rgba(0, 0, 0, 0.15);
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      background: rgba(var(--mw-shade), 0.15);
+      border-bottom: 1px solid rgba(var(--mw-ink), 0.05);
     }
 
     .edit-panel input {
@@ -183,9 +185,9 @@
       box-sizing: border-box;
       padding: 10px 14px; 
       border-radius: 8px; 
-      border: 1px solid rgba(255, 255, 255, 0.1); 
-      background: rgba(0, 0, 0, 0.25); 
-      color: white; 
+      border: 1px solid rgba(var(--mw-ink), 0.1); 
+      background: rgba(var(--mw-shade), 0.25); 
+      color: var(--mw-text); 
       font-family: inherit; 
       font-size: 13px; 
       outline: none; 
@@ -233,17 +235,18 @@
     .verify-badge.no { background:rgba(255,159,10,0.2); color:#ff9f0a; }
     .verify-link { background:none; border:none; color: var(--sys-accent-text); cursor:pointer; font-size:13px; padding:0; }
     .verify-link:hover { text-decoration:underline; }
-    .modal-backdrop { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+    .modal-backdrop { position:fixed; inset:0; background:rgba(var(--mw-shade), 0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
     .modal-backdrop.show { display:flex; }
-    .modal { background:rgba(28,30,38,0.97); border:1px solid rgba(255,255,255,0.1); border-radius:18px; padding:22px; width:min(400px, calc(100vw - 32px)); box-shadow:0 24px 60px rgba(0,0,0,0.55); color:#fff; display:flex; flex-direction:column; gap:12px; }
+    .modal { background:color-mix(in srgb, var(--mw-surface-3) 97%, transparent); border:1px solid rgba(var(--mw-ink), 0.1); border-radius:18px; padding:22px; width:min(400px, calc(100vw - 32px)); box-shadow:0 24px 60px rgba(0,0,0,0.55); color:var(--mw-text); display:flex; flex-direction:column; gap:12px; }
     .modal h3 { margin:0; font-size:16px; font-weight:600; }
     .modal p { margin:0; font-size:13px; opacity:0.75; }
-    .code-input { font-size:26px; letter-spacing:10px; text-align:center; padding:10px; border-radius:10px; border:1px solid rgba(255,255,255,0.15); background:rgba(255,255,255,0.06); color:#fff; outline:none; }
+    .code-input { font-size:26px; letter-spacing:10px; text-align:center; padding:10px; border-radius:10px; border:1px solid rgba(var(--mw-ink), 0.15); background:rgba(var(--mw-ink), 0.06); color:var(--mw-text); outline:none; }
     .code-input:focus { border-color: var(--sys-accent-text); }
     .modal-msg { font-size:13px; min-height:18px; }
     .modal-msg.err { color:#ff453a; } .modal-msg.ok { color:#30d158; }
     .btn:disabled { opacity:0.5; cursor:default; }
   </style>
+  <link rel="stylesheet" href="/desktop/apps/settings/assets/mw2-settings.css">
 </head>
 <body>
 
@@ -321,7 +324,7 @@
   <div class="list-group">
     <div class="list-item" onclick="jumpToAbout()">
       <div class="item-left">
-        <div class="icon-badge bg-gray" style="background: transparent; color: rgba(255,255,255,0.7);"><span class="material-symbols-outlined" style="font-size: 32px;">laptop_mac</span></div>
+        <div class="icon-badge bg-gray" style="background: transparent; color: rgba(var(--mw-ink), 0.7);"><span class="material-symbols-outlined" style="font-size: 32px;">laptop_mac</span></div>
         <div>
           <div class="item-title" id="deviceName" data-i18n="settings.you.default-device">mariowOS PC</div>
           <div class="item-subtitle" data-i18n="settings.you.this-device">This Device</div>
@@ -342,7 +345,7 @@
     <div class="btn-row">
       <button class="verify-link" id="resendBtn" onclick="sendCode()">Resend code</button>
       <div style="display:flex; gap:8px;">
-        <button class="btn" style="background:rgba(255,255,255,0.12);" onclick="closeVerifyModal()" data-i18n="common.cancel">Cancel</button>
+        <button class="btn" style="background:rgba(var(--mw-ink), 0.12);" onclick="closeVerifyModal()" data-i18n="common.cancel">Cancel</button>
         <button class="btn" id="confirmCodeBtn" onclick="confirmCode()" data-i18n="settings.auth.verify">Verify</button>
       </div>
     </div>

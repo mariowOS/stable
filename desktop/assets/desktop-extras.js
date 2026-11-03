@@ -733,4 +733,19 @@
   });
 
   sounds.startup();
+
+  /* ───────────── Quick settings: light / dark theme (mw-theme.js) ───────────── */
+  function showThemeTile() {
+    const dark = !window.mariowOSTheme || mariowOSTheme.resolved() === 'dark';
+    const sub = document.getElementById('subTheme'), iconEl = document.getElementById('iconTheme');
+    if (sub) sub.textContent = dark ? mariowOSI18n.t('desktop.qs.theme-dark', 'Dark') : mariowOSI18n.t('desktop.qs.theme-light', 'Light');
+    if (iconEl) iconEl.textContent = dark ? 'dark_mode' : 'light_mode';
+  }
+  window.mwToggleTheme = () => {
+    if (!window.mariowOSTheme) return;
+    mariowOSTheme.set(mariowOSTheme.resolved() === 'dark' ? 'light' : 'dark');
+    showThemeTile();
+  };
+  window.addEventListener('storage', event => { if (event.key === 'mwTheme') showThemeTile(); });
+  showThemeTile();
 })();

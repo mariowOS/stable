@@ -268,3 +268,23 @@ body.setup-page {
 @media (prefers-reduced-motion: reduce) {
     .setup-word, .setup-stars, .setup-content, .setup-logo svg, .setup-done { animation: none; transition: none; }
 }
+
+/* ---- mariowOS 2 ----------------------------------------------------------------------------
+   The setup screens share the system's surfaces: the same glass panel, radii and calm motion as
+   the desktop (values from mw-design.css, repeated here because setup pages load only this file). */
+.setup-panel {
+    background: rgba(20, 23, 31, 0.78);
+    border-color: rgba(255, 255, 255, 0.1);
+    border-radius: 18px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04), 0 18px 48px rgba(0, 0, 0, 0.44);
+    -webkit-backdrop-filter: blur(30px) saturate(160%);
+    backdrop-filter: blur(30px) saturate(160%);
+}
+.setup-panel h2 { letter-spacing: -0.01em; }
+.toggle-container { border-top-color: rgba(255, 255, 255, 0.08); }
+.switch { background: rgba(255, 255, 255, 0.16); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
+.circle { box-shadow: 0 1px 2px rgba(0, 0, 0, 0.24); transition: transform 0.18s cubic-bezier(0.2, 0, 0, 1); }
+.setup-next { transition: background 0.18s ease, color 0.18s ease, box-shadow 0.18s ease; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35); }
+.setup-next:hover { transform: none; background: #e9ecf3; box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.12), 0 8px 24px rgba(0, 0, 0, 0.35); }
+.setup-next:active { background: #dfe3ec; }
+.setup-next[aria-disabled="true"], .setup-next[aria-disabled="true"]:hover { background: rgba(255, 255, 255, 0.1); box-shadow: none; }
