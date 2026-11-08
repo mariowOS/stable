@@ -388,6 +388,7 @@ function startBackend() {
         cwd: __dirname,
         env: {
             ...process.env,
+            ...(process.env.MARIOWOS_NODE_EXECUTABLE ? { ELECTRON_RUN_AS_NODE: '1' } : {}),
             MARIOWOS_MANAGED_BACKEND: '1',
             MARIOWOS_BACKEND_INSTANCE_ID: instanceId,
             MARIOWOS_SHUTDOWN_TOKEN: shutdownToken,
